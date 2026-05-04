@@ -12,7 +12,7 @@
       "wrapperPlacement": {
         "position": "before_character_definition",
         "depth": 2,
-        "order": 99982
+        "order": 99980
       }
     }
   },
@@ -20,7 +20,7 @@
     "uid": "sheet_IVu96w0X",
     "name": "消息记录表",
     "sourceData": {
-      "note": "消息记录表是小手机微信聊天的最终记录仓库。一行代表一条真实聊天气泡，不是发送中状态表，也不是临时草稿表。实时聊天成功后会把用户消息与角色回复批量归档到这里；填表 AI 也可以在合适剧情时机插入 NPC 主动消息或接续已有会话。\n\n【核心记录原则】\n1. 一条气泡一行。用户消息、角色消息、系统提示若需要展示，都必须各占一行。\n2. 同一会话内消息必须按真实聊天顺序连续记录，保证前端可以直接还原聊天记录。\n3. NPC 连发多条气泡时，必须新增多行，不要把多条气泡塞进同一个消息内容格子。\n4. 本表只记录已成立的聊天内容，不记录发送中、生成中、归档失败等 UI 临时状态。\n5. 不应改写既有消息正文的核心语义；如需补充新话题，应新增消息行。\n\n【字段使用说明】\n- 会话ID：用于区分不同聊天线程。同一聊天线程必须保持一致；同一会话结尾后，NPC 可以在同一会话ID下开启新话题。\n- 会话标题：用于前端会话列表显示，尽量稳定。\n- 发送者：显示在聊天气泡中的名称。主角发送时允许写“主角”或“我”；NPC 发送时写角色姓名。\n- 发送者身份：推荐使用 user / assistant / system；NPC 消息使用 assistant。\n- 聊天对象：记录这条消息所属对话的目标角色名称，同一会话线程内应保持一致。\n- 消息内容：只写这一条气泡真正显示给用户看的微信文字，不写旁白、动作描写、内心分析或多条正文拼接。\n- 消息发送时间：展示用时间文本或 ISO 时间，保持同一会话内顺序合理。\n- 请求ID：每条消息必须唯一。实时回复中，用户消息使用基础请求ID，NPC 多气泡可使用 基础请求ID_reply_1、基础请求ID_reply_2。填表 AI 主动消息建议使用 npc_push_角色名_时间戳_序号。\n- 回复到消息ID：如果是在回复某条消息，填写被回复消息的请求ID；如果是同一会话的新话题，可留空。\n\n【NPC 主动消息与接续规则】\n1. 填表 AI 可以让 NPC 主动开启新会话，也可以接续已有会话结尾，或在同一会话ID下开启新话题。\n2. 发送者必须是已离场、不在当前面对面现场、快要离场，或有明确异步联系理由的角色。\n3. 当前正站在用户面前的角色，不要无理由突然在微信里发同样的话。\n4. 不允许把旁白、系统叙述、剧情总结伪装成 NPC 私聊。\n5. NPC 连发多条气泡时，新增多行；这些行应使用同一会话ID、同一聊天对象、唯一请求ID，必要时让回复到消息ID 指向同一条被回复消息。\n\n【微信聊天文风】\n这是微信聊天，不是小说正文。消息必须符合发送者的人设、性格、口癖、关系距离和当前心理状态。可以短句、断句、犹豫、补发、口语化；禁止刻板客套、翻译腔、舞台动作和内心旁白。\n\n【多媒体描述】\n若消息包含图片或视频，应在对应字段描述内容；若没有则写 none。",
+      "note": "消息记录表是小手机微信聊天的最终记录仓库。一行代表一条真实聊天气泡，不是发送中状态表，也不是临时草稿表。实时聊天成功后会把用户消息与角色回复批量归档到这里；填表 AI 也可以在合适剧情时机插入 NPC 主动消息或接续已有会话。\n\n【核心记录原则】\n1. 一条气泡一行。用户消息、角色消息、系统提示若需要展示，都必须各占一行。\n2. 同一会话内消息必须按真实聊天顺序连续记录，保证前端可以直接还原聊天记录。\n3. NPC 连发多条气泡时，必须新增多行，不要把多条气泡塞进同一个消息内容格子。\n4. 本表只记录已成立的聊天内容，不记录发送中、生成中、归档失败等 UI 临时状态。\n5. 不应改写既有消息正文的核心语义；如需补充新话题，应新增消息行。\n\n【字段使用说明】\n- 会话ID：用于区分不同聊天线程。同一聊天线程必须保持一致；同一会话结尾后，NPC 可以在同一会话ID下开启新话题。\n- 会话标题：用于前端会话列表显示，尽量稳定，现如今为角色姓名和发送者，聊天对象一致。\n- 发送者：显示在聊天气泡中的名称。主角发送时允许写“主角”或“我”；NPC 发送时写角色姓名，并且和会话标题，聊天对象一致。\n- 发送者身份：推荐使用 user / assistant / system；NPC 消息使用 assistant。\n- 聊天对象：记录这条消息所属角色名称和会话标题，发送者一致，同一会话线程内应保持一致。\n- 消息内容：只写这一条气泡真正显示给用户看的微信文字，不写旁白、动作描写、内心分析或多条正文拼接。\n- 消息发送时间：展示用时间文本或 ISO 时间，保持同一会话内顺序合理。\n- 请求ID：每条消息必须唯一。实时回复中，用户消息使用基础请求ID，NPC 多气泡可使用 基础请求ID_reply_1、基础请求ID_reply_2。填表 AI 主动消息建议使用 npc_push_角色名_时间戳_序号。\n- 回复到消息ID：如果是在回复某条消息，填写被回复消息的请求ID；如果是同一会话的新话题，可留空。\n\n【NPC 主动消息与接续规则】\n1. 填表 AI 可以让 NPC 主动开启新会话，也可以接续已有会话结尾，或在同一会话ID下开启新话题。\n2. 发送者必须是已离场、不在当前面对面现场、快要离场，或有明确异步联系理由的角色。\n3. 当前正站在用户面前的角色，不要无理由突然在微信里发同样的话。\n4. 不允许把旁白、系统叙述、剧情总结伪装成 NPC 私聊。\n5. NPC 连发多条气泡时，新增多行；这些行应使用同一会话ID、同一聊天对象、唯一请求ID，必要时让回复到消息ID 指向同一条被回复消息。\n\n【微信聊天文风】\n这是微信聊天，不是小说正文。消息必须符合发送者的人设、性格、口癖、关系距离和当前心理状态。可以短句、断句、犹豫、补发、口语化；禁止刻板客套、翻译腔、舞台动作和内心旁白。\n\n【多媒体描述】\n若消息包含图片或视频，应在对应字段描述内容；若没有则写 none。",
       "initNode": "故事开始时，可预置一些符合双方关系的初始微信消息。每行只记录一条真实气泡。",
       "deleteNode": "默认不主动删除历史消息；如需清理，请由后续归档或摘要策略处理。",
       "updateNode": "默认不更新既有消息正文。除非修正明显格式错误，否则应通过新增消息行表达后续补充、解释或新话题。",
@@ -46,7 +46,7 @@
     "updateConfig": {
       "uiSentinel": -1,
       "contextDepth": -1,
-      "updateFrequency": 3,
+      "updateFrequency": 2,
       "batchSize": -1,
       "skipFloors": -1,
       "groupId": 9
@@ -117,11 +117,11 @@
     ],
     "updateConfig": {
       "uiSentinel": -1,
-      "contextDepth": 5,
+      "contextDepth": -1,
       "updateFrequency": -1,
-      "batchSize": 5,
+      "batchSize": -1,
       "skipFloors": -1,
-      "groupId": 1
+      "groupId": 9
     },
     "exportConfig": {
       "enabled": false,
@@ -147,15 +147,16 @@
         "order": 10010
       },
       "fixedEntryPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99981
       },
       "fixedIndexPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99982
-      }
+      },
+      "injectIntoWorldbook": false
     },
     "orderNo": 1
   },
@@ -185,11 +186,11 @@
     ],
     "updateConfig": {
       "uiSentinel": -1,
-      "contextDepth": 5,
+      "contextDepth": -1,
       "updateFrequency": -1,
-      "batchSize": 5,
+      "batchSize": -1,
       "skipFloors": -1,
-      "groupId": 1
+      "groupId": 9
     },
     "exportConfig": {
       "enabled": false,
@@ -215,15 +216,16 @@
         "order": 10010
       },
       "fixedEntryPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99981
       },
       "fixedIndexPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99982
-      }
+      },
+      "injectIntoWorldbook": false
     },
     "orderNo": 2
   },
@@ -251,11 +253,11 @@
     ],
     "updateConfig": {
       "uiSentinel": -1,
-      "contextDepth": 5,
+      "contextDepth": -1,
       "updateFrequency": -1,
-      "batchSize": 5,
+      "batchSize": -1,
       "skipFloors": -1,
-      "groupId": 1
+      "groupId": 9
     },
     "exportConfig": {
       "enabled": false,
@@ -281,15 +283,16 @@
         "order": 10010
       },
       "fixedEntryPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99981
       },
       "fixedIndexPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99982
-      }
+      },
+      "injectIntoWorldbook": false
     },
     "orderNo": 3
   },
@@ -321,11 +324,11 @@
     ],
     "updateConfig": {
       "uiSentinel": -1,
-      "contextDepth": 5,
+      "contextDepth": -1,
       "updateFrequency": -1,
-      "batchSize": 5,
+      "batchSize": -1,
       "skipFloors": -1,
-      "groupId": 1
+      "groupId": 9
     },
     "exportConfig": {
       "enabled": false,
@@ -351,15 +354,16 @@
         "order": 10010
       },
       "fixedEntryPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99981
       },
       "fixedIndexPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99982
-      }
+      },
+      "injectIntoWorldbook": false
     },
     "orderNo": 4
   },
@@ -389,11 +393,11 @@
     ],
     "updateConfig": {
       "uiSentinel": -1,
-      "contextDepth": 5,
+      "contextDepth": -1,
       "updateFrequency": -1,
-      "batchSize": 5,
+      "batchSize": -1,
       "skipFloors": -1,
-      "groupId": 1
+      "groupId": 9
     },
     "exportConfig": {
       "enabled": false,
@@ -419,15 +423,16 @@
         "order": 10010
       },
       "fixedEntryPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99981
       },
       "fixedIndexPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99982
-      }
+      },
+      "injectIntoWorldbook": false
     },
     "orderNo": 5
   },
@@ -456,11 +461,11 @@
     ],
     "updateConfig": {
       "uiSentinel": -1,
-      "contextDepth": 5,
+      "contextDepth": -1,
       "updateFrequency": -1,
-      "batchSize": 5,
+      "batchSize": -1,
       "skipFloors": -1,
-      "groupId": 1
+      "groupId": 9
     },
     "exportConfig": {
       "enabled": false,
@@ -486,15 +491,16 @@
         "order": 10010
       },
       "fixedEntryPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99981
       },
       "fixedIndexPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99982
-      }
+      },
+      "injectIntoWorldbook": false
     },
     "orderNo": 6
   },
@@ -526,11 +532,11 @@
     ],
     "updateConfig": {
       "uiSentinel": -1,
-      "contextDepth": 5,
+      "contextDepth": -1,
       "updateFrequency": -1,
-      "batchSize": 5,
+      "batchSize": -1,
       "skipFloors": -1,
-      "groupId": 1
+      "groupId": 9
     },
     "exportConfig": {
       "enabled": false,
@@ -556,15 +562,16 @@
         "order": 10010
       },
       "fixedEntryPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99981
       },
       "fixedIndexPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99982
-      }
+      },
+      "injectIntoWorldbook": false
     },
     "orderNo": 7
   },
@@ -593,11 +600,11 @@
     ],
     "updateConfig": {
       "uiSentinel": -1,
-      "contextDepth": 5,
+      "contextDepth": -1,
       "updateFrequency": -1,
-      "batchSize": 5,
+      "batchSize": -1,
       "skipFloors": -1,
-      "groupId": 1
+      "groupId": 9
     },
     "exportConfig": {
       "enabled": false,
@@ -623,15 +630,16 @@
         "order": 10010
       },
       "fixedEntryPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99981
       },
       "fixedIndexPlacement": {
-        "position": "before_char",
+        "position": "before_character_definition",
         "depth": 2,
         "order": 99982
-      }
+      },
+      "injectIntoWorldbook": false
     },
     "orderNo": 8
   }
