@@ -1,22 +1,8 @@
 import { Logger } from '../error-handler.js';
+import { findFirstEnumValidationError } from './ddl-field-metadata.js';
 
 const logger = Logger.withScope({ scope: 'table-viewer/detail-edit', feature: 'table-viewer' });
 const DETAIL_CONTROLLER_CLEANUP_KEY = '__yuziGenericDetailControllerCleanup';
-
-function cloneTableDataForSave(rawData) {
-    if (!rawData || typeof rawData !== 'object') return null;
-
-    try {
-        return JSON.parse(JSON.stringify(rawData));
-    } catch (error) {
-        logger.warn({
-            action: 'row.save.clone',
-            message: '详情行保存快照深拷贝失败',
-            error,
-        });
-        return null;
-    }
-}
 
 function createDetailControllerRuntime(runtime) {
     const cleanups = [];
@@ -66,6 +52,7 @@ export function bindGenericDetailEditController(options = {}) {
         sheetKey,
         rawHeaders,
         rows,
+        ddlFieldMetadata,
         shouldHideLeadingPlaceholder,
         toLockColIndex,
         render,
@@ -75,8 +62,9 @@ export function bindGenericDetailEditController(options = {}) {
         isTableRowLocked,
         toggleTableCellLock,
         isTableCellLocked,
-        getTableData,
-        saveTableData,
+        getLiveTableName,
+        updateTableRow,
+        buildMutationDiagnostics,
         showInlineToast,
         runtime,
     } = options;
@@ -102,8 +90,9 @@ export function bindGenericDetailEditController(options = {}) {
     containerAny[DETAIL_CONTROLLER_CLEANUP_KEY] = cleanupController;
 
     container.querySelectorAll('[data-input-col]').forEach((inputNode) => {
-        const inputEl = /** @type {HTMLTextAreaElement} */ (inputNode);
-        resizeTextarea(inputEl);
+        if (inputNode instanceof HTMLTextAreaElement) {
+            resizeTextarea(inputNode);
+        }
     });
 
     controllerRuntime.addEventListener(container, 'click', async (event) => {
@@ -169,6 +158,16 @@ export function bindGenericDetailEditController(options = {}) {
         resizeTextarea(inputEl);
     });
 
+    controllerRuntime.addEventListener(container, 'change', (event) => {
+        const inputEl = event.target instanceof HTMLSelectElement ? event.target : null;
+        if (!(inputEl instanceof HTMLSelectElement)) return;
+        if (!inputEl.matches('[data-input-col]')) return;
+
+        const colIndex = Number(inputEl.getAttribute('data-input-col'));
+        if (Number.isNaN(colIndex)) return;
+        state.updateDraftValue(colIndex, inputEl.value);
+    });
+
     controllerRuntime.registerCleanup?.(() => {
         controllerRuntime.disposeFallback?.();
     });
@@ -229,6 +228,7 @@ export function bindGenericDetailEditController(options = {}) {
 
             const dataRowIndex = saveRowIndex + 1;
             const updateData = {};
+            const changedDraftEntries = [];
             let hasChanges = false;
 
             Object.entries(state.draftValues).forEach(([colKey, draft]) => {
@@ -244,6 +244,7 @@ export function bindGenericDetailEditController(options = {}) {
                 const header = rawHeaders[rawColIndex];
                 if (header !== undefined && header !== null) {
                     updateData[String(header)] = draft;
+                    changedDraftEntries.push([rawColIndex, draft]);
                     hasChanges = true;
                 }
             });
@@ -253,52 +254,97 @@ export function bindGenericDetailEditController(options = {}) {
                 return;
             }
 
-            const freshData = getTableData();
-
-            if (!freshData || !freshData[sheetKey]) {
-                showInlineToast(container, '保存失败：无法获取表格数据');
-                return;
-            }
-
-            const nextData = cloneTableDataForSave(freshData);
-            if (!nextData) {
-                showInlineToast(container, '保存失败：无法创建保存快照');
-                return;
-            }
-
-            const sheetData = nextData[sheetKey];
-            const content = sheetData?.content;
-            if (!content || !Array.isArray(content)) {
-                showInlineToast(container, '保存失败：表格内容格式错误');
-                return;
-            }
-
-            if (dataRowIndex >= content.length) {
+            if (!Array.isArray(rows) || !Array.isArray(rows[saveRowIndex])) {
                 showInlineToast(container, '保存失败：行索引超出范围');
                 return;
             }
 
-            Object.entries(updateData).forEach(([colName, value]) => {
-                const colIndex = rawHeaders.findIndex(h => h === colName);
-                if (colIndex >= 0) {
-                    content[dataRowIndex][colIndex] = value;
-                }
-            });
+            if (typeof updateTableRow !== 'function') {
+                showInlineToast(container, '保存失败：数据库行级更新接口不可用');
+                return;
+            }
 
-            const success = await saveTableData(nextData);
+            const liveTableName = typeof getLiveTableName === 'function' ? String(getLiveTableName() || '').trim() : '';
+            if (!liveTableName) {
+                showInlineToast(container, '保存失败：缺少表格名称');
+                return;
+            }
+
+            const enumValidationError = findFirstEnumValidationError({
+                ddlFieldMetadata,
+                data: updateData,
+                valuesByRawIndex: Object.fromEntries(changedDraftEntries.map(([rawColIndex, draft]) => [rawColIndex, draft])),
+                fieldIndexes: changedDraftEntries.map(([rawColIndex]) => rawColIndex),
+            });
+            if (enumValidationError) {
+                const validationDiagnostics = typeof buildMutationDiagnostics === 'function'
+                    ? buildMutationDiagnostics(updateData, {
+                        operation: 'update',
+                        validation: 'ddl-enum',
+                        rowIndex: saveRowIndex,
+                        dataRowIndex,
+                        validationError: enumValidationError,
+                    })
+                    : {
+                        sheetKey,
+                        tableName: liveTableName,
+                        rowIndex: saveRowIndex,
+                        dataRowIndex,
+                        validation: 'ddl-enum',
+                        validationError: enumValidationError,
+                    };
+                logger.warn({
+                    action: 'row.save.validation-failed',
+                    message: '通用表详情保存前置校验失败',
+                    context: validationDiagnostics,
+                });
+                showInlineToast(container, enumValidationError.message || '保存失败：字段值不在允许范围内');
+                return;
+            }
+
+            const saveDiagnostics = () => (typeof buildMutationDiagnostics === 'function'
+                ? buildMutationDiagnostics(updateData, {
+                    operation: 'update',
+                    rowIndex: saveRowIndex,
+                    dataRowIndex,
+                    changedColumns: changedDraftEntries.map(([rawColIndex]) => ({
+                        rawColIndex,
+                        header: String(rawHeaders[rawColIndex] ?? ''),
+                    })),
+                })
+                : {
+                    sheetKey,
+                    tableName: liveTableName,
+                    rowIndex: saveRowIndex,
+                    dataRowIndex,
+                    payloadKeys: Object.keys(updateData),
+                });
+
+            const result = await updateTableRow(liveTableName, dataRowIndex, updateData);
             if (!isViewerActive()) return;
 
-            if (success) {
-                Object.entries(state.draftValues).forEach(([colKey, draft]) => {
-                    const rawColIndex = Number(colKey);
-                    if (!Number.isNaN(rawColIndex) && rows[saveRowIndex]) {
+            if (result?.ok) {
+                changedDraftEntries.forEach(([rawColIndex, draft]) => {
+                    if (rows[saveRowIndex]) {
                         rows[saveRowIndex][rawColIndex] = draft;
                     }
                 });
                 state.setEditMode(false);
-                showInlineToast(container, '保存成功');
+                showInlineToast(container, result.refreshed === false ? '保存成功，但刷新投影失败' : '保存成功', result.refreshed === false);
             } else {
-                showInlineToast(container, '保存失败：数据库写入失败');
+                logger.warn({
+                    action: 'row.save.failed',
+                    message: '通用表详情保存失败',
+                    context: {
+                        ...saveDiagnostics(),
+                        resultCode: result?.code || '',
+                        resultMessage: result?.message || '',
+                        persisted: result?.persisted,
+                        refreshed: result?.refreshed,
+                        repositoryDiagnostics: result?.diagnostics || null,
+                    },
+                });
+                showInlineToast(container, `保存失败：${result?.message || '数据库行级更新失败'}`);
             }
         } catch (err) {
             logger.error({

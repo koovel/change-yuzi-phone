@@ -1,13 +1,13 @@
 import { Logger } from '../error-handler.js';
 import {
     getTableData,
-    saveTableData,
     getTableLockState,
     isTableRowLocked,
     isTableCellLocked,
     toggleTableRowLock,
     toggleTableCellLock,
     insertTableRow,
+    updateTableRow,
 } from '../phone-core/data-api.js';
 import { navigateBack } from '../phone-core/routing.js';
 import {
@@ -19,9 +19,73 @@ import { createTableViewerScrollPreserver } from './list-scroll-binding.js';
 import { createRowDeleteController } from './row-delete-controller.js';
 import { renderGenericListPage } from './list-page-renderer.js';
 import { renderGenericDetailPage } from './detail-page-renderer.js';
+import { createDdlFieldMetadata } from './ddl-field-metadata.js';
 import { showInlineToast } from './shared-ui.js';
 
 const logger = Logger.withScope({ scope: 'table-viewer/generic-runtime', feature: 'table-viewer' });
+
+function summarizeMutationPayload(data = {}) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        return {};
+    }
+
+    return Object.fromEntries(
+        Object.entries(data)
+            .slice(0, 8)
+            .map(([key, value]) => {
+                const text = String(value ?? '');
+                return [String(key), text.length > 120 ? `${text.slice(0, 120)}…` : text];
+            })
+    );
+}
+
+function summarizeDdlLine(line = '') {
+    const text = String(line || '').trim();
+    return text.length > 180 ? `${text.slice(0, 180)}…` : text;
+}
+
+function collectRelevantDdlLines(ddl = '', fieldNames = []) {
+    const lines = String(ddl || '').split(/\r?\n/);
+    const safeFieldNames = Array.from(new Set((Array.isArray(fieldNames) ? fieldNames : [])
+        .map((fieldName) => String(fieldName || '').trim())
+        .filter(Boolean)));
+
+    return lines
+        .map((line, index) => ({ lineNumber: index + 1, text: summarizeDdlLine(line) }))
+        .filter((entry) => {
+            if (!entry.text) return false;
+            if (/CHECK\s*\(/i.test(entry.text)) return true;
+            if (safeFieldNames.length <= 0) return false;
+            return safeFieldNames.some((fieldName) => entry.text.includes(`-- ${fieldName}`) || entry.text.includes(fieldName));
+        })
+        .slice(0, 12);
+}
+
+function buildSheetMutationDiagnostics(rawData, fallbackSheet, sheetKey, tableName, payload = {}, extra = {}) {
+    const safeSheetKey = String(sheetKey || '').trim();
+    const sheetFromSnapshot = rawData && typeof rawData === 'object' && safeSheetKey ? rawData[safeSheetKey] : null;
+    const sheet = sheetFromSnapshot || fallbackSheet || null;
+    const content = Array.isArray(sheet?.content) ? sheet.content : null;
+    const sourceData = sheet && typeof sheet.sourceData === 'object' ? sheet.sourceData : null;
+    const ddl = String(sourceData?.ddl || '');
+    const payloadKeys = Object.keys(payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {});
+
+    return {
+        sheetKey: safeSheetKey,
+        tableName: String(sheet?.name || tableName || '').trim(),
+        sheetFound: !!sheet,
+        contentLength: content ? content.length : null,
+        rowCount: content ? Math.max(0, content.length - 1) : null,
+        payloadKeys,
+        payloadPreview: summarizeMutationPayload(payload),
+        ddl: {
+            exists: ddl.trim().length > 0,
+            length: ddl.length,
+            relevantLines: collectRelevantDdlLines(ddl, payloadKeys),
+        },
+        ...extra,
+    };
+}
 
 export function createGenericTableViewerRuntime(container, context, hooks = {}) {
     if (!(container instanceof HTMLElement)) {
@@ -29,6 +93,7 @@ export function createGenericTableViewerRuntime(container, context, hooks = {}) 
     }
 
     const {
+        sheet,
         sheetKey,
         tableName,
         headers,
@@ -41,6 +106,11 @@ export function createGenericTableViewerRuntime(container, context, hooks = {}) 
     const renderListPage = hooks.renderListPage || renderGenericListPage;
     const renderDetailPage = hooks.renderDetailPage || renderGenericDetailPage;
     const addRowModalId = String(viewerRuntime?.addRowModalId || hooks.addRowModalId || 'phone-add-row-modal');
+    const ddlFieldMetadata = createDdlFieldMetadata({
+        ddl: sheet?.sourceData?.ddl || '',
+        headers,
+        rawHeaders,
+    });
     const state = createTableViewerState(sheetKey);
     const scrollPreserver = createTableViewerScrollPreserver(container, state, undefined, viewerRuntime);
     let activeListRefreshHandler = null;
@@ -102,6 +172,15 @@ export function createGenericTableViewerRuntime(container, context, hooks = {}) 
         return String(latestSheet?.tableName || tableName || sheetKey || '').trim();
     };
 
+    const buildMutationDiagnostics = (payload = {}, extra = {}) => buildSheetMutationDiagnostics(
+        getTableData(),
+        sheet,
+        sheetKey,
+        getLiveTableName() || tableName,
+        payload,
+        extra,
+    );
+
     const { deleteRowFromList } = createRowDeleteController({
         sheetKey,
         rows,
@@ -136,6 +215,7 @@ export function createGenericTableViewerRuntime(container, context, hooks = {}) 
                 rawHeaders,
                 rows,
                 genericMatch,
+                ddlFieldMetadata,
                 render,
                 restoreListScroll,
                 renderKeepScroll,
@@ -143,8 +223,9 @@ export function createGenericTableViewerRuntime(container, context, hooks = {}) 
                 isTableRowLocked,
                 isTableCellLocked,
                 toggleTableCellLock,
-                getTableData,
-                saveTableData,
+                getLiveTableName,
+                updateTableRow,
+                buildMutationDiagnostics,
                 viewerRuntime,
             });
             return;
@@ -159,6 +240,7 @@ export function createGenericTableViewerRuntime(container, context, hooks = {}) 
             rawHeaders,
             rows,
             genericMatch,
+            ddlFieldMetadata,
             addRowModalId,
             render,
             renderKeepScroll,
@@ -171,6 +253,7 @@ export function createGenericTableViewerRuntime(container, context, hooks = {}) 
             isTableRowLocked,
             insertTableRow,
             getTableData,
+            buildMutationDiagnostics,
             setListRefreshHandler,
             viewerRuntime,
             setSuppressExternalTableUpdate: (next) => {

@@ -1,4 +1,5 @@
 import { PHONE_ICONS } from '../phone-home/icons.js';
+import { applyAppearanceFontLibrary } from '../settings-app/services/appearance-settings.js';
 import {
     getPhoneSettings,
     savePhoneSetting,
@@ -19,6 +20,15 @@ export const DOM_IDS = Object.freeze({
 
 const toggleEventManager = new EventManager();
 let boundToggleButton = null;
+
+export function applyPhoneToggleVisibility(btn, settings = getPhoneSettings()) {
+    if (!(btn instanceof HTMLElement)) return;
+
+    const shouldHide = settings?.floatingToggleEnabled === false;
+    btn.hidden = shouldHide;
+    btn.style.display = shouldHide ? 'none' : '';
+    btn.setAttribute('aria-hidden', shouldHide ? 'true' : 'false');
+}
 
 export function applyPhoneToggleVisualStyle(btn, settings = getPhoneSettings()) {
     if (!(btn instanceof HTMLElement)) return;
@@ -114,8 +124,11 @@ export function resetPhoneTogglePosition() {
 export function syncPhoneToggleVisualStyle() {
     const btn = document.getElementById(DOM_IDS.toggle);
     if (!btn) return;
-    applyPhoneToggleVisualStyle(btn, getPhoneSettings());
-    applyPhoneTogglePosition(btn, { persistIfAdjusted: true });
+
+    const settings = getPhoneSettings();
+    applyPhoneToggleVisualStyle(btn, settings);
+    applyPhoneTogglePosition(btn, { settings, persistIfAdjusted: true });
+    applyPhoneToggleVisibility(btn, settings);
 }
 
 export function createPhoneRoot() {
@@ -131,7 +144,10 @@ export function createPhoneRoot() {
 
 export function createPhoneContainer() {
     let container = document.getElementById(DOM_IDS.container);
-    if (container) return container;
+    if (container) {
+        applyAppearanceFontLibrary(container);
+        return container;
+    }
 
     const root = createPhoneRoot();
     container = document.createElement('div');
@@ -165,6 +181,7 @@ export function createPhoneContainer() {
     container.style.height = height + 'px';
 
     root.appendChild(container);
+    applyAppearanceFontLibrary(container);
     return container;
 }
 
@@ -250,8 +267,10 @@ export function createPhoneToggleButton(options = {}) {
     let btn = document.getElementById(DOM_IDS.toggle);
 
     if (btn && btn === boundToggleButton) {
-        applyPhoneToggleVisualStyle(btn, getPhoneSettings());
-        applyPhoneTogglePosition(btn, { persistIfAdjusted: true });
+        const settings = getPhoneSettings();
+        applyPhoneToggleVisualStyle(btn, settings);
+        applyPhoneTogglePosition(btn, { settings, persistIfAdjusted: true });
+        applyPhoneToggleVisibility(btn, settings);
         return btn;
     }
 
@@ -279,9 +298,11 @@ export function createPhoneToggleButton(options = {}) {
         root.appendChild(btn);
     }
 
-    applyPhoneToggleVisualStyle(btn, getPhoneSettings());
-    applyPhoneTogglePosition(btn, { persistIfAdjusted: true });
+    const settings = getPhoneSettings();
+    applyPhoneToggleVisualStyle(btn, settings);
+    applyPhoneTogglePosition(btn, { settings, persistIfAdjusted: true });
     btn.style.visibility = '';
+    applyPhoneToggleVisibility(btn, settings);
     bindPhoneToggleDraggable(btn, onToggle);
     return btn;
 }

@@ -4,9 +4,36 @@ import {
     buildSettingsSectionHtml,
 } from '../primitives.js';
 import { PHONE_ICONS } from '../../../phone-home/icons.js';
-import { escapeHtmlAttr } from '../../../utils/dom-escape.js';
+import { escapeHtml, escapeHtmlAttr } from '../../../utils/dom-escape.js';
 
-export function buildAppearancePageHtml({ layoutValues, hideTableCountBadge }) {
+function formatBytes(bytes) {
+    const value = Number(bytes) || 0;
+    if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)}MB`;
+    if (value >= 1024) return `${Math.round(value / 1024)}KB`;
+    return `${Math.max(0, Math.round(value))}B`;
+}
+
+function buildFontLibraryOptionsHtml(fontLibrary) {
+    const activeFontId = String(fontLibrary?.activeFontId || 'builtin.system');
+    const options = Array.isArray(fontLibrary?.options) ? fontLibrary.options : [];
+    return options.map((font) => {
+        const id = String(font?.id || '').trim();
+        if (!id) return '';
+        const label = `${font?.builtin ? '内置' : '用户'} · ${String(font?.name || id)}`;
+        return `<option value="${escapeHtmlAttr(id)}" ${id === activeFontId ? 'selected' : ''}>${escapeHtmlAttr(label)}</option>`;
+    }).join('');
+}
+
+export function buildAppearancePageHtml({ layoutValues, hideTableCountBadge, fontLibrary = {} }) {
+    const activeFont = fontLibrary?.activeFont || {};
+    const userFontCount = Number(fontLibrary?.stats?.userFontCount) || 0;
+    const maxFonts = Number(fontLibrary?.limits?.maxFonts) || 0;
+    const totalFontBytes = Number(fontLibrary?.stats?.totalBytes) || 0;
+    const maxTotalFontBytes = Number(fontLibrary?.limits?.totalFontBytes) || 0;
+    const singleFontBytes = Number(fontLibrary?.limits?.singleFontBytes) || 0;
+    const fontOptionsHtml = buildFontLibraryOptionsHtml(fontLibrary);
+    const canDeleteActiveFont = !!activeFont?.id && !activeFont?.builtin;
+
     const heroHtml = buildSettingsHeroHtml({
         eyebrow: '界面外观',
         title: '桌面视觉与布局',
@@ -34,6 +61,54 @@ export function buildAppearancePageHtml({ layoutValues, hideTableCountBadge }) {
             bodyHtml: `
                 <div class="phone-settings-note">建议选择浅色、低干扰背景，以保证图标与文字的可读性。</div>
                 <div id="phone-bg-preview" class="phone-settings-preview"></div>
+            `,
+        })}
+
+        ${buildSettingsSectionHtml({
+            title: '外观资源包',
+            desc: '导入官方美化包，或导出当前背景、图标与备用资源池。',
+            actionsHtml: `
+                <div class="phone-settings-action phone-settings-action-wrap">
+                    <button type="button" class="phone-settings-btn" id="phone-import-appearance-pack">
+                        ${PHONE_ICONS.upload}
+                        <span>导入美化包</span>
+                    </button>
+                    <button type="button" class="phone-settings-btn" id="phone-export-appearance-pack">导出当前外观</button>
+                    <input type="file" id="phone-appearance-pack-file" accept="application/json,.json" hidden>
+                </div>
+            `,
+            bodyHtml: `
+                <div class="phone-settings-note">导入后会优先填充当前空图标位；多余图标进入资源池，不足部分保留原来的文字图标。</div>
+            `,
+        })}
+
+        ${buildSettingsSectionHtml({
+            title: '字体库',
+            desc: '选择内置字体，或导入 woff2 / woff / ttf / otf 字体并应用到小手机普通文本。',
+            actionsHtml: `
+                <div class="phone-settings-action phone-settings-action-wrap">
+                    <button type="button" class="phone-settings-btn" id="phone-import-font-btn">
+                        ${PHONE_ICONS.upload}
+                        <span>导入字体</span>
+                    </button>
+                    <button type="button" class="phone-settings-btn phone-settings-btn-danger" id="phone-delete-font-btn" ${canDeleteActiveFont ? '' : 'disabled'}>删除当前字体</button>
+                    <input type="file" id="phone-font-file" accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf,application/x-font-ttf,application/x-font-otf" hidden>
+                </div>
+            `,
+            bodyHtml: `
+                <div class="phone-settings-font-panel">
+                    <label class="phone-settings-field-inline phone-settings-field-full">
+                        <span>当前字体</span>
+                        <select id="phone-font-select" class="phone-settings-select">
+                            ${fontOptionsHtml}
+                        </select>
+                    </label>
+                    <div class="phone-settings-font-preview" id="phone-font-preview" style="font-family: var(--yuzi-phone-font-family);">
+                        <span class="phone-settings-font-preview-title">${escapeHtml(activeFont.name || '系统默认')}</span>
+                        <span class="phone-settings-font-preview-sample">${escapeHtml(activeFont.previewText || '玉子手机 · 字体预览 Aa 123')}</span>
+                    </div>
+                    <div class="phone-settings-note">已保存 ${escapeHtml(String(userFontCount))} / ${escapeHtml(String(maxFonts))} 个用户字体；字体库占用 ${escapeHtml(formatBytes(totalFontBytes))} / ${escapeHtml(formatBytes(maxTotalFontBytes))}；单个字体上限 ${escapeHtml(formatBytes(singleFontBytes))}。</div>
+                </div>
             `,
         })}
 
@@ -88,6 +163,11 @@ export function buildAppearancePageHtml({ layoutValues, hideTableCountBadge }) {
         ${buildSettingsSectionHtml({
             title: '自定义图标',
             desc: '为不同 App 上传更具识别度的图标资源，形成统一视觉记忆。',
+            actionsHtml: `
+                <div class="phone-settings-action">
+                    <button type="button" class="phone-settings-btn phone-settings-btn-danger" id="phone-clear-icon-resource-pool">清空资源池图标</button>
+                </div>
+            `,
             bodyHtml: `<div id="phone-icon-upload-list" class="phone-icon-upload-list"></div>`,
         })}
     `;

@@ -1,4 +1,5 @@
 import { Logger } from '../error-handler.js';
+import { getPhoneSettings } from '../settings.js';
 import { resolveTheaterSceneBySheetKey } from '../phone-theater/data.js';
 import { escapeHtml } from '../utils/dom-escape.js';
 import { getPhoneCoreState, phoneRuntime } from './state.js';
@@ -90,9 +91,6 @@ function buildPhoneNotificationContentHtml(iconHtml, safeTitle, safeSummary) {
 }
 
 function triggerPushNotification(tableName, sheetKey, lastRow, newCount) {
-    const container = document.getElementById('phone-notif-container');
-    if (!container) return;
-
     let summary = '收到新内容';
     if (lastRow && Array.isArray(lastRow) && lastRow.length > 0) {
         summary = lastRow[1] || lastRow[0] || summary;
@@ -109,6 +107,11 @@ function triggerPushNotification(tableName, sheetKey, lastRow, newCount) {
     const state = getPhoneCoreState();
     state.unreadCounts[targetBadgeKey] = (state.unreadCounts[targetBadgeKey] || 0) + newCount;
     updateBadgeUI(targetBadgeKey);
+
+    if (getPhoneSettings().notificationBubblesEnabled !== true) return;
+
+    const container = document.getElementById('phone-notif-container');
+    if (!container) return;
 
     const notif = document.createElement('div');
     notif.className = 'phone-notif-bubble';

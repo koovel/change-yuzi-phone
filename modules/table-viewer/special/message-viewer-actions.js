@@ -89,6 +89,7 @@ export function createMessageViewerActions(ctx = {}) {
         return {
             handleSendMessage: async () => {},
             handleRetryMessage: async () => {},
+            handleStopMessage: async () => {},
         };
     }
 
@@ -116,6 +117,50 @@ export function createMessageViewerActions(ctx = {}) {
     };
     const patchComposeIfActive = () => runIfViewerActive(patchCompose);
     const scrollMessageDetailToBottomIfActive = () => runIfViewerActive(() => scrollMessageDetailToBottomImpl(container));
+    const supportsAbortController = typeof AbortController === 'function';
+
+    const clearActiveSendRequest = (requestState = null) => {
+        if (!state || typeof state !== 'object') return;
+        if (!requestState || state.activeSendRequest === requestState) {
+            state.activeSendRequest = null;
+        }
+        if (!state.activeSendRequest) {
+            state.sendPhase = 'idle';
+        }
+    };
+
+    const setSendPhase = (phase, requestState = null) => {
+        const safePhase = String(phase || 'idle').trim() || 'idle';
+        if (requestState && state.activeSendRequest !== requestState) return false;
+        state.sendPhase = safePhase;
+        if (requestState) {
+            requestState.phase = safePhase;
+        }
+        return true;
+    };
+
+    const isCurrentSendRequest = (requestState) => !!requestState
+        && state.activeSendRequest === requestState
+        && !requestState.cancelled;
+
+    const isCurrentAiSendRequest = (requestState) => isCurrentSendRequest(requestState)
+        && String(requestState.phase || state.sendPhase || '').trim() === 'ai'
+        && !requestState.abortController?.signal?.aborted;
+
+    const shouldIgnoreSendResult = (requestState) => !isCurrentSendRequest(requestState);
+
+    const abortRequest = (requestState, reason = '用户取消等待本次 AI 回复') => {
+        if (!requestState || requestState.cancelled) return false;
+        requestState.cancelled = true;
+        if (requestState.abortController && !requestState.abortController.signal?.aborted) {
+            try {
+                requestState.abortController.abort(reason);
+            } catch (error) {
+                requestState.abortController.abort();
+            }
+        }
+        return true;
+    };
 
     const warnAction = (action, message, context = {}, error) => {
         logger.warn({
@@ -285,7 +330,21 @@ export function createMessageViewerActions(ctx = {}) {
         };
     };
 
-    const buildAiRuntime = async (conversationId, threadTitle) => {
+    const buildPromptOnlyRow = (payload = null) => {
+        if (!payload || typeof payload !== 'object') return null;
+        const rowPayload = typeof buildPhoneMessagePayloadFromHeadersImpl === 'function'
+            ? buildPhoneMessagePayloadFromHeadersImpl(headers, payload)
+            : payload;
+        return materializeRowFromPayloadImpl(headers, rowPayload);
+    };
+
+    const hasPromptRecordInRows = (rows = [], pendingRecord = null) => {
+        const pendingRequestId = String(pendingRecord?.requestId || '').trim();
+        if (!pendingRequestId || !Array.isArray(rows)) return false;
+        return rows.some((row) => String(readSpecialField(row, 'requestId') || '').trim() === pendingRequestId);
+    };
+
+    const buildAiRuntime = async (conversationId, threadTitle, options = {}) => {
         const phoneChatSettings = getPhoneChatSettingsImpl();
         const instructionPreset = getCurrentPhoneAiInstructionPresetImpl();
         const storyContext = phoneChatSettings.useStoryContext
@@ -293,6 +352,13 @@ export function createMessageViewerActions(ctx = {}) {
             : '';
         const worldbookContext = await getPhoneChatWorldbookContextImpl(phoneChatSettings);
         const threadRows = getConversationRowsImpl(state.rowsData, conversationId, readSpecialField);
+        const shouldAppendPromptOnlyUserRow = !hasPromptRecordInRows(threadRows, options?.pendingUserRecord);
+        const promptOnlyUserRow = shouldAppendPromptOnlyUserRow
+            ? buildPromptOnlyRow(options?.pendingUserRecord)
+            : null;
+        const threadRowsForPrompt = promptOnlyUserRow
+            ? [...threadRows, promptOnlyUserRow]
+            : threadRows;
         const partnerName = state.selectedTarget
             || findConversationPartnerNameImpl(
                 threadRows,
@@ -308,7 +374,7 @@ export function createMessageViewerActions(ctx = {}) {
                 conversationTitle: threadTitle,
                 targetCharacterName,
             }),
-            ...buildPhoneChatConversationMessagesImpl(threadRows, readSpecialField, {
+            ...buildPhoneChatConversationMessagesImpl(threadRowsForPrompt, readSpecialField, {
                 instructionPreset,
                 maxHistoryMessages: phoneChatSettings.maxHistoryMessages,
             }),
@@ -348,9 +414,35 @@ export function createMessageViewerActions(ctx = {}) {
         return state.rowsData.length !== beforeLength;
     };
 
+    const hasLocalTempRecord = (batchId, record, kind) => {
+        const safeBatchId = String(batchId || '').trim();
+        const safeRequestId = String(record?.requestId || '').trim();
+        const safeKind = String(kind || '').trim();
+        if (!safeBatchId || !safeRequestId || !safeKind || !Array.isArray(state.rowsData)) return false;
+        return state.rowsData.some((row) => row
+            && row[LOCAL_TEMP_BATCH_KEY] === safeBatchId
+            && row[LOCAL_TEMP_KIND_KEY] === safeKind
+            && String(readSpecialField(row, 'requestId') || '').trim() === safeRequestId);
+    };
+
     const appendLocalTempRows = (records = [], batchId = '') => {
         if (!Array.isArray(records) || records.length === 0) return [];
         const rows = records.map((record, index) => createLocalTempRow(record, batchId, index === 0 ? 'user' : 'assistant'));
+        state.rowsData.push(...rows);
+        return rows;
+    };
+
+    const ensureLocalTempRowsVisible = (archiveState) => {
+        const safeBatchId = String(archiveState?.batchId || '').trim();
+        const records = Array.isArray(archiveState?.records) ? archiveState.records : [];
+        if (!safeBatchId || records.length === 0) return [];
+
+        const missingRecords = records
+            .map((record, index) => ({ record, kind: index === 0 ? 'user' : 'assistant' }))
+            .filter(({ record, kind }) => !hasLocalTempRecord(safeBatchId, record, kind));
+        if (missingRecords.length === 0) return [];
+
+        const rows = missingRecords.map(({ record, kind }) => createLocalTempRow(record, safeBatchId, kind));
         state.rowsData.push(...rows);
         return rows;
     };
@@ -363,14 +455,16 @@ export function createMessageViewerActions(ctx = {}) {
         state.pendingArchive = null;
     };
 
-    const finalizeArchiveSuccess = (archiveResult, batchId, successText) => {
+    const finalizeArchiveSuccess = (archiveResult, batchId, successText, requestState = null) => {
         if (!isViewerActive()) return;
+        if (requestState && shouldIgnoreSendResult(requestState)) return;
         state.pendingArchive = null;
         state.sending = false;
         state.errorText = '';
         state.statusText = archiveResult?.refreshed === false
             ? `${successText}，但投影刷新失败`
             : successText;
+        clearActiveSendRequest(requestState);
 
         const synced = syncRows();
         if (!synced) {
@@ -382,19 +476,35 @@ export function createMessageViewerActions(ctx = {}) {
         rerenderAndScrollToBottom();
     };
 
-    const failBeforeArchive = (batchId, conversationId, draftText, message) => {
+    const failBeforeArchive = (batchId, conversationId, draftText, message, requestState = null) => {
         if (!isViewerActive()) return;
+        if (requestState && shouldIgnoreSendResult(requestState)) return;
         removeLocalTempRows(batchId);
         state.pendingArchive = null;
         state.sending = false;
         state.draftByConversation[conversationId] = draftText;
         state.errorText = String(message || '角色回复失败');
         state.statusText = '';
+        clearActiveSendRequest(requestState);
         rerenderPreservingLocalRows();
     };
 
-    const failArchive = (archiveState, message) => {
+    const cancelBeforeArchive = (requestState, message = '已取消等待，消息已放回输入框') => {
+        if (!isViewerActive() || !requestState) return;
+        removeLocalTempRows(requestState.batchId);
+        state.pendingArchive = null;
+        state.sending = false;
+        state.draftByConversation[requestState.conversationId] = requestState.draftText;
+        state.errorText = '';
+        state.statusText = String(message || '已取消等待');
+        clearActiveSendRequest(requestState);
+        rerenderPreservingLocalRows();
+    };
+
+    const failArchive = (archiveState, message, requestState = null) => {
         if (!isViewerActive()) return;
+        if (requestState && shouldIgnoreSendResult(requestState)) return;
+        ensureLocalTempRowsVisible(archiveState);
         state.pendingArchive = {
             ...archiveState,
             status: 'failed',
@@ -403,12 +513,24 @@ export function createMessageViewerActions(ctx = {}) {
         state.sending = false;
         state.errorText = String(message || '归档失败');
         state.statusText = '归档失败，可重新归档';
+        clearActiveSendRequest(requestState);
         rerenderPreservingLocalRows();
     };
 
     const archiveRecords = async (archiveState) => {
         markMutation(1800);
         return await appendPhoneMessageRecordsBatchImpl(sheetKey, archiveState.records);
+    };
+
+    const handleStopMessage = async () => {
+        if (!isViewerActive()) return;
+        const requestState = state.activeSendRequest && typeof state.activeSendRequest === 'object'
+            ? state.activeSendRequest
+            : null;
+        if (!isCurrentAiSendRequest(requestState)) return;
+
+        abortRequest(requestState, '用户取消等待本次 AI 回复');
+        cancelBeforeArchive(requestState, '已取消等待，消息已放回输入框');
     };
 
     const handleSendMessage = async ({ conversationId, threadTitle }) => {
@@ -432,6 +554,16 @@ export function createMessageViewerActions(ctx = {}) {
 
         const requestId = createPhoneMessageRequestIdImpl();
         const batchId = `${requestId}_batch`;
+        const abortController = supportsAbortController ? new AbortController() : null;
+        const requestState = {
+            requestId,
+            batchId,
+            conversationId: activeConversationId,
+            draftText,
+            phase: 'ai',
+            cancelled: false,
+            abortController,
+        };
         const sentAt = new Date().toISOString();
         const userRecord = {
             threadId: activeConversationId,
@@ -446,6 +578,8 @@ export function createMessageViewerActions(ctx = {}) {
             videoDesc: 'none',
         };
 
+        state.activeSendRequest = requestState;
+        state.sendPhase = 'ai';
         state.sending = true;
         state.errorText = '';
         state.statusText = '正在等待角色回复...';
@@ -458,21 +592,33 @@ export function createMessageViewerActions(ctx = {}) {
         let archiveState = null;
 
         try {
-            const { phoneChatSettings, partnerName, targetCharacterName, aiMessages } = await buildAiRuntime(activeConversationId, threadTitle);
+            const aiRuntime = await buildAiRuntime(activeConversationId, threadTitle, {
+                pendingUserRecord: userRecord,
+            });
+            if (shouldIgnoreSendResult(requestState)) return;
+
+            const { phoneChatSettings, partnerName, targetCharacterName, aiMessages } = aiRuntime;
             const aiResult = await callPhoneChatAIImpl(aiMessages, {
                 apiPresetName: phoneChatSettings.apiPresetName,
                 maxTokens: phoneChatSettings.maxReplyTokens,
                 timeout: phoneChatSettings.requestTimeoutMs,
+                signal: abortController?.signal,
             });
+            if (shouldIgnoreSendResult(requestState)) return;
 
             if (!aiResult.ok) {
-                failBeforeArchive(batchId, activeConversationId, draftText, aiResult.message || '角色回复失败');
+                if (aiResult.code === 'aborted') {
+                    cancelBeforeArchive(requestState, '已取消等待，消息已放回输入框');
+                    return;
+                }
+                failBeforeArchive(batchId, activeConversationId, draftText, aiResult.message || '角色回复失败', requestState);
                 return;
             }
 
             const parsedAssistantReply = parseStructuredAiReply(aiResult.text);
+            if (shouldIgnoreSendResult(requestState)) return;
             if (!Array.isArray(parsedAssistantReply.messages) || parsedAssistantReply.messages.length === 0) {
-                failBeforeArchive(batchId, activeConversationId, draftText, '角色回复为空');
+                failBeforeArchive(batchId, activeConversationId, draftText, '角色回复为空', requestState);
                 return;
             }
 
@@ -500,6 +646,7 @@ export function createMessageViewerActions(ctx = {}) {
             };
 
             if (!isViewerActive()) {
+                if (requestState.cancelled) return;
                 const inactiveArchiveResult = await archiveRecords(archiveState);
                 if (!inactiveArchiveResult?.ok) {
                     warnAction('send.archive.inactive_failed', '页面已离开时归档失败', {
@@ -512,29 +659,32 @@ export function createMessageViewerActions(ctx = {}) {
                 return;
             }
 
-            appendLocalTempRows(assistantRecords, batchId);
+            if (shouldIgnoreSendResult(requestState)) return;
+            setSendPhase('archive', requestState);
             state.statusText = '正在归档聊天记录...';
-            rerenderPreservingLocalRows();
+            patchComposeIfActive();
             state.pendingArchive = archiveState;
 
             const archiveResult = await archiveRecords(archiveState);
+            if (shouldIgnoreSendResult(requestState)) return;
             if (!archiveResult?.ok) {
-                failArchive(archiveState, archiveResult?.message || '归档失败');
+                failArchive(archiveState, archiveResult?.message || '归档失败', requestState);
                 return;
             }
 
-            finalizeArchiveSuccess(archiveResult, batchId, '发送成功');
+            finalizeArchiveSuccess(archiveResult, batchId, '发送成功', requestState);
         } catch (error) {
+            if (shouldIgnoreSendResult(requestState)) return;
             warnAction('send.exception', '发送流程异常', {
                 activeConversationId,
                 requestId,
                 archiveStarted: !!archiveState,
             }, error);
             if (archiveState) {
-                failArchive(archiveState, error?.message || '归档过程中发生异常');
+                failArchive(archiveState, error?.message || '归档过程中发生异常', requestState);
                 return;
             }
-            failBeforeArchive(batchId, activeConversationId, draftText, error?.message || '发送过程中发生异常');
+            failBeforeArchive(batchId, activeConversationId, draftText, error?.message || '发送过程中发生异常', requestState);
         }
     };
 
@@ -560,6 +710,8 @@ export function createMessageViewerActions(ctx = {}) {
         }
 
         state.sending = true;
+        state.sendPhase = 'archive';
+        state.activeSendRequest = null;
         state.errorText = '';
         state.statusText = '正在重新归档...';
         patchComposeIfActive();
@@ -577,6 +729,7 @@ export function createMessageViewerActions(ctx = {}) {
                 return;
             }
             finalizeArchiveSuccess(archiveResult, retryState.batchId, '重新归档成功');
+            state.sendPhase = 'idle';
         } catch (error) {
             warnAction('archive.retry.exception', '重新归档流程异常', {
                 conversationId: pendingArchive.conversationId,
@@ -589,5 +742,6 @@ export function createMessageViewerActions(ctx = {}) {
     return {
         handleSendMessage,
         handleRetryMessage,
+        handleStopMessage,
     };
 }

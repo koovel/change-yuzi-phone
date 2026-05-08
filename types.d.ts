@@ -326,6 +326,94 @@ export interface PhoneBeautifyTemplateMatchResult {
     sourceModeFallbackApplied?: boolean;
 }
 
+export interface AppearanceResourceImageItem {
+    id: string;
+    name: string;
+    mime: string;
+    dataUrl: string;
+    hash: string;
+    bytes: number;
+    width: number;
+    height: number;
+    source: string;
+}
+
+export interface AppearanceResourcePoolSettings {
+    wallpapers: AppearanceResourceImageItem[];
+    icons: AppearanceResourceImageItem[];
+}
+
+export interface AppearanceFontItem {
+    id: string;
+    name: string;
+    family: string;
+    mime: string;
+    format: string;
+    dataUrl: string;
+    hash: string;
+    bytes: number;
+    source: string;
+    createdAt: number;
+}
+
+export interface AppearanceFontLibrarySettings {
+    activeFontId: string;
+    userFonts: AppearanceFontItem[];
+}
+
+export interface AppearanceFontOption extends Partial<AppearanceFontItem> {
+    id: string;
+    name: string;
+    family: string;
+    builtin: boolean;
+    cssFamily?: string;
+    previewText?: string;
+}
+
+export interface AppearanceFontLibraryViewModel {
+    activeFontId: string;
+    activeFont: AppearanceFontOption;
+    options: AppearanceFontOption[];
+    userFonts: AppearanceFontItem[];
+    limits: {
+        maxFonts: number;
+        singleFontBytes: number;
+        totalFontBytes: number;
+    };
+    stats: {
+        userFontCount: number;
+        totalBytes: number;
+    };
+}
+
+export interface AppearanceFontOperationResult {
+    success: boolean;
+    message?: string;
+    font?: AppearanceFontItem;
+    activeFont?: AppearanceFontOption;
+    duplicateId?: string;
+}
+
+export interface AppearanceResourcePackResult {
+    success: boolean;
+    pack?: Record<string, any>;
+    imported?: number;
+    assignedIcons?: number;
+    poolIcons?: number;
+    warnings?: string[];
+    errors?: string[];
+    message?: string;
+}
+
+export interface AppearanceResourcePoolOperationResult {
+    success: boolean;
+    removedCount: number;
+    removedPoolIcons?: number;
+    removedOrphanAppIcons?: number;
+    skippedOrphanCleanup?: boolean;
+    message?: string;
+}
+
 export interface PhoneSettings {
     enabled: boolean;
     phoneToggleX: number | null;
@@ -336,6 +424,8 @@ export interface PhoneSettings {
     phoneContainerHeight: number;
     backgroundImage: string | null;
     appIcons: Record<string, string>;
+    appearanceResourcePool: AppearanceResourcePoolSettings;
+    appearanceFontLibrary: AppearanceFontLibrarySettings;
     hideTableCountBadge: boolean;
     hiddenTableApps: Record<string, boolean>;
     beautifyTemplateSourceModeSpecial: BeautifySourceMode;
@@ -550,7 +640,7 @@ export interface SettingsModule {
     defaultSettings: PhoneSettings;
     getPhoneSettings(): PhoneSettings;
     savePhoneSetting(key: string, value: any): boolean;
-    savePhoneSettingsPatch(patch: Partial<PhoneSettings>): void;
+    savePhoneSettingsPatch(patch: Partial<PhoneSettings>): boolean;
     migrateLegacyPhoneSettings(): void;
     flushPhoneSettingsSave(): void;
     resetPhoneSettingsToDefault(): boolean;
@@ -649,6 +739,7 @@ export interface SettingsPageRendererScrollDeps {
     captureScroll: (key: string) => void;
     restoreScroll: (key: string) => void;
     rerenderHomeKeepScroll: () => void;
+    rerenderAppearanceKeepScroll: () => void;
     rerenderDatabaseKeepScroll: () => void;
     rerenderBeautifyKeepScroll: () => void;
     rerenderApiPromptConfigKeepScroll: () => void;
@@ -674,11 +765,25 @@ export interface SettingsHomePageRendererDeps extends SettingsManualUpdateServic
 export interface SettingsAppearancePageService {
     getLayoutValue: (key: string, fallback: number) => string;
     getPhoneSettings: SettingsModule['getPhoneSettings'];
-    setupBgUpload: (container: HTMLElement) => void;
-    setupIconLayoutSettings: (container: HTMLElement) => void;
-    setupAppearanceToggles: (container: HTMLElement) => void;
-    renderHiddenTableAppsList: (listEl: Element | null) => void;
-    renderIconUploadList: (listEl: Element | null) => void;
+    setupBgUpload: (container: HTMLElement, options?: Record<string, any>) => (() => void) | void;
+    setupIconLayoutSettings: (container: HTMLElement) => (() => void) | void;
+    setupAppearanceToggles: (container: HTMLElement) => (() => void) | void;
+    renderHiddenTableAppsList: (listEl: Element | null) => (() => void) | void;
+    renderIconUploadList: (listEl: Element | null, options?: Record<string, any>) => (() => void) | void;
+    importAppearanceResourcePackFromData: (input: string | object, options?: Record<string, any>) => AppearanceResourcePackResult;
+    exportAppearanceResourcePack: (options?: Record<string, any>) => AppearanceResourcePackResult;
+    clearAppearanceResourcePoolIcons: () => AppearanceResourcePoolOperationResult;
+    getAppearanceFontLibraryViewModel: () => AppearanceFontLibraryViewModel;
+    importAppearanceFontFile: (file: File) => Promise<AppearanceFontOperationResult>;
+    selectAppearanceFont: (fontId: string) => AppearanceFontOperationResult;
+    deleteAppearanceFont: (fontId: string) => AppearanceFontOperationResult;
+    applyAppearanceFontLibrary: (root?: Element | null) => boolean;
+}
+
+export interface SettingsAppearancePageContext extends SettingsPageRendererCommonDeps {
+    showToast: SettingsToastHandler;
+    rerenderAppearanceKeepScroll: () => void;
+    appearancePageService: SettingsAppearancePageService;
 }
 
 export interface SettingsAppearancePageRendererDeps extends SettingsAppearancePageService {}

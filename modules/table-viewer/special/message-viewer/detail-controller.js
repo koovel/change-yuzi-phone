@@ -69,7 +69,7 @@ function consumeEvent(event) {
 }
 
 function getActionElement(event, container) {
-    const target = event?.target instanceof HTMLElement ? event.target : null;
+    const target = event?.target instanceof Element ? event.target : null;
     if (!target || !(container instanceof HTMLElement) || !container.contains(target)) return null;
     const actionEl = target.closest('[data-action]');
     return actionEl instanceof HTMLElement && container.contains(actionEl) ? actionEl : null;
@@ -209,8 +209,19 @@ function handleOpenMediaPreview(context, actionEl) {
     context.renderKeepScroll?.();
 }
 
+function handleCloseMediaPreview(context) {
+    context.closeMediaPreview?.();
+}
+
 function handleSendMessage(context) {
     void context.handleSendMessage?.({
+        conversationId: getContextConversationId(context),
+        threadTitle: getContextThreadTitle(context),
+    });
+}
+
+function handleStopMessage(context) {
+    void context.handleStopMessage?.({
         conversationId: getContextConversationId(context),
         threadTitle: getContextThreadTitle(context),
     });
@@ -249,8 +260,14 @@ function dispatchDetailAction(container, context, actionEl) {
         case 'open-media-preview':
             handleOpenMediaPreview(context, actionEl);
             return true;
+        case 'close-media-preview':
+            handleCloseMediaPreview(context);
+            return true;
         case 'send-message':
             handleSendMessage(context);
+            return true;
+        case 'stop-message':
+            handleStopMessage(context);
             return true;
         case 'retry-message':
         case 'retry-archive':
@@ -315,9 +332,13 @@ function bindMessageDetailDelegates(container, context) {
         currentContext.state.draftByConversation[conversationId] = String(composeInput.value || '');
         if (currentContext.state.errorText) {
             currentContext.state.errorText = '';
+            patchCompose(currentContext, { resizeInput: false });
         }
-        resizeCompose(currentContext, composeInput);
-        patchCompose(currentContext);
+        if (typeof currentContext.scheduleComposeInputResize === 'function') {
+            currentContext.scheduleComposeInputResize(composeInput);
+        } else {
+            resizeCompose(currentContext, composeInput);
+        }
     });
 
     addListener(container, 'keydown', (event) => {
@@ -357,8 +378,10 @@ export function bindMessageDetailController(options = {}) {
         executeDeleteSelectedMessages,
         normalizeMediaDesc,
         autoResizeComposeInput,
+        scheduleComposeInputResize,
         handleSendMessage,
         handleRetryMessage,
+        handleStopMessage,
         closeMediaPreview,
         viewerRuntime,
     } = options;
@@ -383,8 +406,10 @@ export function bindMessageDetailController(options = {}) {
         executeDeleteSelectedMessages,
         normalizeMediaDesc,
         autoResizeComposeInput,
+        scheduleComposeInputResize,
         handleSendMessage,
         handleRetryMessage,
+        handleStopMessage,
         closeMediaPreview,
         viewerRuntime,
     });

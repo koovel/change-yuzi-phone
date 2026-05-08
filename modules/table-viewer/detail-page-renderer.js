@@ -1,8 +1,54 @@
+import { getTableData } from '../phone-core/data-api.js';
+import { createDdlFieldMetadata } from './ddl-field-metadata.js';
 import { createGenericTemplateStylePayload } from './generic-style-payload.js';
 import { buildGenericDetailPageHtml } from './detail-page-template.js';
 import { bindGenericDetailEditController } from './detail-edit-controller.js';
 import { buildGenericDetailRowPayload } from './detail-row-payload.js';
 import { showInlineToast, bindWheelBridge } from './shared-ui.js';
+
+function hasMappedDdlFields(ddlFieldMetadata) {
+    return !!(
+        ddlFieldMetadata?.byRawIndex
+        && typeof ddlFieldMetadata.byRawIndex === 'object'
+        && Object.keys(ddlFieldMetadata.byRawIndex).length > 0
+    );
+}
+
+function resolveDetailDdlFieldMetadata(options = {}) {
+    const {
+        ddlFieldMetadata,
+        sheetKey = '',
+        headers = [],
+        rawHeaders = [],
+    } = options;
+
+    if (hasMappedDdlFields(ddlFieldMetadata)) {
+        return ddlFieldMetadata;
+    }
+
+    let rawData = null;
+    try {
+        rawData = getTableData();
+    } catch {
+        return ddlFieldMetadata || createDdlFieldMetadata({ headers, rawHeaders });
+    }
+
+    const safeSheetKey = String(sheetKey || '').trim();
+    const sheet = rawData && typeof rawData === 'object' && safeSheetKey
+        ? rawData[safeSheetKey]
+        : null;
+    const ddl = String(sheet?.sourceData?.ddl || '');
+
+    if (!ddl.trim()) {
+        return ddlFieldMetadata || createDdlFieldMetadata({ headers, rawHeaders });
+    }
+
+    return createDdlFieldMetadata({
+        ddl,
+        headers,
+        rawHeaders,
+    });
+}
 
 export function renderGenericDetailPage(options = {}) {
     const {
@@ -13,6 +59,7 @@ export function renderGenericDetailPage(options = {}) {
         rawHeaders = [],
         rows = [],
         genericMatch,
+        ddlFieldMetadata,
         render,
         restoreListScroll,
         renderKeepScroll,
@@ -20,8 +67,9 @@ export function renderGenericDetailPage(options = {}) {
         isTableRowLocked,
         isTableCellLocked,
         toggleTableCellLock,
-        getTableData,
-        saveTableData,
+        getLiveTableName,
+        updateTableRow,
+        buildMutationDiagnostics,
         viewerRuntime,
     } = options;
 
@@ -39,6 +87,12 @@ export function renderGenericDetailPage(options = {}) {
     state.syncLockState(getTableLockState(sheetKey));
 
     const genericStylePayload = createGenericTemplateStylePayload(genericMatch, 'detail');
+    const effectiveDdlFieldMetadata = resolveDetailDdlFieldMetadata({
+        ddlFieldMetadata,
+        sheetKey,
+        headers,
+        rawHeaders,
+    });
     const {
         title,
         rowIndexForLock,
@@ -53,6 +107,7 @@ export function renderGenericDetailPage(options = {}) {
         headers,
         rawHeaders,
         fieldBindings: genericStylePayload.fieldBindings,
+        ddlFieldMetadata: effectiveDdlFieldMetadata,
         sheetKey,
         rowsCount: rows.length,
         saving: state.saving,
@@ -79,6 +134,7 @@ export function renderGenericDetailPage(options = {}) {
         sheetKey,
         rawHeaders,
         rows,
+        ddlFieldMetadata: effectiveDdlFieldMetadata,
         shouldHideLeadingPlaceholder,
         toLockColIndex,
         render,
@@ -88,8 +144,9 @@ export function renderGenericDetailPage(options = {}) {
         isTableRowLocked,
         toggleTableCellLock,
         isTableCellLocked,
-        getTableData,
-        saveTableData,
+        getLiveTableName,
+        updateTableRow,
+        buildMutationDiagnostics,
         showInlineToast,
         runtime: viewerRuntime,
     });

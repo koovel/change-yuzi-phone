@@ -1,7 +1,4 @@
-import {
-    getTableData,
-    getSheetKeys,
-} from '../../../phone-core/data-api.js';
+import { getTableData } from '../../../phone-core/data-api.js';
 import {
     getPhoneSettings,
     savePhoneSetting,
@@ -18,8 +15,7 @@ import {
     pickImageFile,
 } from '../media-upload.js';
 import { showToast } from '../../ui/toast.js';
-import { VARIABLE_MANAGER_APP } from '../../../variable-manager/index.js';
-import { getAvailableTheaterScenes, getGroupedTheaterSheetKeys } from '../../../phone-theater/data.js';
+import { collectAppearanceIconSlots } from './icon-slots.js';
 
 const logger = Logger.withScope({ scope: 'settings-app/services/appearance-settings/icon-upload-service', feature: 'settings-app' });
 
@@ -74,28 +70,7 @@ export function createIconUploadService() {
                 return;
             }
 
-            const sheetKeys = getSheetKeys(rawData);
-            const groupedTheaterSheetKeys = getGroupedTheaterSheetKeys(rawData);
-            const theaterItems = getAvailableTheaterScenes(rawData).map((scene) => ({
-                key: scene.appKey,
-                name: scene.name,
-            }));
-            const tableItems = sheetKeys
-                .filter(sheetKey => !groupedTheaterSheetKeys.has(sheetKey))
-                .map((key) => ({ key, name: rawData[key]?.name || key }));
-            const dockItems = [
-                { key: 'dock_settings', name: '设置' },
-                { key: 'dock_visualizer', name: '可视化' },
-                { key: 'dock_db_settings', name: '数据库' },
-                { key: 'dock_fusion', name: '缝合' },
-            ];
-
-            const allItems = [
-                { key: VARIABLE_MANAGER_APP.id, name: VARIABLE_MANAGER_APP.name },
-                ...theaterItems,
-                ...tableItems,
-                ...dockItems,
-            ];
+            const allItems = collectAppearanceIconSlots(rawData);
 
             const summaryHtml = `
                 <div class="phone-settings-desc" style="margin-bottom:10px;">

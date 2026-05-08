@@ -8,6 +8,18 @@ import {
     getLayoutValue as getLayoutValueImpl,
     setupIconLayoutSettings as setupIconLayoutSettingsImpl,
 } from './appearance-settings/layout-settings.js';
+import {
+    clearAppearanceResourcePoolIcons as clearAppearanceResourcePoolIconsImpl,
+    exportAppearanceResourcePack as exportAppearanceResourcePackImpl,
+    importAppearanceResourcePackFromData as importAppearanceResourcePackFromDataImpl,
+} from './appearance-settings/resource-pack-service.js';
+import {
+    applyAppearanceFontLibrary as applyAppearanceFontLibraryImpl,
+    deleteAppearanceFont as deleteAppearanceFontImpl,
+    getAppearanceFontLibraryViewModel as getAppearanceFontLibraryViewModelImpl,
+    importAppearanceFontFile as importAppearanceFontFileImpl,
+    selectAppearanceFont as selectAppearanceFontImpl,
+} from './appearance-settings/font-library-service.js';
 
 const { renderIconUploadList: renderIconUploadListImpl } = createIconUploadService();
 
@@ -29,6 +41,38 @@ export function renderHiddenTableAppsList(listEl) {
 
 export function setupIconLayoutSettings(container) {
     return setupIconLayoutSettingsImpl(container);
+}
+
+export function importAppearanceResourcePackFromData(input, options = {}) {
+    return importAppearanceResourcePackFromDataImpl(input, options);
+}
+
+export function exportAppearanceResourcePack(options = {}) {
+    return exportAppearanceResourcePackImpl(options);
+}
+
+export function clearAppearanceResourcePoolIcons() {
+    return clearAppearanceResourcePoolIconsImpl();
+}
+
+export function getAppearanceFontLibraryViewModel() {
+    return getAppearanceFontLibraryViewModelImpl();
+}
+
+export function importAppearanceFontFile(file) {
+    return importAppearanceFontFileImpl(file);
+}
+
+export function selectAppearanceFont(fontId) {
+    return selectAppearanceFontImpl(fontId);
+}
+
+export function deleteAppearanceFont(fontId) {
+    return deleteAppearanceFontImpl(fontId);
+}
+
+export function applyAppearanceFontLibrary(root = null) {
+    return applyAppearanceFontLibraryImpl(root);
 }
 
 export function getLayoutValue(key, fallback) {

@@ -57,10 +57,12 @@ const deleteBody = extractFunctionBody(
     /export\s+async\s+function\s+deleteTheaterEntities\s*\([^)]*\)\s*{/
 );
 assertOrdered(deleteBody, [
+    'const execution = await executeTheaterDeletionPlans(scene, deletionPlans);',
     'const refreshed = await refreshPhoneTableProjection();',
-    'message: refreshed ? `已删除 ${removedCount} 条相关数据` : `已删除 ${removedCount} 条相关数据，但刷新投影失败`,',
+    'message: refreshed ? `已删除 ${execution.deletedCount} 条相关数据` : `已删除 ${execution.deletedCount} 条相关数据，但刷新投影失败`,',
     'refreshed,',
 ], 'deleteTheaterEntities 必须返回投影刷新状态和失败文案');
+assert(deleteBody.includes('expectedDeletedCount: removedCount'), 'deleteTheaterEntities 必须返回预期删除数量用于部分失败反馈');
 
 assert(
     interactions.includes('function showToastIfActive(container, options, message, isError = false)'),

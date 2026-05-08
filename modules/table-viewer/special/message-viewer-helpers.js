@@ -178,12 +178,19 @@ export function getRetryTarget() {
     return null;
 }
 
-export function scrollMessageDetailToBottom(container, remainingFrames = 2) {
-    if (!(container instanceof HTMLElement)) return;
+export function getMessageDetailScrollElement(container) {
+    if (!(container instanceof HTMLElement)) return null;
+    const messageThread = container.querySelector('.phone-special-message-thread');
+    if (messageThread instanceof HTMLElement) return messageThread;
     const body = container.querySelector('.phone-app-body');
-    if (!(body instanceof HTMLElement)) return;
+    return body instanceof HTMLElement ? body : null;
+}
 
-    body.scrollTop = body.scrollHeight;
+export function scrollMessageDetailToBottom(container, remainingFrames = 2) {
+    const scrollElement = getMessageDetailScrollElement(container);
+    if (!(scrollElement instanceof HTMLElement)) return;
+
+    scrollElement.scrollTop = scrollElement.scrollHeight;
     if (remainingFrames <= 0) return;
 
     requestAnimationFrame(() => {

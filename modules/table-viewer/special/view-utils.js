@@ -145,7 +145,7 @@ export function renderInPhoneMediaPreview(title, content) {
             <div class="phone-special-media-preview-modal">
                 <div class="phone-special-media-preview-title">${escapeHtml(title || '媒体内容')}</div>
                 <div class="phone-special-media-preview-content">${escapeHtml(content || '（无内容）')}</div>
-                <button type="button" class="phone-special-media-preview-close">关闭</button>
+                <button type="button" class="phone-special-media-preview-close" data-action="close-media-preview">关闭</button>
             </div>
         </div>
     `;

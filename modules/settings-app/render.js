@@ -65,6 +65,14 @@ import {
     setupAppearanceToggles,
     renderHiddenTableAppsList,
     setupIconLayoutSettings,
+    importAppearanceResourcePackFromData,
+    exportAppearanceResourcePack,
+    clearAppearanceResourcePoolIcons,
+    getAppearanceFontLibraryViewModel,
+    importAppearanceFontFile,
+    selectAppearanceFont,
+    deleteAppearanceFont,
+    applyAppearanceFontLibrary,
     getLayoutValue,
 } from './services/appearance-settings.js';
 import { createSettingsPageRenderers } from './page-renderers.js';
@@ -191,6 +199,7 @@ export function renderSettings(container) {
     };
 
     const rerenderHomeKeepScroll = createRerenderWithScroll('homeScrollTop', render);
+    const rerenderAppearanceKeepScroll = createRerenderWithScroll('appearanceScrollTop', render);
     const rerenderDatabaseKeepScroll = createRerenderWithScroll('databaseScrollTop', render);
     const rerenderBeautifyKeepScrollGlobal = createRerenderWithScroll('beautifyScrollTop', render);
     const rerenderApiPromptConfigKeepScroll = createRerenderWithScroll('apiPromptConfigScrollTop', render);
@@ -212,6 +221,7 @@ export function renderSettings(container) {
             captureScroll,
             restoreScroll,
             rerenderHomeKeepScroll,
+            rerenderAppearanceKeepScroll,
             rerenderDatabaseKeepScroll,
             rerenderBeautifyKeepScroll: rerenderBeautifyKeepScrollGlobal,
             rerenderApiPromptConfigKeepScroll,
@@ -230,6 +240,14 @@ export function renderSettings(container) {
             setupAppearanceToggles,
             renderHiddenTableAppsList,
             renderIconUploadList,
+            importAppearanceResourcePackFromData,
+            exportAppearanceResourcePack,
+            clearAppearanceResourcePoolIcons,
+            getAppearanceFontLibraryViewModel,
+            importAppearanceFontFile,
+            selectAppearanceFont,
+            deleteAppearanceFont,
+            applyAppearanceFontLibrary,
         },
         dataConfig: {
             getTableData,

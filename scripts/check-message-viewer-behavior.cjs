@@ -173,7 +173,17 @@ function clonePayload(payload) {
 }
 
 function cloneRow(row) {
-    return Array.isArray(row) ? [...row] : clonePayload(row);
+    if (!Array.isArray(row)) return clonePayload(row);
+
+    const cloned = [...row];
+    for (const key of [LOCAL_TEMP_ROW_FLAG, LOCAL_TEMP_BATCH_KEY, LOCAL_TEMP_KIND_KEY]) {
+        if (!Object.prototype.hasOwnProperty.call(row, key)) continue;
+        Object.defineProperty(cloned, key, {
+            value: row[key],
+            configurable: true,
+        });
+    }
+    return cloned;
 }
 
 function markTempRow(row, batchId, kind) {
@@ -200,6 +210,40 @@ function assertRowsArePersistent(rows) {
     for (const row of rows) {
         assert.equal(Boolean(row?.[LOCAL_TEMP_ROW_FLAG]), false, '归档成功后不应继续显示临时气泡');
     }
+}
+
+function assertRowsHaveNoLocalTemps(rows, message = '不应显示本地临时气泡') {
+    for (const row of Array.isArray(rows) ? rows : []) {
+        assert.equal(Boolean(row?.[LOCAL_TEMP_ROW_FLAG]), false, message);
+    }
+}
+
+function assertOnlyUserTempRows(rows, expectedCount = 1, message = '应只显示用户临时气泡') {
+    const safeRows = Array.isArray(rows) ? rows : [];
+    assert.equal(safeRows.length, expectedCount, `${message}：临时行数量不符合预期`);
+    for (const row of safeRows) {
+        assert.equal(Boolean(row?.[LOCAL_TEMP_ROW_FLAG]), true, `${message}：应为本地临时行`);
+        assert.equal(row?.[LOCAL_TEMP_KIND_KEY], 'user', `${message}：不应出现助手临时气泡`);
+    }
+}
+
+function assertTempKindCounts(rows, expectedCounts, message = '临时气泡类型数量不符合预期') {
+    const counts = { user: 0, assistant: 0 };
+    for (const row of Array.isArray(rows) ? rows : []) {
+        if (!row?.[LOCAL_TEMP_ROW_FLAG]) continue;
+        const kind = String(row[LOCAL_TEMP_KIND_KEY] || '').trim();
+        if (Object.prototype.hasOwnProperty.call(counts, kind)) counts[kind] += 1;
+    }
+    assert.equal(counts.user, expectedCounts.user || 0, `${message}：user 数量不符合预期`);
+    assert.equal(counts.assistant, expectedCounts.assistant || 0, `${message}：assistant 数量不符合预期`);
+}
+
+function countPromptUserMessages(aiCall, content) {
+    return (aiCall?.messages || []).filter((message) => message.role === 'user' && message.content === content).length;
+}
+
+function findSnapshot(harness, label) {
+    return harness.snapshots.find((snapshot) => snapshot.label === label) || null;
 }
 
 function createArchiveRecords(conversationId = 'conv_retry', requestId = 'req_retry') {
@@ -249,6 +293,18 @@ function createHarness(createMessageViewerActions, options = {}) {
     const archiveQueue = Array.isArray(options.archiveResults) ? [...options.archiveResults] : [];
     let runtimeDisposed = Boolean(options.runtimeDisposed);
     let lastArchivedRows = null;
+    const snapshots = [];
+    const captureSnapshot = (label) => {
+        snapshots.push({
+            label,
+            rowsData: Array.isArray(state.rowsData) ? state.rowsData.map(cloneRow) : [],
+            pendingArchive: state.pendingArchive ? { ...state.pendingArchive } : null,
+            statusText: String(state.statusText || ''),
+            errorText: String(state.errorText || ''),
+            sending: !!state.sending,
+            sendPhase: String(state.sendPhase || ''),
+        });
+    };
     const disposeRuntime = () => {
         runtimeDisposed = true;
     };
@@ -322,8 +378,9 @@ function createHarness(createMessageViewerActions, options = {}) {
         },
         callPhoneChatAI: async (messages, requestOptions) => {
             logs.aiCalls.push({ messages, requestOptions });
+            captureSnapshot('before-ai-result');
             if (typeof options.onAiCall === 'function') {
-                return await options.onAiCall({ messages, requestOptions, logs, disposeRuntime });
+                return await options.onAiCall({ messages, requestOptions, logs, disposeRuntime, captureSnapshot });
             }
             if (options.aiError) {
                 throw options.aiError;
@@ -336,6 +393,7 @@ function createHarness(createMessageViewerActions, options = {}) {
         appendPhoneMessageRecordsBatch: async (sheetKey, messages) => {
             const archivedMessages = Array.isArray(messages) ? messages.map(clonePayload) : [];
             logs.archiveCalls.push({ sheetKey, messages: archivedMessages });
+            captureSnapshot('before-archive-result');
             if (typeof options.onArchiveCall === 'function') {
                 const customResult = await options.onArchiveCall({
                     sheetKey,
@@ -396,6 +454,7 @@ function createHarness(createMessageViewerActions, options = {}) {
     return {
         state,
         logs,
+        snapshots,
         actions,
         container,
         body,
@@ -403,6 +462,7 @@ function createHarness(createMessageViewerActions, options = {}) {
         readSpecialField,
         viewerRuntime,
         disposeRuntime,
+        captureSnapshot,
     };
 }
 
@@ -445,6 +505,13 @@ async function testSendSuccessArchivesOnce(createMessageViewerActions) {
 
     await harness.actions.handleSendMessage({ conversationId: 'conv_success', threadTitle: '成功会话' });
 
+    const beforeAiResult = findSnapshot(harness, 'before-ai-result');
+    const beforeArchiveResult = findSnapshot(harness, 'before-archive-result');
+    assert.ok(beforeAiResult, '发送等待 AI 阶段应产生快照');
+    assert.ok(beforeArchiveResult, '归档前应产生快照');
+    assertOnlyUserTempRows(beforeAiResult.rowsData, 1, '等待 AI 阶段应显示用户临时气泡');
+    assertOnlyUserTempRows(beforeArchiveResult.rowsData, 1, 'AI 返回后归档前仍只应显示用户临时气泡');
+
     assert.equal(harness.state.sending, false);
     assert.equal(harness.state.errorText, '');
     assert.equal(harness.state.statusText, '发送成功');
@@ -460,7 +527,7 @@ async function testSendSuccessArchivesOnce(createMessageViewerActions) {
     assert.equal(harness.logs.archiveCalls[0].messages[2].content, '第二条回复');
     assert.equal(harness.logs.archiveCalls[0].messages[2].imageDesc, '一张猫图');
     assert.equal(harness.logs.aiCalls.length, 1);
-    assert.ok(harness.logs.aiCalls[0].messages.some((message) => message.role === 'user' && message.content === '你好，世界'));
+    assert.equal(countPromptUserMessages(harness.logs.aiCalls[0], '你好，世界'), 1, 'AI prompt 应且只应包含一次当前用户输入');
     assert.equal(harness.logs.syncRowsCount, 1);
     assertRowsArePersistent(harness.state.rowsData);
     assert.equal(harness.state.rowsData.length, 3);
@@ -487,6 +554,7 @@ async function testSendFailureRollback(createMessageViewerActions) {
     assert.equal(harness.state.statusText, '');
     assert.equal(harness.state.draftByConversation.conv_fail, '请回我');
     assert.equal(harness.state.rowsData.length, 0);
+    assertRowsHaveNoLocalTemps(harness.state.rowsData, 'AI 失败后不应遗留临时气泡');
     assert.equal(harness.logs.archiveCalls.length, 0);
     assert.equal(harness.logs.syncRowsCount, 0);
 }
@@ -506,6 +574,10 @@ async function testArchiveFailureAndRetry(createMessageViewerActions) {
 
     await harness.actions.handleSendMessage({ conversationId: 'conv_archive_fail', threadTitle: '归档失败会话' });
 
+    const beforeArchiveResult = findSnapshot(harness, 'before-archive-result');
+    assert.ok(beforeArchiveResult, '归档失败场景也应捕获归档前快照');
+    assertOnlyUserTempRows(beforeArchiveResult.rowsData, 1, '归档失败前仍只应显示用户临时气泡');
+
     assert.equal(harness.state.sending, false);
     assert.equal(harness.state.errorText, 'DB坏了');
     assert.equal(harness.state.statusText, '归档失败，可重新归档');
@@ -515,6 +587,7 @@ async function testArchiveFailureAndRetry(createMessageViewerActions) {
     assert.equal(harness.logs.aiCalls.length, 1);
     assert.equal(harness.state.rowsData.length, 2);
     assert.ok(harness.state.rowsData.every((row) => row?.[LOCAL_TEMP_ROW_FLAG] === true));
+    assertTempKindCounts(harness.state.rowsData, { user: 1, assistant: 1 }, '归档失败后应补齐助手临时气泡且不重复用户气泡');
 
     await harness.actions.handleRetryMessage({ conversationId: 'conv_archive_fail' });
 
@@ -603,8 +676,7 @@ async function testSendSkipsUiAfterRuntimeDispose(createMessageViewerActions) {
     assert.equal(harness.state.statusText, '正在等待角色回复...');
     assert.equal(harness.state.sending, true);
     assert.equal(harness.state.pendingArchive, null);
-    assert.equal(harness.state.rowsData.length, 1);
-    assert.equal(harness.state.rowsData[0]?.[LOCAL_TEMP_ROW_FLAG], true);
+    assertOnlyUserTempRows(harness.state.rowsData, 1, 'runtime disposed 后不应补写助手临时气泡');
 }
 
 async function testRetrySkipsUiAfterRuntimeDispose(createMessageViewerActions) {
@@ -666,9 +738,9 @@ async function main() {
 
     console.log('[message-viewer-behavior-check] 检查通过');
     console.log('- OK | 空草稿发送被拒绝');
-    console.log('- OK | 发送成功只触发一次批量归档且不写 messageStatus');
-    console.log('- OK | AI 失败回滚本地临时气泡并恢复草稿');
-    console.log('- OK | 归档失败保留当前页临时气泡，重新归档不重调 AI');
+    console.log('- OK | 发送成功只触发一次批量归档且归档前不显示临时气泡');
+    console.log('- OK | AI 失败不显示临时气泡并恢复草稿');
+    console.log('- OK | 归档失败才补显示当前页临时气泡，重新归档不重调 AI');
     console.log('- OK | 重新归档缺失目标和会话不匹配时命中兜底分支');
     console.log('- OK | 发送链路 runtime disposed 后只尝试归档，不继续写 UI state');
     console.log('- OK | 重新归档 runtime disposed 后跳过后续 UI 回写');

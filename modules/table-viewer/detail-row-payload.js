@@ -1,3 +1,4 @@
+import { getDdlFieldMetadataForIndex } from './ddl-field-metadata.js';
 import { getRowEntryTitle, shouldPreferFullRowField } from './row-view-model.js';
 
 export function buildGenericDetailPagerInfo(options = {}) {
@@ -38,6 +39,7 @@ export function buildGenericDetailRowPayload(options = {}) {
         headers = [],
         rawHeaders = [],
         fieldBindings = {},
+        ddlFieldMetadata,
         sheetKey,
         rowsCount = 0,
         saving = false,
@@ -93,6 +95,7 @@ export function buildGenericDetailRowPayload(options = {}) {
                 lockColIndex,
                 isLocked: rowLocked || cellLocked,
                 cellLocked,
+                fieldMetadata: getDdlFieldMetadataForIndex(ddlFieldMetadata, rawColIndex),
                 preferFullRow: shouldPreferFullRowField({
                     key: header,
                     value: draftValue,

@@ -7,6 +7,7 @@ import { showInlineToast } from '../shared-ui.js';
 import { createSpecialFieldReader, buildHeaderIndexMap } from './field-reader.js';
 import {
     getConversationRows,
+    getMessageDetailScrollElement,
     scrollMessageDetailToBottom,
 } from './message-viewer-helpers.js';
 import { createMessageViewerActions } from './message-viewer-actions.js';
@@ -62,6 +63,8 @@ export function renderMessageTable(container, context, deps = {}) {
         rowsData: Array.isArray(rows) ? rows.map(row => (Array.isArray(row) ? [...row] : row)) : [],
         draftByConversation: {},
         sending: false,
+        sendPhase: 'idle',
+        activeSendRequest: null,
         statusText: '',
         errorText: '',
         suppressExternalUpdateUntil: 0,
@@ -110,31 +113,26 @@ export function renderMessageTable(container, context, deps = {}) {
         renderConversationList();
     };
 
-    const getBodyElement = () => {
-        const body = container.querySelector('.phone-app-body');
-        return body instanceof HTMLElement ? body : null;
-    };
-
-    const clampBodyScrollTop = (body, rawTop) => {
-        const maxTop = Math.max(0, (body.scrollHeight || 0) - (body.clientHeight || 0));
+    const clampElementScrollTop = (element, rawTop) => {
+        const maxTop = Math.max(0, (element.scrollHeight || 0) - (element.clientHeight || 0));
         return Math.min(Math.max(0, Number(rawTop) || 0), maxTop);
     };
 
-    const restoreBodyScrollInFrames = (targetTop, remainingFrames = 2) => {
-        const body = getBodyElement();
-        if (!body) return;
+    const restoreScrollInFrames = (targetTop, remainingFrames = 2) => {
+        const scrollElement = getMessageDetailScrollElement(container);
+        if (!scrollElement) return;
 
-        body.scrollTop = clampBodyScrollTop(body, targetTop);
+        scrollElement.scrollTop = clampElementScrollTop(scrollElement, targetTop);
         if (remainingFrames <= 0) return;
 
         requestRuntimeFrame(() => {
-            restoreBodyScrollInFrames(targetTop, remainingFrames - 1);
+            restoreScrollInFrames(targetTop, remainingFrames - 1);
         });
     };
 
     const renderKeepScroll = () => {
-        const body = getBodyElement();
-        const prevTop = body ? Math.max(0, Number(body.scrollTop) || 0) : 0;
+        const scrollElement = getMessageDetailScrollElement(container);
+        const prevTop = scrollElement ? Math.max(0, Number(scrollElement.scrollTop) || 0) : 0;
         const prevContainerHeight = Math.max(0, container.offsetHeight || 0);
 
         if (prevContainerHeight > 0) {
@@ -144,7 +142,7 @@ export function renderMessageTable(container, context, deps = {}) {
         try {
             render();
         } finally {
-            restoreBodyScrollInFrames(prevTop, 2);
+            restoreScrollInFrames(prevTop, 2);
             requestRuntimeFrame(() => {
                 requestRuntimeFrame(() => {
                     if (!container.isConnected) return;
@@ -195,12 +193,53 @@ export function renderMessageTable(container, context, deps = {}) {
         const maxHeight = 78;
 
         inputEl.style.height = 'auto';
-        const nextHeight = Math.min(Math.max(inputEl.scrollHeight, minHeight), maxHeight);
+        const scrollHeight = inputEl.scrollHeight;
+        const nextHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
         inputEl.style.height = `${nextHeight}px`;
-        inputEl.style.overflowY = inputEl.scrollHeight > maxHeight ? 'auto' : 'hidden';
+        inputEl.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
     };
 
-    const patchComposeUi = () => {
+    const scheduleComposeInputResize = (inputEl) => {
+        if (!(inputEl instanceof HTMLTextAreaElement)) return;
+        if (inputEl.__yuziPhoneComposeResizePending) return;
+        inputEl.__yuziPhoneComposeResizePending = true;
+        requestRuntimeFrame(() => {
+            inputEl.__yuziPhoneComposeResizePending = false;
+            if (!container.isConnected || !inputEl.isConnected) return;
+            autoResizeComposeInput(inputEl);
+        });
+    };
+
+    const getComposeSendUiState = () => {
+        const phase = String(state.sendPhase || '').trim();
+        const isAiPending = state.sending && phase === 'ai';
+        const isArchivePending = state.sending && phase === 'archive';
+        if (isAiPending) {
+            return {
+                action: 'stop-message',
+                text: '取消',
+                disabled: false,
+                className: 'is-stop',
+            };
+        }
+        if (isArchivePending) {
+            return {
+                action: 'send-message',
+                text: '归档中...',
+                disabled: true,
+                className: 'is-pending',
+            };
+        }
+        return {
+            action: 'send-message',
+            text: '发送',
+            disabled: false,
+            className: '',
+        };
+    };
+
+    const patchComposeUi = (options = {}) => {
+        const { resizeInput = true } = options && typeof options === 'object' ? options : {};
         const statusText = String(state.errorText || state.statusText || '').trim();
         const statusClass = state.errorText
             ? 'is-error'
@@ -214,13 +253,19 @@ export function renderMessageTable(container, context, deps = {}) {
         const inputEl = /** @type {HTMLTextAreaElement | null} */ (container.querySelector('.phone-special-message-compose-input'));
         if (inputEl) {
             inputEl.disabled = state.sending;
-            autoResizeComposeInput(inputEl);
+            if (resizeInput) {
+                scheduleComposeInputResize(inputEl);
+            }
         }
 
         const sendBtn = /** @type {HTMLButtonElement | null} */ (container.querySelector('.phone-special-message-send-btn'));
         if (sendBtn) {
-            sendBtn.disabled = state.sending;
-            sendBtn.textContent = state.sending ? '发送中...' : '发送';
+            const sendUi = getComposeSendUiState();
+            sendBtn.disabled = sendUi.disabled;
+            sendBtn.textContent = sendUi.text;
+            sendBtn.dataset.action = sendUi.action;
+            sendBtn.classList.toggle('is-stop', sendUi.className === 'is-stop');
+            sendBtn.classList.toggle('is-pending', sendUi.className === 'is-pending');
         }
 
         const retryBtn = /** @type {HTMLButtonElement | null} */ (container.querySelector('.phone-special-message-retry-btn'));
@@ -264,7 +309,7 @@ export function renderMessageTable(container, context, deps = {}) {
         });
     };
 
-    const { handleSendMessage, handleRetryMessage } = createMessageViewerActions({
+    const { handleSendMessage, handleRetryMessage, handleStopMessage } = createMessageViewerActions({
         state,
         sheetKey,
         headers,
@@ -401,7 +446,10 @@ export function renderMessageTable(container, context, deps = {}) {
             const result = await deletePhoneSheetRows(sheetKey, selectedRows, {
                 tableName: liveTableName,
             });
-            if (!result.ok) {
+            const deletedRowIndexes = Array.isArray(result.deletedRowIndexes) ? result.deletedRowIndexes : [];
+            const failedRowIndexes = Array.isArray(result.failedRowIndexes) ? result.failedRowIndexes : [];
+            const hasPartialDeletion = deletedRowIndexes.length > 0 && !result.ok;
+            if (!result.ok && !hasPartialDeletion) {
                 syncRowsFromSheet();
                 toastMessage = result.message || '删除失败';
                 toastIsError = true;
@@ -409,7 +457,11 @@ export function renderMessageTable(container, context, deps = {}) {
             }
 
             const synced = syncRowsFromSheet();
-            clearDeleteManageState();
+            if (hasPartialDeletion) {
+                setSelectedMessageRowIndexes(failedRowIndexes);
+            } else {
+                clearDeleteManageState();
+            }
             state.errorText = '';
             state.statusText = '';
 
@@ -425,7 +477,7 @@ export function renderMessageTable(container, context, deps = {}) {
                 state.conversationId = null;
             }
             toastMessage = result.message || `已删除 ${result.deletedCount} 条消息`;
-            toastIsError = result.refreshed === false;
+            toastIsError = hasPartialDeletion || result.refreshed === false;
         } catch (error) {
             toastMessage = error?.message || '删除过程中发生异常';
             toastIsError = true;
@@ -475,8 +527,10 @@ export function renderMessageTable(container, context, deps = {}) {
             executeDeleteSelectedMessages,
             normalizeMediaDesc,
             autoResizeComposeInput,
+            scheduleComposeInputResize,
             handleSendMessage,
             handleRetryMessage,
+            handleStopMessage,
             closeMediaPreview,
             viewerRuntime: runtime,
         });

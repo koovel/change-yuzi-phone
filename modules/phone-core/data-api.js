@@ -1,13 +1,14 @@
 export {
     getTableData,
     getTableDataAsync,
-    saveTableData,
     processTableData,
     getSheetKeys,
     updateTableCell,
     updateTableRow,
     insertTableRow,
+    insertTableRowsBatch,
     deleteTableRowViaApi,
+    deleteTableRowsBatch,
 } from './data-api/table-repository.js';
 
 export {

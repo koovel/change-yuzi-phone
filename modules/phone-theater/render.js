@@ -1,6 +1,7 @@
 import { getTableData } from '../phone-core/data-api.js';
 import { navigateBack } from '../phone-core/routing.js';
 import { getPhoneCoreState, phoneRuntime } from '../phone-core/state.js';
+import { createRuntimeScrollPreserver } from '../ui-runtime/scroll-preserver-core.js';
 import { buildTheaterSceneViewModel } from './data.js';
 import { buildTheaterScenePageHtml } from './templates.js';
 import { bindTheaterSceneInteractions } from './interactions.js';
@@ -46,6 +47,7 @@ function createInitialState(sceneId) {
         deleteManageMode: false,
         selectedKeys: new Set(),
         deleting: false,
+        bodyScrollTop: 0,
     };
 }
 
@@ -98,6 +100,9 @@ export function renderTheaterScene(container, sceneId, options = {}) {
 
     const state = getTheaterRenderState(container, sceneId);
     const lifecycle = createTheaterLifecycleContext(container, state.sceneId, options);
+    const scrollPreserver = createRuntimeScrollPreserver(container, state, '.phone-app-body.phone-theater-body', phoneRuntime);
+    const hasExistingScrollableBody = !!container.querySelector('.phone-app-body.phone-theater-body');
+    const prevContainerHeight = Math.max(0, container.offsetHeight || 0);
     const renderCurrentScene = () => {
         if (!lifecycle.isActive()) return;
         renderTheaterScene(container, state.sceneId, options);
@@ -107,14 +112,34 @@ export function renderTheaterScene(container, sceneId, options = {}) {
     const uiState = buildUiState(state, viewModel);
 
     if (!lifecycle.isActive({ allowDetached: true })) return;
-    container.innerHTML = buildTheaterScenePageHtml(viewModel, uiState);
-    bindTheaterSceneEvents(container, lifecycle);
-    bindTheaterSceneInteractions(container, {
-        scene: viewModel.scene,
-        sceneId: state.sceneId,
-        state,
-        viewModel,
-        render: renderCurrentScene,
-        lifecycle,
-    });
+
+    if (hasExistingScrollableBody) {
+        scrollPreserver.captureScroll('bodyScrollTop');
+        if (prevContainerHeight > 0) {
+            container.style.minHeight = `${prevContainerHeight}px`;
+        }
+    }
+
+    try {
+        container.innerHTML = buildTheaterScenePageHtml(viewModel, uiState);
+        bindTheaterSceneEvents(container, lifecycle);
+        bindTheaterSceneInteractions(container, {
+            scene: viewModel.scene,
+            sceneId: state.sceneId,
+            state,
+            viewModel,
+            render: renderCurrentScene,
+            lifecycle,
+        });
+    } finally {
+        if (hasExistingScrollableBody) {
+            scrollPreserver.restoreScroll('bodyScrollTop');
+            phoneRuntime.requestAnimationFrame(() => {
+                phoneRuntime.requestAnimationFrame(() => {
+                    if (!container.isConnected) return;
+                    container.style.removeProperty('min-height');
+                });
+            });
+        }
+    }
 }

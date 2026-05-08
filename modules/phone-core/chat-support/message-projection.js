@@ -1,6 +1,6 @@
 import { Logger } from '../../error-handler.js';
 import { callApiWithTimeout, getDB } from '../db-bridge.js';
-import { deleteTableRowViaApi, getTableData, insertTableRow, saveTableData, updateTableRow } from '../data-api.js';
+import { deleteTableRowsBatch, getTableData, insertTableRow, insertTableRowsBatch, updateTableRow } from '../data-api.js';
 
 const logger = Logger.withScope({ scope: 'phone-core/chat-support/message-projection', feature: 'chat-support' });
 
@@ -14,7 +14,7 @@ const PHONE_MESSAGE_HEADER_CANDIDATES = Object.freeze({
     sentAt: ['sentAt', '消息发送时间', '发送时间', '时间'],
     messageStatus: ['messageStatus', '消息状态', '状态'],
     imageDesc: ['imageDesc', '图片描述'],
-    videoDesc: ['videoDesc', '视频描述'],
+    videoDesc: ['视频描述', 'videoDesc'],
     requestId: ['requestId', '请求ID', '请求Id', '请求编号'],
     replyToMessageId: ['replyToMessageId', '回复到消息ID', '回复消息ID', '回复到'],
 });
@@ -34,22 +34,6 @@ function assignMessageField(payload, headers, candidateHeaders, value) {
     const header = pickExistingHeader(headers, candidateHeaders);
     if (!header || value === undefined) return;
     payload[header] = value === null ? '' : String(value);
-}
-
-function cloneRawTableData(rawData, label = '表格数据') {
-    if (!rawData || typeof rawData !== 'object') return null;
-
-    try {
-        return JSON.parse(JSON.stringify(rawData));
-    } catch (error) {
-        logger.warn({
-            action: 'table-data.clone',
-            message: `${label}深拷贝失败`,
-            context: { label },
-            error,
-        });
-        return null;
-    }
 }
 
 function buildSheetDataSnapshot(rawData, sheetKey) {
@@ -82,9 +66,11 @@ function isRowIdHeader(header) {
     return /^row[\s_-]*id$/i.test(String(header ?? '').trim());
 }
 
-function resolveNextRowId(content, rowIdColIndex, offset = 0) {
-    if (!Array.isArray(content) || rowIdColIndex < 0) return '';
-    const maxRowId = content.slice(1).reduce((max, row) => {
+function resolveNextRowIdFromRows(rows = [], headers = [], offset = 0) {
+    const headerRow = Array.isArray(headers) ? headers : [];
+    const rowIdColIndex = headerRow.findIndex((header) => isRowIdHeader(header));
+    if (rowIdColIndex < 0 || !Array.isArray(rows)) return '';
+    const maxRowId = rows.reduce((max, row) => {
         if (!Array.isArray(row)) return max;
         const numeric = Number(row[rowIdColIndex]);
         return Number.isFinite(numeric) && numeric > max ? numeric : max;
@@ -108,13 +94,13 @@ export function buildPhoneMessagePayloadFromHeaders(headers, message = {}) {
     return payload;
 }
 
-function materializeMessageRowFromPayload(headers, content, payload = {}, rowOffset = 0) {
+function materializeMessageRowFromPayload(headers, existingRows = [], payload = {}, rowOffset = 0) {
     const headerRow = Array.isArray(headers) ? headers : [];
     const rowIdColIndex = headerRow.findIndex((header) => isRowIdHeader(header));
 
     return headerRow.map((header, colIndex) => {
         if (colIndex === rowIdColIndex) {
-            return resolveNextRowId(content, rowIdColIndex, rowOffset);
+            return resolveNextRowIdFromRows(existingRows, headerRow, rowOffset);
         }
 
         const key = String(header ?? '').trim();
@@ -200,20 +186,7 @@ export async function appendPhoneMessageRecordsBatch(sheetKey, messages = [], op
         };
     }
 
-    const rawData = cloneRawTableData(getTableData(), '批量消息归档基线快照');
-    if (!rawData) {
-        return {
-            ok: false,
-            code: 'snapshot_clone_failed',
-            message: '批量归档失败：无法创建表格快照',
-            payloads: [],
-            rows: [],
-            rowIndexes: [],
-            refreshed: false,
-        };
-    }
-
-    const snapshot = buildSheetDataSnapshot(rawData, safeSheetKey);
+    const snapshot = getSheetDataByKey(safeSheetKey);
     if (!snapshot) {
         return {
             ok: false,
@@ -226,47 +199,30 @@ export async function appendPhoneMessageRecordsBatch(sheetKey, messages = [], op
         };
     }
 
-    const sheet = rawData[safeSheetKey];
-    if (!sheet?.content || !Array.isArray(sheet.content) || sheet.content.length === 0) {
-        return {
-            ok: false,
-            code: 'invalid_sheet_content',
-            message: '批量归档失败：消息记录表内容格式无效',
-            tableName: snapshot.tableName,
-            payloads: [],
-            rows: [],
-            rowIndexes: [],
-            refreshed: false,
-        };
-    }
-
     const headers = snapshot.headers;
-    const content = sheet.content;
     const payloads = normalizedMessages.map((message) => buildPhoneMessagePayloadFromHeaders(headers, message));
-    const rows = payloads.map((payload, index) => materializeMessageRowFromPayload(headers, content, payload, index));
-    const firstRowIndex = Math.max(1, content.length);
-    const rowIndexes = rows.map((_, index) => firstRowIndex + index);
+    const rows = payloads.map((payload, index) => materializeMessageRowFromPayload(headers, snapshot.rows, payload, index));
+    const insertResult = await insertTableRowsBatch(snapshot.tableName, payloads, {
+        refreshProjection: options.refreshProjection,
+    });
 
-    sheet.content = [
-        ...content,
-        ...rows,
-    ];
-
-    const saved = await saveTableData(rawData, options.timeoutMs);
-    if (!saved) {
+    if (!insertResult.ok) {
         return {
             ok: false,
-            code: 'save_failed',
-            message: '批量归档失败：数据库写入失败',
+            code: insertResult.code || 'insert_failed',
+            message: insertResult.message || '批量归档失败：数据库行级插入失败',
             tableName: String(options.tableName || snapshot.tableName || safeSheetKey).trim(),
             payloads,
             rows,
-            rowIndexes,
+            rowIndexes: insertResult.rowIndexes || [],
             refreshed: false,
+            rollback: insertResult.rollback || null,
+            failedAt: insertResult.failedAt,
+            failureResult: insertResult.failureResult,
         };
     }
 
-    const refreshed = options.refreshProjection === false ? true : await refreshPhoneMessageProjection();
+    const refreshed = insertResult.refreshed !== false;
     dispatchPhoneTableUpdated(safeSheetKey);
 
     return {
@@ -276,7 +232,7 @@ export async function appendPhoneMessageRecordsBatch(sheetKey, messages = [], op
         tableName: String(options.tableName || snapshot.tableName || safeSheetKey).trim(),
         payloads,
         rows,
-        rowIndexes,
+        rowIndexes: insertResult.rowIndexes || [],
         refreshed,
     };
 }
@@ -324,18 +280,7 @@ export function dispatchPhoneTableUpdated(sheetKey) {
 
 export async function deletePhoneSheetRows(sheetKey, rowIndexes = [], options = {}) {
     const safeSheetKey = String(sheetKey || '').trim();
-    const rawDataBeforeDelete = cloneRawTableData(getTableData(), '删除基线快照');
-    if (!rawDataBeforeDelete) {
-        return {
-            ok: false,
-            code: 'baseline_clone_failed',
-            message: '删除失败：无法创建删除基线快照',
-            deletedCount: 0,
-            refreshed: false,
-        };
-    }
-
-    const snapshot = buildSheetDataSnapshot(rawDataBeforeDelete, safeSheetKey);
+    const snapshot = getSheetDataByKey(safeSheetKey);
     if (!snapshot) {
         return {
             ok: false,
@@ -373,119 +318,36 @@ export async function deletePhoneSheetRows(sheetKey, rowIndexes = [], options = 
         };
     }
 
-    const expectedRowCount = Math.max(0, snapshot.rows.length - normalizedRowIndexes.length);
-    let deletedCount = 0;
+    const result = await deleteTableRowsBatch(tableName, normalizedRowIndexes, {
+        refreshProjection: options.refreshProjection,
+    });
 
-    const cloneBaselineData = () => cloneRawTableData(rawDataBeforeDelete, '删除回退数据');
-
-    const verifySnapshotUpdated = () => {
-        const latestSnapshot = getSheetDataByKey(safeSheetKey);
-        if (!latestSnapshot?.rows || !Array.isArray(latestSnapshot.rows)) {
-            return false;
+    if (!result.ok) {
+        if (result.deletedCount > 0) {
+            dispatchPhoneTableUpdated(safeSheetKey);
         }
-        return latestSnapshot.rows.length === expectedRowCount;
-    };
-
-    const refreshProjection = async () => {
-        if (options.refreshProjection === false) {
-            return true;
-        }
-        return await refreshPhoneTableProjection();
-    };
-
-    const applyFallbackSave = async (reasonMessage = '') => {
-        const fallbackRawData = cloneBaselineData();
-        if (!fallbackRawData) {
-            return {
-                ok: false,
-                code: 'fallback_data_missing',
-                message: reasonMessage ? `${reasonMessage}，且无法创建整表回退数据` : '删除失败：无法创建整表回退数据',
-                deletedCount,
-                refreshed: false,
-            };
-        }
-
-        const targetSheet = fallbackRawData?.[safeSheetKey];
-        if (!targetSheet?.content || !Array.isArray(targetSheet.content)) {
-            return {
-                ok: false,
-                code: 'fallback_sheet_missing',
-                message: reasonMessage ? `${reasonMessage}，且整表回退时未找到目标表格` : '删除失败：整表回退时未找到目标表格',
-                deletedCount,
-                refreshed: false,
-            };
-        }
-
-        for (const rowIndex of normalizedRowIndexes) {
-            const realRowIndex = rowIndex + 1;
-            if (!Array.isArray(targetSheet.content[realRowIndex])) {
-                return {
-                    ok: false,
-                    code: 'fallback_row_missing',
-                    message: reasonMessage ? `${reasonMessage}，且整表回退时目标行不存在` : '删除失败：整表回退时目标行不存在',
-                    deletedCount,
-                    refreshed: false,
-                };
-            }
-            targetSheet.content.splice(realRowIndex, 1);
-        }
-
-        const saved = await saveTableData(fallbackRawData);
-        if (!saved) {
-            return {
-                ok: false,
-                code: 'fallback_save_failed',
-                message: reasonMessage ? `${reasonMessage}，且整表回退保存失败` : '删除失败：整表回退保存失败',
-                deletedCount,
-                refreshed: false,
-            };
-        }
-
-        const refreshed = await refreshProjection();
-        if (!verifySnapshotUpdated()) {
-            return {
-                ok: false,
-                code: 'snapshot_not_updated',
-                message: reasonMessage
-                    ? `${reasonMessage}，已尝试整表回退，但最新表格快照仍未更新`
-                    : '删除失败：已尝试整表回退，但最新表格快照仍未更新',
-                deletedCount: normalizedRowIndexes.length,
-                refreshed,
-            };
-        }
-
-        dispatchPhoneTableUpdated(safeSheetKey);
-
         return {
-            ok: true,
-            code: 'ok',
-            message: refreshed ? '删除成功' : '删除成功，但刷新投影失败',
-            deletedCount: normalizedRowIndexes.length,
-            refreshed,
+            ok: false,
+            code: result.code || 'failed',
+            message: result.message || '删除失败：数据库未确认删除目标行',
+            deletedCount: result.deletedCount || 0,
+            refreshed: result.refreshed ?? false,
+            requestedRowIndexes: normalizedRowIndexes,
+            deletedRowIndexes: result.deletedRowIndexes || [],
+            failedRowIndexes: result.failedRowIndexes || [],
         };
-    };
-
-    for (const rowIndex of normalizedRowIndexes) {
-        const apiRowIndex = rowIndex + 1;
-        const result = await deleteTableRowViaApi(tableName, apiRowIndex);
-        if (!result.ok) {
-            return await applyFallbackSave(result.message || `删除第 ${apiRowIndex} 行失败`);
-        }
-        deletedCount += 1;
-    }
-
-    const refreshed = await refreshProjection();
-    if (!verifySnapshotUpdated()) {
-        return await applyFallbackSave('删除接口返回成功，但最新表格快照未变化');
     }
 
     dispatchPhoneTableUpdated(safeSheetKey);
 
     return {
         ok: true,
-        code: 'ok',
-        message: refreshed ? '删除成功' : '删除成功，但刷新投影失败',
-        deletedCount,
-        refreshed,
+        code: result.code || 'ok',
+        message: result.message || (result.refreshed === false ? '删除成功，但刷新投影失败' : '删除成功'),
+        deletedCount: result.deletedCount || normalizedRowIndexes.length,
+        refreshed: result.refreshed ?? true,
+        requestedRowIndexes: normalizedRowIndexes,
+        deletedRowIndexes: result.deletedRowIndexes || normalizedRowIndexes,
+        failedRowIndexes: [],
     };
 }

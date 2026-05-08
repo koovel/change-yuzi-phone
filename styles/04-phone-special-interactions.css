@@ -585,6 +585,18 @@
     min-width: 72px;
 }
 
+.phone-special-app.phone-special-template-scope .phone-special-message-send-btn.is-stop {
+    background: var(--sp-color-danger);
+    color: #ffffff;
+    border-color: rgba(255, 59, 48, 0.82);
+}
+
+.phone-special-app.phone-special-template-scope .phone-special-message-send-btn.is-pending {
+    background: rgba(255, 255, 255, 0.96);
+    color: var(--sp-meta-text);
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
 .phone-special-app.phone-special-template-scope .phone-special-message-retry-btn:hover:not(:disabled),
 .phone-special-app.phone-special-template-scope .phone-special-message-send-btn:hover:not(:disabled) {
     filter: brightness(0.98);

@@ -53,9 +53,10 @@ const sources = Object.fromEntries(
 const deleteService = sources.deleteService;
 
 assert(
-    deleteService.includes("import { getTableData, saveTableData } from '../phone-core/data-api.js';"),
-    'delete-service 必须同时引入 getTableData 与 saveTableData，删除保存前要重读最新数据',
+    deleteService.includes("import { deleteTableRowsBatch, getTableData } from '../phone-core/data-api.js';"),
+    'delete-service 必须引入 getTableData 与 deleteTableRowsBatch，删除前重读最新数据并执行行级删除',
 );
+assert(!deleteService.includes('saveTableData'), 'delete-service 禁止恢复整库保存入口 saveTableData');
 assert(!deleteService.includes('scene.id ==='), 'delete-service 不能重新引入 sceneId 分支');
 assert(!deleteService.includes('resolveForumSidebarIdentity'), 'delete-service 不能硬编码 forum sidebar helper');
 
@@ -70,11 +71,14 @@ assert(deleteBody.includes('const latestRawData = getTableData();'), '删除服�
 assert(deleteBody.includes("message: '删除失败：无法读取最新数据，请刷新后重试'"), '最新数据不可用时必须明确拒绝保存');
 assertOrdered(deleteBody, [
     'const latestRawData = getTableData();',
-    'const nextRawData = cloneRawData(latestRawData);',
+    'const readOnlyRawData = cloneRawData(latestRawData);',
     'const validation = validateSelectedTargets(scene, tables, selectedSet);',
     'const deletion = scene.deleteEntities(',
-    'const saved = await saveTableData(nextRawData);',
+    'const deletionPlans = tracker.toPlans();',
+    'const execution = await executeTheaterDeletionPlans(scene, deletionPlans);',
 ], 'deleteTheaterEntities');
+assert(deleteService.includes('async function executeTheaterDeletionPlans(scene, plans = [])'), 'delete-service 必须通过行级删除执行计划落库');
+assert(deleteService.includes('const result = await deleteTableRowsBatch(plan.tableName, plan.rowIndexes,'), '小剧场删除计划必须调用 deleteTableRowsBatch');
 
 const validateBody = extractFunctionBody(
     deleteService,

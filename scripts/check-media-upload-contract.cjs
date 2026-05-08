@@ -15,6 +15,7 @@ const FILES = {
     iconUploadService: 'modules/settings-app/services/appearance-settings/icon-upload-service.js',
     buttonStyle: 'modules/settings-app/pages/button-style.js',
     beautify: 'modules/settings-app/pages/beautify.js',
+    constants: 'modules/settings-app/constants.js',
 };
 
 function read(relativePath) {
@@ -54,6 +55,8 @@ function main() {
     check(results, 'crop', '存在 openImageCropDialog()', has(contents.crop, 'export async function openImageCropDialog('));
 
     check(results, 'picker', '存在 pickImageFile()', has(contents.picker, 'export function pickImageFile('));
+    check(results, 'picker', 'pickImageFile 默认保持压缩路径', has(contents.picker, 'const compress = options.compress !== false;'));
+    check(results, 'picker', 'pickImageFile 支持关闭二次压缩', has(contents.picker, 'const best = compress') && has(contents.picker, ': croppedDataUrl;'));
     check(results, 'download', '存在 downloadTextFile()', has(contents.download, 'export function downloadTextFile('));
 
     check(results, 'appearance', 'appearance-settings façade 继续组合 background/icon upload service', has(contents.appearance, 'createIconUploadService()'));
@@ -62,6 +65,10 @@ function main() {
     check(results, 'backgroundService', 'background-service 继续从 media-upload façade 导入上传能力', has(contents.backgroundService, "from '../media-upload.js';"));
     check(results, 'backgroundService', 'background-service 接收上传 runtime options', has(contents.backgroundService, 'export function setupBgUpload(container, options = {})'));
     check(results, 'backgroundService', 'background-service 将 runtime 传给 pickImageFile()', has(contents.backgroundService, 'runtime,\n            maxSizeMB: 12'));
+    check(results, 'backgroundService', 'background-service 背景上传显式关闭二次压缩', has(contents.backgroundService, 'compress: false,'));
+    check(results, 'backgroundService', 'background-service 背景上传不再传入有损质量参数', !has(contents.backgroundService, 'quality: 0.8'));
+    check(results, 'backgroundService', 'background-service 背景保存失败不更新预览缓存', has(contents.backgroundService, "const saved = savePhoneSetting('backgroundImage', dataUrl);") && has(contents.backgroundService, 'if (saved !== true)'));
+    check(results, 'constants', '背景图片预算提升到 12MB', has(contents.constants, 'backgroundImageBytes: 12 * 1024 * 1024'));
     check(results, 'iconUploadService', 'icon-upload-service 继续从 media-upload façade 导入上传能力', has(contents.iconUploadService, "from '../media-upload.js';"));
     check(results, 'iconUploadService', 'icon-upload-service 接收上传 runtime options', has(contents.iconUploadService, 'const renderIconUploadList = (listEl, options = {}) =>'));
     check(results, 'iconUploadService', 'icon-upload-service 将 runtime 传给 pickImageFile()', has(contents.iconUploadService, 'runtime,\n                        maxSizeMB: 6'));

@@ -34,7 +34,9 @@ function main() {
     check(results, 'settingsContext', 'settings-context 世界书读取失败使用结构化日志', has(contents.settingsContext, "action: 'worldbook.read'"));
 
     check(results, 'messageProjection', 'message-projection 使用 scoped logger', has(contents.messageProjection, "const logger = Logger.withScope({ scope: 'phone-core/chat-support/message-projection', feature: 'chat-support' });"));
-    check(results, 'messageProjection', 'message-projection 深拷贝失败使用结构化日志', has(contents.messageProjection, "action: 'table-data.clone'"));
+    check(results, 'messageProjection', 'message-projection 批量归档使用行级 insertTableRowsBatch()', has(contents.messageProjection, 'insertTableRowsBatch('));
+    check(results, 'messageProjection', 'message-projection 批量删除使用行级 deleteTableRowsBatch()', has(contents.messageProjection, 'deleteTableRowsBatch('));
+    check(results, 'messageProjection', 'message-projection 不再调用整库保存 saveTableData()', !has(contents.messageProjection, 'saveTableData('));
     check(results, 'messageProjection', 'message-projection 投影刷新失败使用结构化日志', has(contents.messageProjection, "action: 'projection.refresh'"));
 
     check(results, 'scrollGuards', 'scroll-guards 使用 scoped logger', has(contents.scrollGuards, "const logger = Logger.withScope({ scope: 'phone-core/scroll-guards', feature: 'scroll-guards' });"));

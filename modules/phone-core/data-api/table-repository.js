@@ -5,7 +5,6 @@ import {
     getDB,
     isDbBooleanSuccess,
     normalizeDbInsertedRowIndex,
-    sleep,
 } from '../db-bridge.js';
 import { enqueueTableMutation } from './mutation-queue.js';
 
@@ -26,8 +25,49 @@ function summarizeTablePayload(data = {}) {
     );
 }
 
+function summarizeApiResult(value) {
+    if (value === null) {
+        return { type: 'null', value: null };
+    }
+    if (value === undefined) {
+        return { type: 'undefined' };
+    }
+
+    const valueType = Array.isArray(value) ? 'array' : typeof value;
+    if (valueType === 'string') {
+        const text = String(value);
+        return {
+            type: valueType,
+            value: text.length > 120 ? `${text.slice(0, 120)}…` : text,
+        };
+    }
+    if (valueType === 'number' || valueType === 'boolean' || valueType === 'bigint') {
+        return { type: valueType, value: String(value) };
+    }
+    if (valueType === 'object') {
+        return {
+            type: valueType,
+            keys: Object.keys(value || {}).slice(0, 12),
+        };
+    }
+
+    return { type: valueType };
+}
+
+function normalizeTableName(tableName) {
+    return String(tableName || '').trim();
+}
+
+function normalizePayload(data) {
+    return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+}
+
+function getPayloadKeys(data) {
+    return Object.keys(normalizePayload(data));
+}
+
 function getTableSnapshotSummary(rawData, tableName) {
-    const safeTableName = String(tableName || '').trim();
+    const safeTableName = normalizeTableName(tableName);
     if (!safeTableName || !rawData || typeof rawData !== 'object') {
         return {
             found: false,
@@ -75,317 +115,59 @@ function readTableSnapshotSummaryFromApi(api, tableName, action = 'table-data.sn
     }
 }
 
-async function verifyInsertedRowBySnapshot(api, tableName, beforeSnapshotSummary, initialSnapshotSummary = null) {
-    const beforeRowCount = Number.isInteger(beforeSnapshotSummary?.rowCount)
-        ? beforeSnapshotSummary.rowCount
-        : null;
-    let snapshotSummary = initialSnapshotSummary;
-
-    if (beforeRowCount === null) {
-        return {
-            snapshotVerifiedInsert: false,
-            snapshotSummary,
-        };
+async function refreshTableProjection(api, actionName, options = {}) {
+    if (options.refreshProjection === false) {
+        return true;
+    }
+    if (!api || typeof api.refreshDataAndWorldbook !== 'function') {
+        return false;
     }
 
-    const hasRowGrowth = (summary) => Number.isInteger(summary?.rowCount) && summary.rowCount > beforeRowCount;
-    if (hasRowGrowth(snapshotSummary)) {
-        return {
-            snapshotVerifiedInsert: true,
-            snapshotSummary,
-        };
-    }
-
-    for (const waitMs of [120, 320, 680]) {
-        await sleep(waitMs);
-        snapshotSummary = readTableSnapshotSummaryFromApi(api, tableName, 'insert-row.snapshot-retry-error');
-
-        if (hasRowGrowth(snapshotSummary)) {
-            return {
-                snapshotVerifiedInsert: true,
-                snapshotSummary,
-            };
-        }
-    }
-
-    return {
-        snapshotVerifiedInsert: false,
-        snapshotSummary,
-    };
-}
-
-async function persistInsertedTableSnapshot(api, tableName) {
-    if (!api || typeof api.exportTableAsJson !== 'function' || typeof api.importTableAsJson !== 'function') {
-        return {
-            persisted: false,
-            refreshed: false,
-            snapshotSummary: readTableSnapshotSummaryFromApi(api, tableName, 'insert-row.snapshot-persist-read-error'),
-        };
-    }
-
-    let rawData = null;
-    try {
-        rawData = api.exportTableAsJson();
-    } catch (error) {
-        logger.warn({
-            action: 'insert-row.persist-export-error',
-            message: '插入后导出完整快照失败',
-            context: { tableName },
-            error,
-        });
-        return {
-            persisted: false,
-            refreshed: false,
-            snapshotSummary: null,
-        };
-    }
-
-    let persisted = false;
-    try {
-        const jsonString = JSON.stringify(rawData);
-        const persistResult = await callApiWithTimeout(
-            () => api.importTableAsJson(jsonString),
-            DEFAULT_API_TIMEOUT,
-            'insertTableRow.persistSnapshot',
-        );
-        persisted = isDbBooleanSuccess(persistResult);
-    } catch (error) {
-        logger.warn({
-            action: 'insert-row.persist-import-error',
-            message: '插入后回写完整快照失败',
-            context: { tableName },
-            error,
-        });
-    }
-
-    let refreshed = false;
-    if (persisted && typeof api.refreshDataAndWorldbook === 'function') {
-        refreshed = !!(await callApiWithTimeout(
-            () => api.refreshDataAndWorldbook(),
-            12000,
-            'insertTableRow.refreshProjection',
-        ));
-    }
-
-    const snapshotSummary = readTableSnapshotSummaryFromApi(api, tableName, 'insert-row.snapshot-persist-read-error');
-
-    return {
-        persisted,
-        refreshed,
-        snapshotSummary,
-    };
-}
-
-function cloneRawTableData(rawData) {
-    if (!rawData || typeof rawData !== 'object') return null;
-
-    try {
-        return JSON.parse(JSON.stringify(rawData));
-    } catch (error) {
-        logger.warn({
-            action: 'table-data.clone',
-            message: '表格快照深拷贝失败',
-            error,
-        });
-        return null;
-    }
-}
-
-function findSheetEntryByTableName(rawData, tableName) {
-    const safeTableName = String(tableName || '').trim();
-    if (!safeTableName || !rawData || typeof rawData !== 'object') {
-        return null;
-    }
-
-    return Object.entries(rawData).find(([, sheet]) => String(sheet?.name || '').trim() === safeTableName) || null;
-}
-
-async function fallbackPersistUpdatedRow(api, tableName, rowIndex, data) {
-    if (!api || typeof api.exportTableAsJson !== 'function' || typeof api.importTableAsJson !== 'function') {
-        return {
-            persisted: false,
-            refreshed: false,
-            snapshotSummary: readTableSnapshotSummaryFromApi(api, tableName, 'update-row.fallback-read-error'),
-            fallbackUsed: false,
-        };
-    }
-
-    const rawData = cloneRawTableData(api.exportTableAsJson());
-    const matchedEntry = findSheetEntryByTableName(rawData, tableName);
-    if (!matchedEntry) {
-        logger.warn({
-            action: 'update-row.fallback-sheet-missing',
-            message: 'updateRow fallback 未找到目标表',
-            context: { tableName, rowIndex },
-        });
-        return {
-            persisted: false,
-            refreshed: false,
-            snapshotSummary: readTableSnapshotSummaryFromApi(api, tableName, 'update-row.fallback-read-error'),
-            fallbackUsed: false,
-        };
-    }
-
-    const [, sheet] = matchedEntry;
-    const content = Array.isArray(sheet?.content) ? sheet.content : null;
-    const headerRow = Array.isArray(content?.[0]) ? content[0] : [];
-    const targetRow = Array.isArray(content?.[rowIndex]) ? [...content[rowIndex]] : null;
-    if (!content || !targetRow) {
-        logger.warn({
-            action: 'update-row.fallback-row-missing',
-            message: 'updateRow fallback 未找到目标行',
-            context: { tableName, rowIndex },
-        });
-        return {
-            persisted: false,
-            refreshed: false,
-            snapshotSummary: readTableSnapshotSummaryFromApi(api, tableName, 'update-row.fallback-read-error'),
-            fallbackUsed: false,
-        };
-    }
-
-    Object.entries(data && typeof data === 'object' && !Array.isArray(data) ? data : {}).forEach(([key, value]) => {
-        const colIndex = headerRow.findIndex((header) => String(header || '').trim() === String(key || '').trim());
-        if (colIndex < 0) return;
-        targetRow[colIndex] = value === undefined || value === null ? '' : value;
-    });
-    content[rowIndex] = targetRow;
-
-    const jsonString = JSON.stringify(rawData);
-    const persistResult = await callApiWithTimeout(
-        () => api.importTableAsJson(jsonString),
-        DEFAULT_API_TIMEOUT,
-        'updateTableRow.fallbackSave',
+    const result = await callApiWithTimeout(
+        () => api.refreshDataAndWorldbook(),
+        12000,
+        actionName,
     );
-    const persisted = isDbBooleanSuccess(persistResult);
-    let refreshed = false;
+    return !!result;
+}
 
-    if (persisted && typeof api.refreshDataAndWorldbook === 'function') {
-        refreshed = !!(await callApiWithTimeout(
-            () => api.refreshDataAndWorldbook(),
-            12000,
-            'updateTableRow.fallbackRefresh',
-        ));
-    }
-
-    const snapshotSummary = readTableSnapshotSummaryFromApi(api, tableName, 'update-row.fallback-read-error');
-
+function buildApiUnavailableResult(message = '数据库API不可用') {
     return {
-        persisted,
-        refreshed,
-        snapshotSummary,
-        fallbackUsed: true,
+        ok: false,
+        code: 'api_unavailable',
+        message,
+        refreshed: false,
     };
 }
 
-function isRowIdHeader(header) {
-    return /^row[\s_-]*id$/i.test(String(header ?? '').trim());
+function buildTableNameMissingResult(actionName) {
+    return {
+        ok: false,
+        code: 'table_name_missing',
+        message: `${actionName}失败：缺少表格名称`,
+        refreshed: false,
+    };
 }
 
-function resolveNextRowId(content, rowIdColIndex) {
-    if (!Array.isArray(content) || rowIdColIndex < 0) return '';
-    const maxRowId = content.slice(1).reduce((max, row) => {
-        if (!Array.isArray(row)) return max;
-        const numeric = Number(row[rowIdColIndex]);
-        return Number.isFinite(numeric) && numeric > max ? numeric : max;
-    }, 0);
-    return String(maxRowId + 1);
+function normalizeDeleteRowIndexes(rowIndexes = []) {
+    return Array.from(new Set((Array.isArray(rowIndexes) ? rowIndexes : [rowIndexes])
+        .map((value) => Number(value))
+        .filter(Number.isInteger)
+        .filter((value) => value >= 0)))
+        .sort((a, b) => b - a);
 }
 
-function buildInsertedRowFromPayload(headerRow, content, data) {
-    const safeData = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
-    const dataEntries = Object.entries(safeData);
-    const rowIdColIndex = headerRow.findIndex((header) => isRowIdHeader(header));
-
-    return headerRow.map((header, colIndex) => {
-        if (colIndex === rowIdColIndex) {
-            return resolveNextRowId(content, rowIdColIndex);
-        }
-
-        const headerText = String(header ?? '').trim();
-        const matchedEntry = dataEntries.find(([key]) => String(key ?? '').trim() === headerText);
-        if (!matchedEntry) return '';
-        const [, value] = matchedEntry;
-        return value === undefined || value === null ? '' : value;
-    });
+function normalizeDbDeleteRowIndexes(rowIndexes = []) {
+    return normalizeDeleteRowIndexes(rowIndexes).map((rowIndex) => rowIndex + 1);
 }
 
-async function fallbackPersistInsertedRow(api, tableName, data) {
-    if (!api || typeof api.exportTableAsJson !== 'function' || typeof api.importTableAsJson !== 'function') {
-        return {
-            persisted: false,
-            refreshed: false,
-            snapshotSummary: readTableSnapshotSummaryFromApi(api, tableName, 'insert-row.fallback-read-error'),
-            fallbackUsed: false,
-            rowIndex: undefined,
-        };
-    }
-
-    const rawData = cloneRawTableData(api.exportTableAsJson());
-    const matchedEntry = findSheetEntryByTableName(rawData, tableName);
-    if (!matchedEntry) {
-        logger.warn({
-            action: 'insert-row.fallback-sheet-missing',
-            message: 'insertRow fallback 未找到目标表',
-            context: { tableName, payloadKeys: Object.keys(data || {}) },
-        });
-        return {
-            persisted: false,
-            refreshed: false,
-            snapshotSummary: readTableSnapshotSummaryFromApi(api, tableName, 'insert-row.fallback-read-error'),
-            fallbackUsed: false,
-            rowIndex: undefined,
-        };
-    }
-
-    const [, sheet] = matchedEntry;
-    const content = Array.isArray(sheet?.content) ? sheet.content : null;
-    const headerRow = Array.isArray(content?.[0]) ? content[0] : null;
-    if (!content || !headerRow) {
-        logger.warn({
-            action: 'insert-row.fallback-content-invalid',
-            message: 'insertRow fallback 目标表 content 或表头无效',
-            context: { tableName, payloadKeys: Object.keys(data || {}) },
-        });
-        return {
-            persisted: false,
-            refreshed: false,
-            snapshotSummary: readTableSnapshotSummaryFromApi(api, tableName, 'insert-row.fallback-read-error'),
-            fallbackUsed: false,
-            rowIndex: undefined,
-        };
-    }
-
-    const insertedRow = buildInsertedRowFromPayload(headerRow, content, data);
-    content.push(insertedRow);
-    const fallbackRowIndex = content.length - 1;
-
-    const jsonString = JSON.stringify(rawData);
-    const persistResult = await callApiWithTimeout(
-        () => api.importTableAsJson(jsonString),
+async function callDeleteRowApi(api, tableName, dbRowIndex) {
+    const result = await callApiWithTimeout(
+        () => api.deleteRow(tableName, dbRowIndex),
         DEFAULT_API_TIMEOUT,
-        'insertTableRow.fallbackSave',
+        'deleteTableRows.deleteRow',
     );
-    const persisted = isDbBooleanSuccess(persistResult);
-    let refreshed = false;
-
-    if (persisted && typeof api.refreshDataAndWorldbook === 'function') {
-        refreshed = !!(await callApiWithTimeout(
-            () => api.refreshDataAndWorldbook(),
-            12000,
-            'insertTableRow.fallbackRefresh',
-        ));
-    }
-
-    const snapshotSummary = readTableSnapshotSummaryFromApi(api, tableName, 'insert-row.fallback-read-error');
-
-    return {
-        persisted,
-        refreshed,
-        snapshotSummary,
-        fallbackUsed: true,
-        rowIndex: fallbackRowIndex,
-    };
+    return isDbBooleanSuccess(result);
 }
 
 export function getTableData() {
@@ -417,30 +199,6 @@ export async function getTableDataAsync(timeout = DEFAULT_API_TIMEOUT) {
     return null;
 }
 
-export async function saveTableData(rawData, timeout = DEFAULT_API_TIMEOUT) {
-    return enqueueTableMutation('saveTableData', async () => {
-        const api = getDB();
-        if (!api || typeof api.importTableAsJson !== 'function') return false;
-
-        try {
-            const jsonString = typeof rawData === 'string' ? rawData : JSON.stringify(rawData);
-            const result = await callApiWithTimeout(
-                () => api.importTableAsJson(jsonString),
-                timeout,
-                'saveTableData',
-            );
-            return isDbBooleanSuccess(result);
-        } catch (error) {
-            logger.warn({
-                action: 'table-data.save',
-                message: 'importTableAsJson 调用失败',
-                error,
-            });
-            return false;
-        }
-    });
-}
-
 export function processTableData(rawData) {
     if (!rawData || typeof rawData !== 'object') return null;
     const tables = {};
@@ -470,204 +228,441 @@ export function getSheetKeys(rawData) {
     });
 }
 
-export async function updateTableCell(tableName, rowIndex, colIdentifier, value) {
+export async function updateTableCell(tableName, rowIndex, colIdentifier, value, options = {}) {
     return enqueueTableMutation('updateTableCell', async () => {
         const api = getDB();
+        const safeTableName = normalizeTableName(tableName);
+        if (!safeTableName) return buildTableNameMissingResult('单元格更新');
         if (!api || typeof api.updateCell !== 'function') {
-            return { ok: false, code: 'api_unavailable', message: '数据库API不可用' };
+            return buildApiUnavailableResult();
         }
 
         try {
-            const result = await api.updateCell(tableName, rowIndex, colIdentifier, value);
+            const result = await callApiWithTimeout(
+                () => api.updateCell(safeTableName, rowIndex, colIdentifier, value),
+                DEFAULT_API_TIMEOUT,
+                'updateTableCell.updateCell',
+            );
             const ok = isDbBooleanSuccess(result);
-            return { ok, code: ok ? 'ok' : 'failed' };
+            const refreshed = ok ? await refreshTableProjection(api, 'updateTableCell.refreshProjection', options) : false;
+            return {
+                ok,
+                code: ok ? (refreshed ? 'ok' : 'ok_refresh_failed') : 'failed',
+                refreshed,
+                message: ok
+                    ? (refreshed ? undefined : '单元格已更新，但刷新投影失败')
+                    : 'updateCell 未确认更新成功',
+            };
         } catch (error) {
-            return { ok: false, code: 'error', message: error?.message || '未知错误' };
+            logger.warn({
+                action: 'update-cell.error',
+                message: 'updateCell 调用异常',
+                context: { tableName: safeTableName, rowIndex, colIdentifier },
+                error,
+            });
+            return { ok: false, code: 'error', message: error?.message || '未知错误', refreshed: false };
         }
     });
 }
 
-export async function updateTableRow(tableName, rowIndex, data) {
+export async function updateTableRow(tableName, rowIndex, data, options = {}) {
     return enqueueTableMutation('updateTableRow', async () => {
         const api = getDB();
-        const payloadKeys = Object.keys(data && typeof data === 'object' && !Array.isArray(data) ? data : {});
+        const safeTableName = normalizeTableName(tableName);
+        const payload = normalizePayload(data);
+        const payloadKeys = getPayloadKeys(payload);
+        if (!safeTableName) return buildTableNameMissingResult('行更新');
+        if (!Number.isInteger(Number(rowIndex)) || Number(rowIndex) < 1) {
+            return { ok: false, code: 'row_index_invalid', message: '行更新失败：行索引无效', refreshed: false };
+        }
         if (!api || typeof api.updateRow !== 'function') {
-            return { ok: false, code: 'api_unavailable', message: '数据库API不可用' };
+            return buildApiUnavailableResult();
         }
 
         try {
-            const apiResult = await api.updateRow(tableName, rowIndex, data);
-            const apiUpdated = isDbBooleanSuccess(apiResult);
-            let persistResult = {
-                persisted: false,
-                refreshed: false,
-                snapshotSummary: readTableSnapshotSummaryFromApi(api, tableName, 'update-row.snapshot-error'),
-                fallbackUsed: false,
+            const apiResult = await callApiWithTimeout(
+                () => api.updateRow(safeTableName, Number(rowIndex), payload),
+                DEFAULT_API_TIMEOUT,
+                'updateTableRow.updateRow',
+            );
+            const ok = isDbBooleanSuccess(apiResult);
+            const refreshed = ok ? await refreshTableProjection(api, 'updateTableRow.refreshProjection', options) : false;
+            const diagnostics = {
+                tableName: safeTableName,
+                rowIndex: Number(rowIndex),
+                payloadKeys,
+                payloadPreview: summarizeTablePayload(payload),
+                apiResult: summarizeApiResult(apiResult),
+                refreshed,
             };
 
-            if (apiUpdated) {
-                persistResult = {
-                    ...await persistInsertedTableSnapshot(api, tableName),
-                    fallbackUsed: false,
-                };
-            } else {
-                persistResult = await fallbackPersistUpdatedRow(api, tableName, rowIndex, data);
+            if (!ok) {
+                logger.warn({
+                    action: 'update-row.unconfirmed',
+                    message: 'updateRow 未确认更新成功',
+                    context: diagnostics,
+                });
             }
 
-            const finalOk = (apiUpdated || persistResult.fallbackUsed) && (persistResult.persisted || typeof api.importTableAsJson !== 'function');
-
             return {
-                ok: finalOk,
-                code: apiUpdated
-                    ? (persistResult.persisted ? 'ok' : 'persist_failed')
-                    : (persistResult.persisted ? 'ok_fallback' : 'failed'),
-                persisted: persistResult.persisted,
-                refreshed: persistResult.refreshed,
-                fallbackUsed: !!persistResult.fallbackUsed,
-                message: finalOk
-                    ? (persistResult.fallbackUsed ? 'updateRow 原接口返回失败，已通过整表回写兜底成功' : undefined)
-                    : 'updateRow 与整表回写兜底都失败了',
+                ok,
+                code: ok ? (refreshed ? 'ok' : 'ok_refresh_failed') : 'failed',
+                persisted: ok,
+                refreshed,
+                fallbackUsed: false,
+                message: ok
+                    ? (refreshed ? undefined : '行已更新，但刷新投影失败')
+                    : 'updateRow 未确认更新成功',
+                diagnostics,
             };
         } catch (error) {
             logger.warn({
                 action: 'update-row.error',
                 message: 'updateRow 调用异常',
                 context: {
-                    tableName,
+                    tableName: safeTableName,
                     rowIndex,
                     payloadKeys,
-                    payloadPreview: summarizeTablePayload(data),
+                    payloadPreview: summarizeTablePayload(payload),
                 },
                 error,
             });
-            return { ok: false, code: 'error', message: error?.message || '未知错误' };
+            return { ok: false, code: 'error', message: error?.message || '未知错误', refreshed: false };
         }
     });
 }
 
-export async function insertTableRow(tableName, data) {
+export async function insertTableRow(tableName, data, options = {}) {
     return enqueueTableMutation('insertTableRow', async () => {
         const api = getDB();
-        const payloadKeys = Object.keys(data && typeof data === 'object' && !Array.isArray(data) ? data : {});
+        const safeTableName = normalizeTableName(tableName);
+        const payload = normalizePayload(data);
+        const payloadKeys = getPayloadKeys(payload);
+        if (!safeTableName) return buildTableNameMissingResult('新增行');
         if (!api || typeof api.insertRow !== 'function') {
             logger.warn({
                 action: 'insert-row.api-unavailable',
                 message: 'insertRow 不可用',
                 context: {
-                    tableName,
+                    tableName: safeTableName,
                     payloadKeys,
                 },
             });
-            return { ok: false, code: 'api_unavailable', message: '数据库API不可用' };
+            return buildApiUnavailableResult();
         }
 
-        const beforeSnapshotSummary = readTableSnapshotSummaryFromApi(api, tableName, 'insert-row.snapshot-before-error');
+        const beforeSnapshotSummary = readTableSnapshotSummaryFromApi(api, safeTableName, 'insert-row.snapshot-before-error');
 
         try {
-            const rawRowIndex = await api.insertRow(tableName, data);
+            const rawRowIndex = await callApiWithTimeout(
+                () => api.insertRow(safeTableName, payload),
+                DEFAULT_API_TIMEOUT,
+                'insertTableRow.insertRow',
+            );
             const rowIndex = normalizeDbInsertedRowIndex(rawRowIndex);
-            let snapshotSummary = readTableSnapshotSummaryFromApi(api, tableName, 'insert-row.snapshot-error');
-            let snapshotVerifiedInsert = false;
-            let fallbackResult = {
-                persisted: false,
-                refreshed: false,
-                snapshotSummary: null,
-                fallbackUsed: false,
-                rowIndex: undefined,
+            const ok = rowIndex >= 1;
+            const refreshed = ok ? await refreshTableProjection(api, 'insertTableRow.refreshProjection', options) : false;
+            const afterSnapshotSummary = readTableSnapshotSummaryFromApi(api, safeTableName, 'insert-row.snapshot-after-error');
+            const diagnostics = {
+                tableName: safeTableName,
+                payloadKeys,
+                payloadPreview: summarizeTablePayload(payload),
+                rawRowIndex,
+                rawRowIndexSummary: summarizeApiResult(rawRowIndex),
+                normalizedRowIndex: rowIndex,
+                beforeSnapshot: beforeSnapshotSummary,
+                afterSnapshot: afterSnapshotSummary,
+                refreshed,
             };
 
-            if (rowIndex < 0) {
-                const verifyResult = await verifyInsertedRowBySnapshot(api, tableName, beforeSnapshotSummary, snapshotSummary);
-                snapshotSummary = verifyResult.snapshotSummary ?? snapshotSummary;
-                snapshotVerifiedInsert = verifyResult.snapshotVerifiedInsert;
-
-                if (!snapshotVerifiedInsert) {
-                    fallbackResult = await fallbackPersistInsertedRow(api, tableName, data);
-                    snapshotSummary = fallbackResult.snapshotSummary ?? snapshotSummary;
-                }
+            if (!ok) {
+                logger.warn({
+                    action: 'insert-row.unconfirmed',
+                    message: 'insertRow 未返回有效数据行索引，未执行全量快照兜底',
+                    context: diagnostics,
+                });
             }
-
-            const fallbackInserted = !!fallbackResult.fallbackUsed && !!fallbackResult.persisted;
-            const resolvedRowIndex = rowIndex >= 0
-                ? rowIndex
-                : (snapshotVerifiedInsert && Number.isInteger(snapshotSummary?.rowCount)
-                    ? snapshotSummary.rowCount
-                    : (fallbackInserted ? fallbackResult.rowIndex : undefined));
-            const insertDetected = rowIndex >= 0 || snapshotVerifiedInsert || fallbackInserted;
-            let persistResult = {
-                persisted: fallbackResult.persisted,
-                refreshed: fallbackResult.refreshed,
-                snapshotSummary,
-            };
-
-            if (insertDetected && !fallbackInserted) {
-                persistResult = await persistInsertedTableSnapshot(api, tableName);
-                snapshotSummary = persistResult.snapshotSummary ?? snapshotSummary;
-            }
-
-            const finalOk = insertDetected;
-            const resultCode = !insertDetected
-                ? 'failed'
-                : (fallbackInserted
-                    ? 'ok_fallback'
-                    : (persistResult.persisted
-                        ? (rowIndex >= 0 ? 'ok' : 'ok_snapshot_verified')
-                        : 'ok_persist_unconfirmed'));
-            const resultMessage = !insertDetected
-                ? 'insertRow 未确认插入成功'
-                : (fallbackInserted
-                    ? 'insertRow 原接口返回失败，已通过整表追加兜底成功'
-                    : (persistResult.persisted
-                        ? (snapshotVerifiedInsert ? 'insertRow 返回 -1，但快照确认已插入成功并已持久化' : undefined)
-                        : '插入已确认，但二次持久化或刷新未确认'));
 
             return {
-                ok: finalOk,
-                code: resultCode,
-                rowIndex: resolvedRowIndex,
+                ok,
+                code: ok ? (refreshed ? 'ok' : 'ok_refresh_failed') : 'insert_unconfirmed',
+                rowIndex: ok ? rowIndex : undefined,
                 rawRowIndex,
-                persisted: persistResult.persisted,
-                refreshed: persistResult.refreshed,
-                message: resultMessage,
-                diagnostics: {
-                    tableName,
-                    payloadKeys,
-                    beforeSnapshot: beforeSnapshotSummary,
-                    afterInsertSnapshot: snapshotSummary,
-                    persistedSnapshot: persistResult.snapshotSummary,
-                    snapshotVerifiedInsert,
-                    fallbackUsed: !!fallbackResult.fallbackUsed,
-                },
+                persisted: ok,
+                refreshed,
+                fallbackUsed: false,
+                message: ok
+                    ? (refreshed ? undefined : '新增已完成，但刷新投影失败')
+                    : 'insertRow 未返回有效数据行索引，未执行全量快照兜底',
+                diagnostics,
             };
         } catch (error) {
             logger.warn({
                 action: 'insert-row.error',
                 message: 'insertRow 调用异常',
                 context: {
-                    tableName,
+                    tableName: safeTableName,
                     payloadKeys,
-                    payloadPreview: summarizeTablePayload(data),
+                    payloadPreview: summarizeTablePayload(payload),
                 },
                 error,
             });
-            return { ok: false, code: 'error', message: error?.message || '未知错误' };
+            return { ok: false, code: 'error', message: error?.message || '未知错误', refreshed: false };
         }
     });
 }
 
-export async function deleteTableRowViaApi(tableName, rowIndex) {
+export async function insertTableRowsBatch(tableName, rows = [], options = {}) {
+    return enqueueTableMutation('insertTableRowsBatch', async () => {
+        const api = getDB();
+        const safeTableName = normalizeTableName(tableName);
+        const sourceRows = Array.isArray(rows) ? rows : [];
+        const payloads = sourceRows.filter((row) => row && typeof row === 'object' && !Array.isArray(row)).map(normalizePayload);
+        if (!safeTableName) return { ...buildTableNameMissingResult('批量新增行'), payloads: [], rowIndexes: [], rollback: null };
+        if (payloads.length === 0) {
+            return { ok: false, code: 'empty_rows', message: '批量新增失败：没有可新增的行', payloads: [], rowIndexes: [], refreshed: false, rollback: null };
+        }
+        if (!api || typeof api.insertRow !== 'function') {
+            return { ...buildApiUnavailableResult(), payloads, rowIndexes: [], rollback: null };
+        }
+
+        const insertedRowIndexes = [];
+        let failedAt = -1;
+        let failureResult = null;
+
+        try {
+            for (let index = 0; index < payloads.length; index++) {
+                const payload = payloads[index];
+                const rawRowIndex = await callApiWithTimeout(
+                    () => api.insertRow(safeTableName, payload),
+                    DEFAULT_API_TIMEOUT,
+                    `insertTableRowsBatch.insertRow.${index + 1}`,
+                );
+                const rowIndex = normalizeDbInsertedRowIndex(rawRowIndex);
+                if (rowIndex < 1) {
+                    failedAt = index;
+                    failureResult = {
+                        rawRowIndex,
+                        rowIndex,
+                        payloadKeys: getPayloadKeys(payload),
+                    };
+                    break;
+                }
+                insertedRowIndexes.push(rowIndex);
+            }
+        } catch (error) {
+            logger.warn({
+                action: 'insert-rows-batch.error',
+                message: '批量 insertRow 调用异常',
+                context: {
+                    tableName: safeTableName,
+                    insertedRowIndexes,
+                    failedAt,
+                },
+                error,
+            });
+            failedAt = failedAt < 0 ? insertedRowIndexes.length : failedAt;
+            failureResult = { errorMessage: error?.message || '未知错误' };
+        }
+
+        if (failedAt >= 0) {
+            const rollback = await rollbackInsertedRows(api, safeTableName, insertedRowIndexes);
+            return {
+                ok: false,
+                code: rollback.ok ? 'insert_failed_rolled_back' : 'insert_failed_rollback_failed',
+                message: rollback.ok
+                    ? `批量新增失败：第 ${failedAt + 1} 行未确认写入，已回滚本批次已插入行`
+                    : `批量新增失败：第 ${failedAt + 1} 行未确认写入，且回滚部分已插入行失败`,
+                tableName: safeTableName,
+                payloads,
+                rowIndexes: insertedRowIndexes,
+                failedAt,
+                failureResult,
+                rollback,
+                refreshed: false,
+            };
+        }
+
+        const refreshed = await refreshTableProjection(api, 'insertTableRowsBatch.refreshProjection', options);
+        return {
+            ok: true,
+            code: refreshed ? 'ok' : 'ok_refresh_failed',
+            message: refreshed ? '批量新增成功' : '批量新增成功，但刷新投影失败',
+            tableName: safeTableName,
+            payloads,
+            rowIndexes: insertedRowIndexes,
+            refreshed,
+            rollback: null,
+        };
+    });
+}
+
+async function rollbackInsertedRows(api, tableName, insertedRowIndexes = []) {
+    const dbIndexes = Array.from(new Set((Array.isArray(insertedRowIndexes) ? insertedRowIndexes : [])
+        .map((value) => Number(value))
+        .filter(Number.isInteger)
+        .filter((value) => value >= 1)))
+        .sort((a, b) => b - a);
+
+    const failed = [];
+    let deletedCount = 0;
+
+    if (!api || typeof api.deleteRow !== 'function') {
+        return {
+            ok: dbIndexes.length === 0,
+            deletedCount: 0,
+            failedRowIndexes: dbIndexes,
+            message: dbIndexes.length === 0 ? '没有需要回滚的行' : '回滚失败：deleteRow 不可用',
+        };
+    }
+
+    for (const dbRowIndex of dbIndexes) {
+        try {
+            const deleted = await callDeleteRowApi(api, tableName, dbRowIndex);
+            if (deleted) {
+                deletedCount += 1;
+            } else {
+                failed.push(dbRowIndex);
+            }
+        } catch (error) {
+            failed.push(dbRowIndex);
+            logger.warn({
+                action: 'insert-rows-batch.rollback-error',
+                message: '批量新增回滚删除异常',
+                context: { tableName, dbRowIndex },
+                error,
+            });
+        }
+    }
+
+    return {
+        ok: failed.length === 0,
+        deletedCount,
+        failedRowIndexes: failed,
+        message: failed.length === 0 ? '回滚成功' : `回滚失败：${failed.length} 行未删除`,
+    };
+}
+
+export async function deleteTableRowViaApi(tableName, rowIndex, options = {}) {
     return enqueueTableMutation('deleteTableRowViaApi', async () => {
         const api = getDB();
+        const safeTableName = normalizeTableName(tableName);
+        const dbRowIndex = Number(rowIndex);
+        if (!safeTableName) return buildTableNameMissingResult('删除行');
+        if (!Number.isInteger(dbRowIndex) || dbRowIndex < 1) {
+            return { ok: false, code: 'row_index_invalid', message: '删除失败：行索引无效', refreshed: false };
+        }
         if (!api || typeof api.deleteRow !== 'function') {
-            return { ok: false, code: 'api_unavailable', message: '数据库API不可用' };
+            return buildApiUnavailableResult();
         }
 
         try {
-            const result = await api.deleteRow(tableName, rowIndex);
-            const ok = isDbBooleanSuccess(result);
-            return { ok, code: ok ? 'ok' : 'failed' };
+            const ok = await callDeleteRowApi(api, safeTableName, dbRowIndex);
+            const refreshed = ok ? await refreshTableProjection(api, 'deleteTableRow.refreshProjection', options) : false;
+            return {
+                ok,
+                code: ok ? (refreshed ? 'ok' : 'ok_refresh_failed') : 'failed',
+                message: ok
+                    ? (refreshed ? undefined : '删除成功，但刷新投影失败')
+                    : `deleteRow 未确认删除第 ${dbRowIndex} 行`,
+                rowIndex: dbRowIndex,
+                deletedCount: ok ? 1 : 0,
+                refreshed,
+            };
         } catch (error) {
-            return { ok: false, code: 'error', message: error?.message || '未知错误' };
+            logger.warn({
+                action: 'delete-row.error',
+                message: 'deleteRow 调用异常',
+                context: { tableName: safeTableName, rowIndex: dbRowIndex },
+                error,
+            });
+            return { ok: false, code: 'error', message: error?.message || '未知错误', refreshed: false };
         }
+    });
+}
+
+export async function deleteTableRowsBatch(tableName, rowIndexes = [], options = {}) {
+    return enqueueTableMutation('deleteTableRowsBatch', async () => {
+        const api = getDB();
+        const safeTableName = normalizeTableName(tableName);
+        const normalizedRowIndexes = normalizeDeleteRowIndexes(rowIndexes);
+        const dbRowIndexes = normalizeDbDeleteRowIndexes(normalizedRowIndexes);
+
+        if (!safeTableName) {
+            return {
+                ...buildTableNameMissingResult('批量删除行'),
+                deletedCount: 0,
+                requestedRowIndexes: normalizedRowIndexes,
+                failedRowIndexes: normalizedRowIndexes,
+            };
+        }
+        if (normalizedRowIndexes.length === 0) {
+            return {
+                ok: false,
+                code: 'empty_selection',
+                message: '未选择可删除的条目',
+                deletedCount: 0,
+                requestedRowIndexes: [],
+                failedRowIndexes: [],
+                refreshed: false,
+            };
+        }
+        if (!api || typeof api.deleteRow !== 'function') {
+            return {
+                ...buildApiUnavailableResult(),
+                deletedCount: 0,
+                requestedRowIndexes: normalizedRowIndexes,
+                failedRowIndexes: normalizedRowIndexes,
+            };
+        }
+
+        const deletedRowIndexes = [];
+        const failedRowIndexes = [];
+
+        for (let index = 0; index < dbRowIndexes.length; index++) {
+            const dbRowIndex = dbRowIndexes[index];
+            const uiRowIndex = normalizedRowIndexes[index];
+            try {
+                const ok = await callDeleteRowApi(api, safeTableName, dbRowIndex);
+                if (ok) {
+                    deletedRowIndexes.push(uiRowIndex);
+                } else {
+                    failedRowIndexes.push(uiRowIndex);
+                    break;
+                }
+            } catch (error) {
+                failedRowIndexes.push(uiRowIndex);
+                logger.warn({
+                    action: 'delete-rows-batch.error',
+                    message: '批量 deleteRow 调用异常',
+                    context: { tableName: safeTableName, rowIndex: dbRowIndex, uiRowIndex },
+                    error,
+                });
+                break;
+            }
+        }
+
+        const allDeleted = deletedRowIndexes.length === normalizedRowIndexes.length && failedRowIndexes.length === 0;
+        const refreshed = deletedRowIndexes.length > 0
+            ? await refreshTableProjection(api, 'deleteTableRowsBatch.refreshProjection', options)
+            : false;
+
+        return {
+            ok: allDeleted,
+            code: allDeleted
+                ? (refreshed ? 'ok' : 'ok_refresh_failed')
+                : (deletedRowIndexes.length > 0 ? 'partial_failed' : 'failed'),
+            message: allDeleted
+                ? (refreshed ? '删除成功' : '删除成功，但刷新投影失败')
+                : (deletedRowIndexes.length > 0
+                    ? `部分删除失败：已删除 ${deletedRowIndexes.length} 行，仍有 ${normalizedRowIndexes.length - deletedRowIndexes.length} 行未删除`
+                    : '删除失败：数据库未确认删除目标行'),
+            tableName: safeTableName,
+            requestedRowIndexes: normalizedRowIndexes,
+            deletedRowIndexes,
+            failedRowIndexes,
+            deletedCount: deletedRowIndexes.length,
+            refreshed,
+        };
     });
 }

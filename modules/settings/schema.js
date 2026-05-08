@@ -30,11 +30,74 @@ export const WORLDBOOK_SELECTION_DEFAULTS = Object.freeze({
     entries: Object.freeze({}),
 });
 
+export const APPEARANCE_RESOURCE_POOL_DEFAULTS = Object.freeze({
+    wallpapers: Object.freeze([]),
+    icons: Object.freeze([]),
+});
+
+export const APPEARANCE_FONT_LIBRARY_DEFAULTS = Object.freeze({
+    activeFontId: 'builtin.system',
+    userFonts: Object.freeze([]),
+});
+
 const WORLDBOOK_SOURCE_MODES = new Set(['off', 'manual', 'character_bound']);
 const AI_SEGMENT_ROLES = new Set(['system', 'user', 'assistant']);
+const APPEARANCE_RESOURCE_IMAGE_MIME_TYPES = new Set([
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'image/gif',
+    'image/svg+xml',
+]);
+const APPEARANCE_FONT_MIME_BY_FORMAT = Object.freeze({
+    woff2: 'font/woff2',
+    woff: 'font/woff',
+    ttf: 'font/ttf',
+    otf: 'font/otf',
+});
+const APPEARANCE_FONT_MIME_ALIASES = Object.freeze({
+    'application/font-woff': 'font/woff',
+    'application/x-font-woff': 'font/woff',
+    'application/font-woff2': 'font/woff2',
+    'application/x-font-woff2': 'font/woff2',
+    'application/x-font-ttf': 'font/ttf',
+    'application/x-font-truetype': 'font/ttf',
+    'font/truetype': 'font/ttf',
+    'application/x-font-otf': 'font/otf',
+    'font/opentype': 'font/otf',
+});
+const APPEARANCE_FONT_BUILTIN_IDS = new Set([
+    'builtin.system',
+    'builtin.rounded',
+    'builtin.serif',
+    'builtin.handwriting',
+]);
+const APPEARANCE_RESOURCE_POOL_LIMITS = Object.freeze({
+    wallpapers: 48,
+    icons: 512,
+    idLength: 96,
+    nameLength: 120,
+    hashLength: 160,
+    mimeLength: 64,
+    sourceLength: 48,
+});
+export const APPEARANCE_FONT_LIBRARY_LIMITS = Object.freeze({
+    userFonts: 12,
+    singleFontBytes: 6 * 1024 * 1024,
+    totalFontBytes: 24 * 1024 * 1024,
+    idLength: 96,
+    nameLength: 120,
+    familyLength: 120,
+    hashLength: 160,
+    mimeLength: 64,
+    formatLength: 16,
+    sourceLength: 48,
+});
 
 export const defaultSettings = {
     enabled: true,
+    floatingToggleEnabled: true,
+    notificationBubblesEnabled: false,
     phoneToggleX: null,
     phoneToggleY: null,
     phoneContainerX: null,
@@ -55,6 +118,14 @@ export const defaultSettings = {
     phoneToggleStyleSize: 44,
     phoneToggleStyleShape: 'rounded',
     phoneToggleCoverImage: null,
+    appearanceResourcePool: {
+        wallpapers: [],
+        icons: [],
+    },
+    appearanceFontLibrary: {
+        activeFontId: 'builtin.system',
+        userFonts: [],
+    },
     phoneChat: {
         useStoryContext: true,
         storyContextTurns: 3,
@@ -89,12 +160,16 @@ const validationRules = {
     phoneToggleStyleSize: { min: 32, max: 72, type: 'number' },
     phoneToggleStyleShape: { enum: ['circle', 'rounded'], type: 'string' },
     enabled: { type: 'boolean' },
+    floatingToggleEnabled: { type: 'boolean' },
+    notificationBubblesEnabled: { type: 'boolean' },
     hideTableCountBadge: { type: 'boolean' },
     backgroundImage: { type: 'string', nullable: true },
     phoneToggleCoverImage: { type: 'string', nullable: true },
     appIcons: { type: 'object' },
     hiddenTableApps: { type: 'object' },
     beautifyActiveTemplateIdsSpecial: { type: 'object' },
+    appearanceResourcePool: { type: 'object' },
+    appearanceFontLibrary: { type: 'object' },
     phoneChat: { type: 'object' },
     phoneAiInstruction: { type: 'object' },
     worldbookSelection: { type: 'object' },
@@ -196,6 +271,217 @@ export function normalizePhoneAiInstructionMediaMarkers(raw) {
         videoPrefix: Object.prototype.hasOwnProperty.call(src, 'videoPrefix')
             ? normalizeString(src.videoPrefix)
             : PHONE_AI_MEDIA_MARKER_DEFAULTS.videoPrefix,
+    };
+}
+
+function computeAppearanceResourceHash(dataUrl) {
+    const source = String(dataUrl || '');
+    if (!source) return '';
+    let hash = 5381;
+    for (let i = 0; i < source.length; i += 1) {
+        hash = ((hash << 5) + hash) ^ source.charCodeAt(i);
+        hash >>>= 0;
+    }
+    return `djb2:${hash.toString(16).padStart(8, '0')}:${source.length}`;
+}
+
+export function computeAppearanceFontHash(dataUrl) {
+    return computeAppearanceResourceHash(dataUrl);
+}
+
+function extractDataUrlMime(dataUrl) {
+    const match = String(dataUrl || '').trim().match(/^data:([^;,]+)[;,]/i);
+    return match?.[1] ? String(match[1]).trim().toLowerCase() : '';
+}
+
+function normalizeAppearanceFontMime(rawMime, rawFormat = '') {
+    const mime = normalizeString(rawMime).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.mimeLength).toLowerCase();
+    const format = normalizeString(rawFormat).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.formatLength).toLowerCase();
+    const aliasedMime = APPEARANCE_FONT_MIME_ALIASES[mime] || mime;
+    if (Object.values(APPEARANCE_FONT_MIME_BY_FORMAT).includes(aliasedMime)) {
+        return aliasedMime;
+    }
+    return APPEARANCE_FONT_MIME_BY_FORMAT[format] || '';
+}
+
+function normalizeAppearanceFontFormat(rawFormat, rawMime = '') {
+    const format = normalizeString(rawFormat).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.formatLength).toLowerCase();
+    if (APPEARANCE_FONT_MIME_BY_FORMAT[format]) return format;
+
+    const mime = normalizeAppearanceFontMime(rawMime, format);
+    const entry = Object.entries(APPEARANCE_FONT_MIME_BY_FORMAT).find(([, value]) => value === mime);
+    return entry?.[0] || '';
+}
+
+export function normalizeAppearanceFontFamilyName(value, fallback = '') {
+    const source = normalizeString(value, fallback)
+        .replace(/[\u0000-\u001f\u007f"'\\;]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return source.slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.familyLength) || fallback;
+}
+
+function normalizeAppearanceFontItem(item, index = 0) {
+    const src = isPlainObject(item) ? item : {};
+    const rawDataUrl = typeof src.dataUrl === 'string' ? src.dataUrl.trim() : '';
+    const format = normalizeAppearanceFontFormat(src.format, src.mime || extractDataUrlMime(rawDataUrl));
+    const mime = normalizeAppearanceFontMime(src.mime || extractDataUrlMime(rawDataUrl), format);
+
+    if (!rawDataUrl || !format || !mime || !rawDataUrl.startsWith('data:')) {
+        return null;
+    }
+
+    const normalizedDataUrl = rawDataUrl.replace(/^data:([^;,]+)([;,])/i, `data:${mime}$2`);
+    if (!normalizedDataUrl.startsWith(`data:${mime}`)) {
+        return null;
+    }
+
+    const bytes = Number.isFinite(Number(src.bytes)) && Number(src.bytes) >= 0
+        ? Math.round(Number(src.bytes))
+        : 0;
+    if (bytes > APPEARANCE_FONT_LIBRARY_LIMITS.singleFontBytes) {
+        return null;
+    }
+
+    const hash = normalizeString(src.hash).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.hashLength)
+        || computeAppearanceFontHash(normalizedDataUrl);
+    const fallbackId = `user_font_${index + 1}`;
+    const id = normalizeString(src.id, fallbackId).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.idLength) || fallbackId;
+    const name = normalizeString(src.name, id).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.nameLength) || id;
+    const fallbackFamily = `YuziPhoneUserFont_${hash.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+    const family = normalizeAppearanceFontFamilyName(src.family, fallbackFamily);
+    const source = normalizeString(src.source || 'user').slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.sourceLength) || 'user';
+    const createdAt = Number.isFinite(Number(src.createdAt)) ? Math.round(Number(src.createdAt)) : Date.now();
+
+    return {
+        id,
+        name,
+        family,
+        mime,
+        format,
+        dataUrl: normalizedDataUrl,
+        hash,
+        bytes,
+        source,
+        createdAt,
+    };
+}
+
+function normalizeAppearanceFontList(rawList) {
+    if (!Array.isArray(rawList)) return [];
+    const usedIds = new Set();
+    const usedHashes = new Set();
+    const normalized = [];
+    let totalBytes = 0;
+
+    rawList.slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.userFonts * 2).forEach((item, index) => {
+        if (normalized.length >= APPEARANCE_FONT_LIBRARY_LIMITS.userFonts) return;
+        const normalizedItem = normalizeAppearanceFontItem(item, index);
+        if (!normalizedItem) return;
+
+        const dedupeKey = normalizedItem.hash || normalizedItem.dataUrl;
+        if (dedupeKey && usedHashes.has(dedupeKey)) return;
+        if (totalBytes + normalizedItem.bytes > APPEARANCE_FONT_LIBRARY_LIMITS.totalFontBytes) return;
+        if (usedIds.has(normalizedItem.id)) {
+            normalizedItem.id = `${normalizedItem.id}_${index + 1}`.slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.idLength);
+        }
+
+        usedIds.add(normalizedItem.id);
+        if (dedupeKey) usedHashes.add(dedupeKey);
+        totalBytes += normalizedItem.bytes;
+        normalized.push(normalizedItem);
+    });
+
+    return normalized;
+}
+
+export function normalizeAppearanceFontLibrarySettings(raw) {
+    const src = isPlainObject(raw) ? raw : {};
+    const userFonts = normalizeAppearanceFontList(src.userFonts);
+    const fontIds = new Set([
+        ...APPEARANCE_FONT_BUILTIN_IDS,
+        ...userFonts.map((font) => font.id),
+    ]);
+    const rawActiveFontId = normalizeString(src.activeFontId, APPEARANCE_FONT_LIBRARY_DEFAULTS.activeFontId);
+    const activeFontId = fontIds.has(rawActiveFontId)
+        ? rawActiveFontId
+        : APPEARANCE_FONT_LIBRARY_DEFAULTS.activeFontId;
+
+    return {
+        activeFontId,
+        userFonts,
+    };
+}
+
+function normalizeAppearanceResourceImageItem(item, index = 0, kind = 'resource') {
+    const src = isPlainObject(item) ? item : {};
+    const rawDataUrl = typeof src.dataUrl === 'string' ? src.dataUrl.trim() : '';
+    const mimeMatch = rawDataUrl.match(/^data:([^;,]+)[;,]/i);
+    const mime = normalizeString(src.mime || mimeMatch?.[1]).slice(0, APPEARANCE_RESOURCE_POOL_LIMITS.mimeLength).toLowerCase();
+    const normalizedDataUrl = rawDataUrl.replace(/^data:([^;,]+)([;,])/i, `data:${mime}$2`);
+
+    if (!normalizedDataUrl || !mime || !APPEARANCE_RESOURCE_IMAGE_MIME_TYPES.has(mime) || !normalizedDataUrl.startsWith(`data:${mime}`)) {
+        return null;
+    }
+
+    const fallbackId = `${kind}_${index + 1}`;
+    const id = normalizeString(src.id, fallbackId).slice(0, APPEARANCE_RESOURCE_POOL_LIMITS.idLength) || fallbackId;
+    const name = normalizeString(src.name, id).slice(0, APPEARANCE_RESOURCE_POOL_LIMITS.nameLength) || id;
+    const hash = normalizeString(src.hash).slice(0, APPEARANCE_RESOURCE_POOL_LIMITS.hashLength)
+        || computeAppearanceResourceHash(normalizedDataUrl);
+    const source = normalizeString(src.source || 'user').slice(0, APPEARANCE_RESOURCE_POOL_LIMITS.sourceLength) || 'user';
+    const bytes = Number.isFinite(Number(src.bytes)) && Number(src.bytes) >= 0
+        ? Math.round(Number(src.bytes))
+        : 0;
+    const width = Number.isFinite(Number(src.width)) && Number(src.width) > 0
+        ? Math.round(Number(src.width))
+        : 0;
+    const height = Number.isFinite(Number(src.height)) && Number(src.height) > 0
+        ? Math.round(Number(src.height))
+        : 0;
+
+    return {
+        id,
+        name,
+        mime,
+        dataUrl: normalizedDataUrl,
+        hash,
+        bytes,
+        width,
+        height,
+        source,
+    };
+}
+
+function normalizeAppearanceResourceImageList(rawList, kind, limit) {
+    if (!Array.isArray(rawList)) return [];
+    const usedIds = new Set();
+    const usedHashes = new Set();
+    const normalized = [];
+
+    rawList.slice(0, limit * 2).forEach((item, index) => {
+        if (normalized.length >= limit) return;
+        const normalizedItem = normalizeAppearanceResourceImageItem(item, index, kind);
+        if (!normalizedItem) return;
+
+        const dedupeKey = normalizedItem.hash || normalizedItem.dataUrl;
+        if (dedupeKey && usedHashes.has(dedupeKey)) return;
+        if (usedIds.has(normalizedItem.id)) {
+            normalizedItem.id = `${normalizedItem.id}_${index + 1}`.slice(0, APPEARANCE_RESOURCE_POOL_LIMITS.idLength);
+        }
+        usedIds.add(normalizedItem.id);
+        if (dedupeKey) usedHashes.add(dedupeKey);
+        normalized.push(normalizedItem);
+    });
+
+    return normalized;
+}
+
+export function normalizeAppearanceResourcePoolSettings(raw) {
+    const src = isPlainObject(raw) ? raw : {};
+    return {
+        wallpapers: normalizeAppearanceResourceImageList(src.wallpapers, 'wallpaper', APPEARANCE_RESOURCE_POOL_LIMITS.wallpapers),
+        icons: normalizeAppearanceResourceImageList(src.icons, 'icon', APPEARANCE_RESOURCE_POOL_LIMITS.icons),
     };
 }
 
@@ -313,6 +599,12 @@ export function validateSetting(key, value) {
             if (key === 'worldbookSelection') {
                 return createSettingsValidationResult(key, normalizeWorldbookSelectionSettings(value));
             }
+            if (key === 'appearanceResourcePool') {
+                return createSettingsValidationResult(key, normalizeAppearanceResourcePoolSettings(value));
+            }
+            if (key === 'appearanceFontLibrary') {
+                return createSettingsValidationResult(key, normalizeAppearanceFontLibrarySettings(value));
+            }
 
             return { valid: true, value: cloneSettingsValue(value) };
         }
@@ -350,6 +642,9 @@ export function validateSettings(settings) {
     if (typeof settings.beautifyActiveTemplateIdsSpecial === 'object' && !Array.isArray(settings.beautifyActiveTemplateIdsSpecial)) {
         validated.beautifyActiveTemplateIdsSpecial = { ...settings.beautifyActiveTemplateIdsSpecial };
     }
+
+    validated.appearanceResourcePool = normalizeAppearanceResourcePoolSettings(settings.appearanceResourcePool);
+    validated.appearanceFontLibrary = normalizeAppearanceFontLibrarySettings(settings.appearanceFontLibrary);
 
     return validated;
 }

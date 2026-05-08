@@ -44,6 +44,7 @@ function validateSettingsRendererDeps(deps = {}) {
         'captureScroll',
         'restoreScroll',
         'rerenderHomeKeepScroll',
+        'rerenderAppearanceKeepScroll',
         'rerenderDatabaseKeepScroll',
         'rerenderBeautifyKeepScroll',
         'rerenderApiPromptConfigKeepScroll',
@@ -59,6 +60,14 @@ function validateSettingsRendererDeps(deps = {}) {
         'setupAppearanceToggles',
         'renderHiddenTableAppsList',
         'renderIconUploadList',
+        'importAppearanceResourcePackFromData',
+        'exportAppearanceResourcePack',
+        'clearAppearanceResourcePoolIcons',
+        'getAppearanceFontLibraryViewModel',
+        'importAppearanceFontFile',
+        'selectAppearanceFont',
+        'deleteAppearanceFont',
+        'applyAppearanceFontLibrary',
     ]);
     assertFunctionDeps('dataConfig', deps.dataConfig, [
         'getTableData',

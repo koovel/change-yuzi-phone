@@ -1411,6 +1411,35 @@
     color: #7A7772;
 }
 
+.phone-settings-font-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+}
+
+.phone-settings-font-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 12px;
+    border: 1px solid rgba(91, 122, 106, 0.16);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.42);
+    color: #3A3731;
+}
+
+.phone-settings-font-preview-title {
+    font-size: 12px;
+    color: #5B7A6A;
+    font-weight: 700;
+}
+
+.phone-settings-font-preview-sample {
+    font-size: 18px;
+    line-height: 1.45;
+    color: #2F2C27;
+}
+
 .phone-settings-layout-grid,
 .phone-db-preset-grid,
 .phone-db-field-grid {

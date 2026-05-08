@@ -182,14 +182,16 @@ sequenceDiagram
 
 外部 API 契约来自文档：
 
-- [`importTableAsJson()`](api.md:177) 返回 [`Promise<boolean>`](api.md:186)。
-- [`updateRow()`](api.md:234) 返回 [`Promise<boolean>`](api.md:245)。
-- [`insertRow()`](api.md:269) 成功返回 rowIndex，失败返回 [`-1`](api.md:279)。
-- [`deleteRow()`](api.md:301) 返回 [`Promise<boolean>`](api.md:311)。
+- [`updateRow()`](api.md:234) 返回 [`Promise<boolean>`](api.md:245)，用于行级更新。
+- [`insertRow()`](api.md:269) 成功返回 rowIndex，失败返回 [`-1`](api.md:279)，用于行级新增。
+- [`deleteRow()`](api.md:301) 返回 [`Promise<boolean>`](api.md:311)，用于行级删除。
+- [`exportTableAsJson()`](api.md:201) 只允许作为读取、展示、校验与对账入口，不允许作为写入基准再覆盖回数据库。
 
 维护规则：
 
 - 表格写入必须走 [`enqueueTableMutation()`](../modules/phone-core/data-api/mutation-queue.js:9)，不要绕过队列并发写入。
+- 运行时新增、保存、删除、消息归档、小剧场级联删除必须使用 [`updateTableRow()`](../modules/phone-core/data-api/table-repository.js:239)、[`insertTableRow()`](../modules/phone-core/data-api/table-repository.js:294)、[`insertTableRowsBatch()`](../modules/phone-core/data-api/table-repository.js:360)、[`deleteTableRowViaApi()`](../modules/phone-core/data-api/table-repository.js:491)、[`deleteTableRowsBatch()`](../modules/phone-core/data-api/table-repository.js:529) 等行级仓库接口。
+- [`importTableAsJson()`](api.md:177) 是整库覆盖接口，禁止出现在 [`modules/`](../modules) 运行时 CRUD 写入链路中；不能把某次 UI 改动包装成全量快照导入，否则会污染全局表与当前聊天表快照，并让数据库误判所有表都更新。
 - 成功判定必须严格遵守外部 API 契约：布尔接口只接受 `true`，插入接口只接受有效行号。
 - UI 层不要直接调用 [`AutoCardUpdaterAPI`](../modules/phone-core/db-bridge.js:8)，应经 [`data-api.js`](../modules/phone-core/data-api.js:1) 或更具体 repository。
 
@@ -206,36 +208,47 @@ sequenceDiagram
   participant Repo as Table Repository
 
   User->>Actions: 发送消息
+  Actions->>Actions: 创建 activeSendRequest 与 AbortController
   Actions->>Local: 立即追加本地用户气泡
   Actions->>Actions: 用本地气泡与表格历史构建 AI 上下文
-  Actions->>AI: 调用 AI
+  Actions->>AI: 调用 AI，传入 signal
   AI->>API: 请求模型回复
+  opt 用户点击取消
+    User->>Actions: 点击取消按钮
+    Actions->>AI: abort 小手机本地等待
+    Actions->>Local: 删除本地临时气泡并把用户输入放回输入框
+    API-->>AI: 后台晚到文本被忽略
+  end
   API-->>AI: 文本回复
+  Actions->>Actions: 校验 activeSendRequest 未取消且仍有效
   Actions->>Actions: 解析 1 到 4 条结构化气泡
   Actions->>Local: 追加本地 NPC 气泡
   Actions->>Projection: 批量归档用户消息与 NPC 气泡
-  Projection->>Repo: 一次整表保存
+  Projection->>Repo: 批量行级 insertRow 插入消息记录表
   Projection-->>Actions: 返回真实行与刷新结果
   Actions->>Local: 归档成功后由表格真实行接管
 ```
 
 关键文件：
 
-- [`message-viewer-actions.js`](../modules/table-viewer/special/message-viewer-actions.js:317)：发送消息主流程，负责本地临时气泡、AI 调用、归档失败当前页重试。
+- [`message-viewer-actions.js`](../modules/table-viewer/special/message-viewer-actions.js:317)：发送消息主流程，负责本地临时气泡、AI 调用、AI 阶段取消等待、归档失败当前页重试。
 - [`parseStructuredAiReply()`](../modules/table-viewer/special/message-viewer-actions.js:153)：解析多气泡结构化回复，最多保留 4 条。
 - [`message-projection.js`](../modules/phone-core/chat-support/message-projection.js:81)：把领域消息映射到表格字段，并提供批量追加归档。
 - [`settings-context.js`](../modules/phone-core/chat-support/settings-context.js:116)：读取聊天设置、世界书、故事上下文。
 - [`ai-instruction-store.js`](../modules/phone-core/chat-support/ai-instruction-store.js:124)：AI 指令预设与多气泡输出协议。
-- [`ai-runtime.js`](../modules/phone-core/chat-support/ai-runtime.js:14)：调用数据库插件 AI 接口。
+- [`ai-runtime.js`](../modules/phone-core/chat-support/ai-runtime.js:14)：调用数据库插件 AI 接口，并提供小手机本地 abort 等待；不默认调用宿主全局停止生成。
 
 维护规则：
 
-- 消息记录表是最终一致的聊天仓库，不再承担发送中、生成中、归档失败等 UI 临时状态。
+- 消息记录表是最终一致的聊天仓库，不再承担发送中、生成中、归档失败、已取消等 UI 临时状态。
 - 实时回复必须先写本地临时气泡，再在 AI 成功后批量归档；禁止回退成“用户行写表 → 助手占位写表 → 多次更新”的中转链路。
+- AI 阶段取消等待必须删除本次本地临时气泡、把用户输入放回当前会话草稿、阻止晚到 AI 结果继续追加气泡或归档；当前数据库插件 [`callAI()`](reference/API_DOCUMENTATION.md:1413) 未承诺底层网络取消，因此小手机不默认调用宿主全局停止生成。
+- 进入归档阶段后不再提供“取消 AI 等待”语义；归档失败走 pendingArchive 当前页重试，不把已进入写表链路的状态伪装成可撤销。
 - 一条气泡一行；多气泡回复必须写入多行，不能把多条气泡塞进同一个消息内容字段。
-- 删除按钮只能删除表格真实行；归档失败的临时气泡只存在当前页面，返回、刷新或重进会话后直接消失。
+- 删除按钮只能删除表格真实行；归档失败或已取消等待的临时气泡只存在当前页面，返回、刷新或重进会话后直接消失。
 - 消息字段绑定属于运行时协议，应由共享契约维护；新增候选字段时必须同步写入、读取、列表渲染、详情渲染、AI prompt 历史消息。
 - 修改 AI 结构化回复格式时，必须同步提示词、[`parseStructuredAiReply()`](../modules/table-viewer/special/message-viewer-actions.js:153)、表格投影和历史消息构造。
+- 输入框性能优化属于消息详情页交互合同：草稿值必须在 input 事件内同步写入，自动高度计算应通过 viewer runtime 的 requestAnimationFrame 调度，避免每次键入都触发完整 compose patch 与重复 scrollHeight 测量。
 
 ## 6. UI 模块职责
 
@@ -328,7 +341,7 @@ viewer runtime 对外提供：
 - [`setEditMode()`](../modules/table-viewer/state.js:267) 进入或退出编辑态。
 - [`updateDraftValue()`](../modules/table-viewer/state.js:305) 按列索引记录草稿。
 - [`setCellLockManageMode()`](../modules/table-viewer/state.js:281) 进入字段锁管理态，并关闭编辑态。
-- 保存时 [`handleSaveRow()`](../modules/table-viewer/detail-edit-controller.js:201) 从 draftValues 构造 updateData，并通过 [`saveTableData()`](../modules/table-viewer/detail-edit-controller.js:260) 持久化整表快照。
+- 保存时 [`handleSaveRow()`](../modules/table-viewer/detail-edit-controller.js:201) 从 draftValues 构造 updateData，通过 runtime 注入的 [`getLiveTableName()`](../modules/table-viewer/generic-runtime.js:146) 取得当前表名，并调用 [`updateTableRow()`](../modules/phone-core/data-api/table-repository.js:239) 行级更新目标数据行；详情保存禁止克隆整库快照后全量覆盖。
 
 详情页 controller 每次绑定前会执行旧 cleanup，标识是 [`DETAIL_CONTROLLER_CLEANUP_KEY`](../modules/table-viewer/detail-edit-controller.js:4)。这是通用表详情页避免 per-render 事件泄漏的基本机制。
 
@@ -397,6 +410,7 @@ AI 指令预设的 `mediaMarkers.imagePrefix` 与 `mediaMarkers.videoPrefix` 是
 - 通用表新增字段展示能力时，应优先扩展模板 fieldBindings 和 row view model，不要硬编码某个表头。
 - 专属消息表新增字段时，要同步 field reader、message projection、AI prompt 构造、列表/详情渲染和模板默认绑定。
 - 所有数据写入都应经 phone-core data-api 或 chat-support 投影层，不要在 UI 控制器里直接访问宿主全局 API。
+- 运行时 CRUD 只能使用行级数据库接口；新增、保存、删除、消息归档、小剧场级联删除都不得调用 [`importTableAsJson()`](api.md:177) 或等价整库覆盖流程。
 - 任何异步写入、AI 调用、删除或导入完成后，都必须确认 viewer runtime 仍有效再写 DOM 或 state。
 
 ### 6.3 Settings App
@@ -481,6 +495,27 @@ AI 指令预设正文支持 `{{placeholderName}}` 形式的运行时占位符。
 - 页面内部事件要通过 [`pageRuntime.addEventListener()`](../modules/settings-app/page-runtime.js:100) 或 [`pageRuntime.registerCleanup()`](../modules/settings-app/page-runtime.js:115) 注册。
 - 页面 renderer 不直接 import 顶层 phone-core service；应通过 [`page-context-builders.js`](../modules/settings-app/page-renderers/page-context-builders.js:1) 注入所需能力。
 - 兼容型页面可以保留旧函数式 renderer 出口，但新增页面应优先提供页面对象生命周期。
+
+#### 6.3.6 Appearance 外观资源与字体库
+
+Appearance 页面服务统一由 [`appearance-settings.js`](../modules/settings-app/services/appearance-settings.js:1) 聚合，不允许页面直接绕过 facade import 子服务。当前外观页新增两类持久设置：
+
+- [`appearanceResourcePool`](../modules/settings/schema.js:1)：保存未直接分配到当前图标位或背景位的外观图片资源池，结构为 `wallpapers` 与 `icons` 两组资源列表。
+- [`appearanceFontLibrary`](../modules/settings/schema.js:1)：保存当前启用字体 id 和用户导入字体列表，内置字体 id 由 [`font-library-service.js`](../modules/settings-app/services/appearance-settings/font-library-service.js:1) 与 schema 白名单共同约束。
+
+资源包链路：
+
+1. UI 入口由 [`buildAppearancePageHtml()`](../modules/settings-app/layout/page-builders/appearance-builders.js:9) 输出，事件绑定在 [`bindAppearanceResourcePackActions()`](../modules/settings-app/pages/appearance.js:77)。
+2. 导入导出实现位于 [`resource-pack-service.js`](../modules/settings-app/services/appearance-settings/resource-pack-service.js:1)，格式常量为 `yuzi-phone-appearance-pack`。
+3. 图标位枚举必须复用 [`collectAppearanceIconSlots()`](../modules/settings-app/services/appearance-settings/icon-slots.js:1)，不要在资源包服务和图标上传 UI 中各写一套 key 枚举。
+4. 导入保存使用 [`savePhoneSettingsPatch()`](../modules/settings/persistence.js:161) 的布尔返回值判断是否成功；失败时必须回滚旧 [`backgroundImage`](../modules/settings/schema.js:1)、[`appIcons`](../modules/settings/schema.js:1) 与 [`appearanceResourcePool`](../modules/settings/schema.js:1)。
+
+字体库链路：
+
+1. 字体视图模型、导入、选择、删除和运行时应用集中在 [`font-library-service.js`](../modules/settings-app/services/appearance-settings/font-library-service.js:1)。
+2. 用户字体通过 data URL 写入 [`appearanceFontLibrary`](../modules/settings/schema.js:1)，导入格式限制和容量限制在服务内校验；内置字体不写入用户字体列表。
+3. 运行时通过动态 `@font-face` 与 [`--yuzi-phone-font-family`](../styles/phone-base/01-shell-system.css:1) 注入字体，并用 `#yuzi-phone-standalone[data-yuzi-phone-font-id]` 作用域规则压过 SillyTavern 主题字体。
+4. 字体选择、字体导入、字体删除和资源包导入成功后的重渲染都应走 [`rerenderAppearanceKeepScroll`](../modules/settings-app/render.js:201)，异步 FileReader 回调必须先检查 [`pageRuntime.isDisposed()`](../modules/settings-app/page-runtime.js:118)。这里如果裸调用 `render()`，设置页回顶和销毁后 DOM 写入会一起回来，能跑但不能交付。
 
 ### 6.4 Beautify 模板系统
 
@@ -593,7 +628,7 @@ Theater 是“多表投影成场景页面”的子系统。它不是 Table Viewe
 - [`renderTheaterScene()`](../modules/phone-theater/render.js:58)：场景页面入口，负责读取当前场景状态、拉取 raw table data、构建 view model、生成页面 HTML 并绑定交互。
 - [`buildTheaterSceneViewModel()`](../modules/phone-theater/data.js:117)：把 raw data 和 scene definition 转成渲染用 view model。
 - [`bindTheaterSceneInteractions()`](../modules/phone-theater/interactions.js:195)：绑定通用删除管理态，并把 scene 专属交互委托给 scene definition。
-- [`deleteTheaterEntities()`](../modules/phone-theater/delete-service.js:72)：执行跨表级联删除、保存整表数据、刷新投影并派发表更新事件。
+- [`deleteTheaterEntities()`](../modules/phone-theater/delete-service.js:72)：执行跨表级联删除计划，调用 [`deleteTableRowsBatch()`](../modules/phone-core/data-api/table-repository.js:529) 做行级批量删除，随后刷新投影并派发表更新事件。
 - [`theaterRenderKit`](../modules/phone-theater/core/render-kit.js:62)：提供 scene 渲染共享 helper，例如转义、标签、meta line、删除选择按钮。
 - 场景扩展规范参考 [`theater-scene-extension-spec.md`](reference/theater-scene-extension-spec.md:1)。
 
@@ -719,18 +754,18 @@ sequenceDiagram
   participant Interaction as Theater Interactions
   participant Service as Delete Service
   participant Scene as Scene deleteEntities
-  participant Data as Table Data
+  participant Data as Row-level Table API
 
   UI->>Interaction: 选择实体并确认删除
   Interaction->>Service: deleteTheaterEntities sceneId selectedKeys
-  Service->>Data: clone rawData
-  Service->>Scene: deleteEntities context
-  Scene-->>Service: removed count and affected sheet keys
-  Service->>Data: saveTableData nextRawData
+  Service->>Data: getTableData and build table index
+  Service->>Scene: deleteEntities context with deletion tracker
+  Scene-->>Service: removed count and row-index deletion plans
+  Service->>Data: deleteTableRowsBatch per affected table
   Service->>Data: refresh projection and dispatch updates
 ```
 
-[`deleteTheaterEntities()`](../modules/phone-theater/delete-service.js:72) 会克隆 rawData，构建 table index，把 `filterTableRows`、`buildDeleteTargets`、`hasDeleteTarget` 等 helper 注入 scene 的 [`deleteEntities`](../modules/phone-theater/scenes/square.js:159)。scene 只负责决定哪些主表行和附表行需要删除；保存、刷新、事件分发由 delete service 统一处理。
+[`deleteTheaterEntities()`](../modules/phone-theater/delete-service.js:72) 会读取当前 rawData，构建 table index，并把 `filterTableRows`、`buildDeleteTargets`、`hasDeleteTarget` 等 helper 注入 scene 的 [`deleteEntities`](../modules/phone-theater/scenes/square.js:159)。scene 只负责根据业务关系标记哪些主表行和附表行需要删除；[`createDeletionPlanTracker()`](../modules/phone-theater/delete-service.js:24) 汇总每张表的 UI rowIndex 删除计划，保存执行由 delete service 统一转换为 [`deleteTableRowsBatch()`](../modules/phone-core/data-api/table-repository.js:529) 行级删除。这里禁止回退到整表快照保存，运行时全量覆盖会绕过 mutation queue 并污染其他表的并发写入状态。
 
 内置 scene 删除关系：
 

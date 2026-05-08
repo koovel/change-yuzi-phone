@@ -86,6 +86,14 @@ function buildAppearancePageService(services) {
         setupAppearanceToggles: services.appearance.setupAppearanceToggles,
         renderHiddenTableAppsList: services.appearance.renderHiddenTableAppsList,
         renderIconUploadList: services.appearance.renderIconUploadList,
+        importAppearanceResourcePackFromData: services.appearance.importAppearanceResourcePackFromData,
+        exportAppearanceResourcePack: services.appearance.exportAppearanceResourcePack,
+        clearAppearanceResourcePoolIcons: services.appearance.clearAppearanceResourcePoolIcons,
+        getAppearanceFontLibraryViewModel: services.appearance.getAppearanceFontLibraryViewModel,
+        importAppearanceFontFile: services.appearance.importAppearanceFontFile,
+        selectAppearanceFont: services.appearance.selectAppearanceFont,
+        deleteAppearanceFont: services.appearance.deleteAppearanceFont,
+        applyAppearanceFontLibrary: services.appearance.applyAppearanceFontLibrary,
     };
 }
 
@@ -94,6 +102,8 @@ function buildAppearancePageContextFromServices(services) {
 
     return {
         ...services.common,
+        showToast: services.feedback.showToast,
+        rerenderAppearanceKeepScroll: services.scroll.rerenderAppearanceKeepScroll,
         appearancePageService,
     };
 }

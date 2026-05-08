@@ -38,13 +38,9 @@ function assertOrdered(haystack, tokens, label) {
     }
 }
 
-const cloneBody = extractFunctionBody(
-    'cloneTableDataForSave',
-    /function\s+cloneTableDataForSave\s*\([^)]*\)\s*{/,
-);
-assert(cloneBody.includes('JSON.parse(JSON.stringify(rawData))'), '保存快照 helper 必须深拷贝 rawData');
-assert(cloneBody.includes("action: 'row.save.clone'"), '保存快照 helper 深拷贝失败必须记录结构化日志');
-assert(cloneBody.includes('return null'), '保存快照 helper 失败时必须返回 null 阻断保存');
+assert(!source.includes('function cloneTableDataForSave'), '详情保存禁止恢复整库保存快照 helper');
+assert(!source.includes('saveTableData'), '详情保存禁止调用整库保存入口 saveTableData');
+assert(!source.includes('getTableData'), '详情保存不应重新读取整库快照作为写入基准');
 
 const saveBody = extractFunctionBody(
     'handleSaveRow',
@@ -55,20 +51,18 @@ assertOrdered(saveBody, [
     'const saveRowIndex = Number(state.rowIndex);',
     'state.setSaving(true);',
     'const dataRowIndex = saveRowIndex + 1;',
-    'const freshData = getTableData();',
-    'const nextData = cloneTableDataForSave(freshData);',
-    'const sheetData = nextData[sheetKey];',
-    'content[dataRowIndex][colIndex] = value;',
-    'const success = await saveTableData(nextData);',
+    'const updateData = {};',
+    'const liveTableName = typeof getLiveTableName === \'function\' ? String(getLiveTableName() || \'\').trim() : \'\';',
+    'const result = await updateTableRow(liveTableName, dataRowIndex, updateData);',
     'rows[saveRowIndex][rawColIndex] = draft;',
 ], 'handleSaveRow');
 
-assert(saveBody.includes('保存失败：无法创建保存快照'), '深拷贝失败必须给用户明确反馈');
 assert(saveBody.includes('保存失败：行索引无效'), '保存开始时必须校验捕获行号');
+assert(saveBody.includes('保存失败：缺少表格名称'), '行级保存缺少表名时必须给用户明确反馈');
+assert(saveBody.includes('保存失败：数据库行级更新接口不可用'), '行级更新依赖缺失时必须阻断保存');
 assert(saveBody.includes('context: { sheetKey, rowIndex: saveRowIndex }'), '异常日志必须使用保存开始时捕获的行号');
-assert(!saveBody.includes('saveTableData(freshData)'), '保存时不能把 getTableData() 原始对象传给 saveTableData');
-assert(!saveBody.includes('const sheetData = freshData[sheetKey]'), '保存时不能直接修改 freshData 的 sheetData');
 assert(!saveBody.includes('rows[state.rowIndex]'), '保存成功后不能使用可变 state.rowIndex 回写本地 rows');
-assert(!/content\s*\[\s*state\.rowIndex\s*\+\s*1\s*\]/.test(saveBody), '保存时不能用可变 state.rowIndex 定位 content 行');
+assert(!/updateTableRow\([^,]+,\s*state\.rowIndex/.test(saveBody), '保存时不能用可变 state.rowIndex 定位数据库行');
+assert(!saveBody.includes('const success = await'), '行级保存必须检查结构化 result.ok，而不是压缩成布尔 success');
 
 console.log('check-generic-detail-save-row: ok');

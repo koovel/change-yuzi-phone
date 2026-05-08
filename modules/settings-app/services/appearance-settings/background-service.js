@@ -47,20 +47,23 @@ export function setupBgUpload(container, options = {}) {
         pickImageFile(async (dataUrl) => {
             if (disposed) return;
             if (estimateBase64Bytes(dataUrl) > STORAGE_BUDGETS.backgroundImageBytes) {
-                showToast(container, '背景图压缩后仍过大，请选择更小图片', true);
+                showToast(container, '背景图过大，请缩小裁剪范围或选择更小图片', true);
                 return;
             }
 
-            savePhoneSetting('backgroundImage', dataUrl);
+            const saved = savePhoneSetting('backgroundImage', dataUrl);
+            if (saved !== true) {
+                showToast(container, '背景保存失败，请稍后重试', true);
+                return;
+            }
+
             preview.innerHTML = `<img src="${escapeHtmlAttr(dataUrl)}" class="phone-bg-thumb">`;
             cacheSet(CACHE_STORES.images, cachedKey, dataUrl, 1000 * 60 * 60 * 24 * 30).catch(() => {});
             showToast(container, '背景已更新');
         }, {
             runtime,
             maxSizeMB: 12,
-            maxWidth: 1920,
-            maxHeight: 1920,
-            quality: 0.8,
+            compress: false,
             cropTitle: '裁剪背景图',
             cropDescription: '可自由调整背景可见区域，确认后再保存。',
             cropPreset: 'background',

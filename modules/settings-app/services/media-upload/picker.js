@@ -11,6 +11,7 @@ import {
 export function pickImageFile(callback, options = {}) {
     const maxSizeMB = clampNumber(options.maxSizeMB, 1, 64, 8);
     const onError = typeof options.onError === 'function' ? options.onError : null;
+    const compress = options.compress !== false;
     const maxWidth = clampNumber(options.maxWidth, 128, 4096, 1440);
     const maxHeight = clampNumber(options.maxHeight, 128, 4096, 1440);
     const quality = clampNumber(options.quality, 0.5, 0.92, 0.82);
@@ -70,17 +71,23 @@ export function pickImageFile(callback, options = {}) {
                 return;
             }
 
-            const compressed = await compressDataUrl(croppedDataUrl, {
-                maxWidth,
-                maxHeight,
-                quality,
-            });
-            const best = estimateBase64Bytes(compressed) <= estimateBase64Bytes(croppedDataUrl)
-                ? compressed
+            const best = compress
+                ? await (async () => {
+                    const compressed = await compressDataUrl(croppedDataUrl, {
+                        maxWidth,
+                        maxHeight,
+                        quality,
+                    });
+                    return estimateBase64Bytes(compressed) <= estimateBase64Bytes(croppedDataUrl)
+                        ? compressed
+                        : croppedDataUrl;
+                })()
                 : croppedDataUrl;
 
             if (estimateBase64Bytes(best) > maxBytes) {
-                onError?.(`图片裁剪压缩后仍超过 ${maxSizeMB}MB，请缩小裁剪范围或换更小图片`);
+                onError?.(compress
+                    ? `图片裁剪压缩后仍超过 ${maxSizeMB}MB，请缩小裁剪范围或换更小图片`
+                    : `图片裁剪后超过 ${maxSizeMB}MB，请缩小裁剪范围或换更小图片`);
                 cleanup();
                 return;
             }

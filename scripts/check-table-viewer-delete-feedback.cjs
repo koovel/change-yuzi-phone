@@ -67,7 +67,8 @@ const outcomeBody = extractFunctionBody(
     'createDeleteOutcome',
     /function\s+createDeleteOutcome\s*\([^)]*\)\s*{/
 );
-assert(outcomeBody.includes('return { ok, deleted, message, refreshed, viewSynced };'), '删除结果 helper 必须保留 ok/deleted/message/refreshed/viewSynced 字段');
+assert(outcomeBody.includes('ok,') && outcomeBody.includes('deleted,') && outcomeBody.includes('message,') && outcomeBody.includes('refreshed,') && outcomeBody.includes('viewSynced,'), '删除结果 helper 必须保留 ok/deleted/message/refreshed/viewSynced 字段');
+assert(outcomeBody.includes('deletedCount,') && outcomeBody.includes('requestedRowIndexes,') && outcomeBody.includes('deletedRowIndexes,') && outcomeBody.includes('failedRowIndexes,'), '删除结果 helper 必须透传批量行级删除的部分失败字段');
 
 const deleteBody = extractFunctionBody(
     rowDelete,
@@ -78,9 +79,12 @@ assert(deleteBody.includes('return createDeleteOutcome({ message });'), '前置�
 assert(deleteBody.includes('showInlineToast(container, message, true);'), '前置校验失败必须使用错误样式');
 assertOrdered(deleteBody, [
     'const result = await deletePhoneSheetRows(sheetKey, [rowIndex], {',
-    'if (!result.ok) {',
-    'return createDeleteOutcome({ message, refreshed: result.refreshed ?? null });',
-], 'deleteRowFromList 删除失败结构化返回');
+    'const deletedRowIndexes = Array.isArray(result.deletedRowIndexes) ? result.deletedRowIndexes : [];',
+    'const deletedCurrentRow = deletedRowIndexes.includes(rowIndex);',
+    'if (!result.ok && !deletedCurrentRow) {',
+    'return createDeleteOutcome({',
+    'failedRowIndexes: result.failedRowIndexes || [rowIndex],',
+], 'deleteRowFromList 删除失败结构化返回并透传部分失败字段');
 assertOrdered(deleteBody, [
     'applyLockStateAfterRowDelete(sheetKey, rowIndex);',
     'if (!isViewerActive()) {',

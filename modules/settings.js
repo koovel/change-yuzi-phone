@@ -14,6 +14,9 @@ import {
     PHONE_CHAT_NUMERIC_LIMITS,
     PHONE_AI_MEDIA_MARKER_DEFAULTS,
     WORLDBOOK_SELECTION_DEFAULTS,
+    APPEARANCE_RESOURCE_POOL_DEFAULTS,
+    APPEARANCE_FONT_LIBRARY_DEFAULTS,
+    APPEARANCE_FONT_LIBRARY_LIMITS,
     cloneSettingsValue,
     validateSetting,
     validateSettings,
@@ -21,6 +24,10 @@ import {
     normalizePhoneAiInstructionSettings,
     normalizePhoneAiInstructionMediaMarkers,
     normalizeWorldbookSelectionSettings,
+    normalizeAppearanceResourcePoolSettings,
+    normalizeAppearanceFontLibrarySettings,
+    computeAppearanceFontHash,
+    normalizeAppearanceFontFamilyName,
 } from './settings/schema.js';
 import { createSettingsRepository } from './settings/repository.js';
 import { migrateLegacyPhoneSettingsWith } from './settings/migration.js';
@@ -100,10 +107,17 @@ export {
     PHONE_CHAT_NUMERIC_LIMITS,
     PHONE_AI_MEDIA_MARKER_DEFAULTS,
     WORLDBOOK_SELECTION_DEFAULTS,
+    APPEARANCE_RESOURCE_POOL_DEFAULTS,
+    APPEARANCE_FONT_LIBRARY_DEFAULTS,
+    APPEARANCE_FONT_LIBRARY_LIMITS,
     normalizePhoneChatSettings,
     normalizePhoneAiInstructionSettings,
     normalizePhoneAiInstructionMediaMarkers,
     normalizeWorldbookSelectionSettings,
+    normalizeAppearanceResourcePoolSettings,
+    normalizeAppearanceFontLibrarySettings,
+    computeAppearanceFontHash,
+    normalizeAppearanceFontFamilyName,
 };
 
 export { SettingsError };

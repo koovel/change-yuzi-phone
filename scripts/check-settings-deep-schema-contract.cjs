@@ -152,12 +152,163 @@ async function testWorldbookSelectionDeepNormalization() {
     });
 }
 
+async function testAppearanceResourcePoolDeepNormalization() {
+    const { validateSetting, validateSettings } = await loadSchema();
+    const pngDataUrl = `data:image/png;base64,${Buffer.from('png-a').toString('base64')}`;
+    const jpegDataUrl = `data:image/jpeg;base64,${Buffer.from('jpeg-a').toString('base64')}`;
+
+    const result = validateSetting('appearanceResourcePool', {
+        wallpapers: [
+            {
+                id: '  wall-1  ',
+                name: '  Wall 1  ',
+                mime: 'IMAGE/PNG',
+                dataUrl: pngDataUrl,
+                hash: ' hash-wall-1 ',
+                bytes: '999999',
+                width: '1920.8',
+                height: '1080.2',
+                source: ' import ',
+                extraKey: 'drop',
+            },
+            {
+                id: 'duplicate-wall',
+                name: 'Duplicate Wall',
+                mime: 'image/png',
+                dataUrl: pngDataUrl,
+                hash: 'hash-wall-1',
+            },
+            {
+                id: 'bad-wall',
+                mime: 'text/plain',
+                dataUrl: 'data:text/plain;base64,AAAA',
+            },
+        ],
+        icons: [
+            {
+                id: 'icon-1',
+                name: 'Icon 1',
+                mime: 'image/jpeg',
+                dataUrl: jpegDataUrl,
+                hash: '',
+                bytes: 1,
+                width: -5,
+                height: Infinity,
+                source: 'pack',
+            },
+            null,
+            {
+                id: 'bad-icon',
+                mime: 'image/png',
+                dataUrl: 'not-a-data-url',
+            },
+        ],
+        unknownRootKey: 'drop',
+    });
+
+    assert.equal(result.valid, true);
+    assert.deepEqual(Object.keys(result.value).sort(), ['icons', 'wallpapers']);
+    assert.equal(result.value.wallpapers.length, 1);
+    assert.equal(result.value.wallpapers[0].id, 'wall-1');
+    assert.equal(result.value.wallpapers[0].name, 'Wall 1');
+    assert.equal(result.value.wallpapers[0].mime, 'image/png');
+    assert.equal(result.value.wallpapers[0].hash, 'hash-wall-1');
+    assert.equal(result.value.wallpapers[0].width, 1921);
+    assert.equal(result.value.wallpapers[0].height, 1080);
+    assert.equal(Object.prototype.hasOwnProperty.call(result.value.wallpapers[0], 'extraKey'), false);
+    assert.equal(result.value.icons.length, 1);
+    assert.equal(result.value.icons[0].id, 'icon-1');
+    assert.equal(result.value.icons[0].mime, 'image/jpeg');
+    assert.equal(result.value.icons[0].width, 0);
+    assert.equal(result.value.icons[0].height, 0);
+    assert.ok(result.value.icons[0].hash.startsWith('djb2:'));
+
+    const settings = validateSettings({ appearanceResourcePool: [] });
+    assert.deepEqual(settings.appearanceResourcePool, {
+        wallpapers: [],
+        icons: [],
+    });
+}
+
+async function testAppearanceFontLibraryDeepNormalization() {
+    const { validateSetting, validateSettings, APPEARANCE_FONT_LIBRARY_LIMITS } = await loadSchema();
+    const woff2DataUrl = `data:font/woff2;base64,${Buffer.from('font-a').toString('base64')}`;
+    const ttfDataUrl = `data:application/octet-stream;base64,${Buffer.from('font-b').toString('base64')}`;
+
+    const result = validateSetting('appearanceFontLibrary', {
+        activeFontId: 'user-font-1',
+        userFonts: [
+            {
+                id: ' user-font-1 ',
+                name: '  Font A  ',
+                family: ' Bad;Family"Name ',
+                mime: 'FONT/WOFF2',
+                format: 'woff2',
+                dataUrl: woff2DataUrl,
+                hash: ' hash-font-a ',
+                bytes: 1234,
+                source: ' import ',
+                createdAt: '123.6',
+                extraKey: 'drop',
+            },
+            {
+                id: 'duplicate-font',
+                name: 'Duplicate Font',
+                mime: 'font/woff2',
+                format: 'woff2',
+                dataUrl: woff2DataUrl,
+                hash: 'hash-font-a',
+                bytes: 1234,
+            },
+            {
+                id: 'font-ttf',
+                name: 'Font TTF',
+                format: 'ttf',
+                dataUrl: ttfDataUrl,
+                bytes: APPEARANCE_FONT_LIBRARY_LIMITS.singleFontBytes + 1,
+            },
+            {
+                id: 'bad-font',
+                mime: 'text/plain',
+                format: 'txt',
+                dataUrl: 'data:text/plain;base64,AAAA',
+            },
+        ],
+        unknownRootKey: 'drop',
+    });
+
+    assert.equal(result.valid, true);
+    assert.deepEqual(Object.keys(result.value).sort(), ['activeFontId', 'userFonts']);
+    assert.equal(result.value.activeFontId, 'user-font-1');
+    assert.equal(result.value.userFonts.length, 1);
+    assert.equal(result.value.userFonts[0].id, 'user-font-1');
+    assert.equal(result.value.userFonts[0].name, 'Font A');
+    assert.equal(result.value.userFonts[0].mime, 'font/woff2');
+    assert.equal(result.value.userFonts[0].format, 'woff2');
+    assert.equal(result.value.userFonts[0].family.includes(';'), false);
+    assert.equal(Object.prototype.hasOwnProperty.call(result.value.userFonts[0], 'extraKey'), false);
+
+    const fallback = validateSetting('appearanceFontLibrary', {
+        activeFontId: 'missing-font',
+        userFonts: [],
+    });
+    assert.equal(fallback.value.activeFontId, 'builtin.system');
+
+    const settings = validateSettings({ appearanceFontLibrary: [] });
+    assert.deepEqual(settings.appearanceFontLibrary, {
+        activeFontId: 'builtin.system',
+        userFonts: [],
+    });
+}
+
 async function testSharedNormalizersAreExported() {
     const schema = await loadSchema();
     assert.equal(typeof schema.normalizePhoneChatSettings, 'function');
     assert.equal(typeof schema.normalizePhoneAiInstructionSettings, 'function');
     assert.equal(typeof schema.normalizePhoneAiInstructionMediaMarkers, 'function');
     assert.equal(typeof schema.normalizeWorldbookSelectionSettings, 'function');
+    assert.equal(typeof schema.normalizeAppearanceResourcePoolSettings, 'function');
+    assert.equal(typeof schema.normalizeAppearanceFontLibrarySettings, 'function');
 }
 
 async function main() {
@@ -165,6 +316,8 @@ async function main() {
         ['phoneChat 字段级归一化覆盖错误数字和未知字段', testPhoneChatDeepNormalization],
         ['phoneAiInstruction 字段级归一化保留旧槽位兼容与空媒体前缀', testPhoneAiInstructionDeepNormalization],
         ['worldbookSelection 字段级归一化覆盖异常 entries 结构', testWorldbookSelectionDeepNormalization],
+        ['appearanceResourcePool 字段级归一化覆盖坏图片、重复资源和未知字段', testAppearanceResourcePoolDeepNormalization],
+        ['appearanceFontLibrary 字段级归一化覆盖坏字体、重复字体和回退默认', testAppearanceFontLibraryDeepNormalization],
         ['settings schema 暴露共享嵌套 normalizer', testSharedNormalizersAreExported],
     ];
 

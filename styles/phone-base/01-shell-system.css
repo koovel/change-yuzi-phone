@@ -12,6 +12,11 @@
     height: 16px;
 }
 
+#yuzi-phone-standalone {
+    --yuzi-phone-font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--yuzi-phone-font-family);
+}
+
 /* --- Phone Shell --- */
 .phone-shell {
     width: 100%;
@@ -28,6 +33,7 @@
         0 0 0 4px var(--yuzi-phone-bg-shell-bezel-inner, #3a3a3a), /* Inner bezel */
         0 0 0 8px var(--yuzi-phone-bg-shell-bezel-outer, #1a1a1a), /* Outer frame */
         var(--yuzi-phone-shadow-shell-drop, 0 20px 50px rgba(0,0,0,0.6)); /* Drop shadow */
+    font-family: var(--yuzi-phone-font-family);
     -webkit-mask-image: -webkit-radial-gradient(white, black);
     mask-image: radial-gradient(white, black);
     transform: translateZ(0); /* For curve clipping */
@@ -79,7 +85,7 @@
 }
 .phone-status-time {
     margin-left: 0px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--yuzi-phone-font-family);
 }
 .phone-status-icons {
     display: flex;

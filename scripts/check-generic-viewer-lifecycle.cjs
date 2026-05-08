@@ -40,8 +40,8 @@ function main() {
 
     assertIncludes(rowDelete, 'function isRuntimeDisposed(runtime) {\n    return !!(runtime && typeof runtime.isDisposed === \'function\' && runtime.isDisposed());\n}', 'row-delete-controller 暴露 runtime disposed helper', failures);
     assertIncludes(rowDelete, 'viewerRuntime,\n    } = options;\n\n    const isViewerActive = () => isRuntimeActive(viewerRuntime);', 'row-delete-controller 接收 viewerRuntime 并建立 active helper', failures);
-    assertIncludes(rowDelete, 'const result = await deletePhoneSheetRows(sheetKey, [rowIndex], {\n            tableName: liveTableName,\n        });\n        if (!result.ok) {\n            const message = result.message || \'删除失败\';\n            if (isViewerActive()) {\n                syncRowsFromSheet();\n                showInlineToast(container, message, true);\n            }', 'row-delete-controller 删除失败 await 后只在 active 时同步旧 UI', failures);
-    assertIncludes(rowDelete, 'applyLockStateAfterRowDelete(sheetKey, rowIndex);\n        if (!isViewerActive()) {\n            return createDeleteOutcome({\n                ok: true,\n                deleted: true,', 'row-delete-controller 删除成功后保留锁状态重排并阻断 inactive UI 回写', failures);
+    assertIncludes(rowDelete, 'const result = await deletePhoneSheetRows(sheetKey, [rowIndex], {\n            tableName: liveTableName,\n        });\n        const deletedRowIndexes = Array.isArray(result.deletedRowIndexes) ? result.deletedRowIndexes : [];\n        const deletedCurrentRow = deletedRowIndexes.includes(rowIndex);\n        if (!result.ok && !deletedCurrentRow) {', 'row-delete-controller 删除失败 await 后只在 active 时同步旧 UI，并兼容部分删除结果', failures);
+    assertIncludes(rowDelete, 'applyLockStateAfterRowDelete(sheetKey, rowIndex);\n        if (!isViewerActive()) {\n            return createDeleteOutcome({\n                ok: !!result.ok,\n                deleted: true,', 'row-delete-controller 删除成功或目标行已删除后保留锁状态重排并阻断 inactive UI 回写', failures);
     assertIncludes(rowDelete, 'const synced = syncRowsFromSheet();\n        const message = result.message || \'删除成功\';', 'row-delete-controller active 成功路径才同步当前视图', failures);
 
     assertIncludes(listController, 'function isRuntimeDisposed(runtime) {\n    return !!(runtime && typeof runtime.isDisposed === \'function\' && runtime.isDisposed());\n}\n\nfunction isGenericListContextActive(context) {', 'list-page-controller 暴露 context active helper', failures);
@@ -49,7 +49,7 @@ function main() {
     assertIncludes(listController, 'if (typeof nextContext.setSuppressExternalTableUpdate === \'function\') {\n            nextContext.setSuppressExternalTableUpdate(false);\n        }\n        if (!isGenericListContextActive(nextContext)) return;', 'list-page-controller finally 先恢复 suppress 再阻断旧 UI 回写', failures);
 
     assertIncludes(detailEdit, 'const isViewerActive = () => !(runtime && typeof runtime.isDisposed === \'function\' && runtime.isDisposed());', 'detail-edit-controller 建立 runtime active helper', failures);
-    assertIncludes(detailEdit, 'const success = await saveTableData(nextData);\n            if (!isViewerActive()) return;', 'detail-edit-controller save await 后阻断旧 UI 回写', failures);
+    assertIncludes(detailEdit, 'const result = await updateTableRow(liveTableName, dataRowIndex, updateData);\n            if (!isViewerActive()) return;', 'detail-edit-controller updateRow await 后阻断旧 UI 回写', failures);
     assertIncludes(detailEdit, 'if (isViewerActive()) {\n                showInlineToast(container, `保存异常: ${err?.message || \'未知错误\'}`);\n            }\n        } finally {\n            if (isViewerActive()) {\n                state.setSaving(false);\n                renderKeepScroll();\n            }\n        }', 'detail-edit-controller catch/finally 只在 active 时 toast、恢复 saving 和 render', failures);
 
     if (failures.length > 0) {

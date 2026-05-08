@@ -53,6 +53,13 @@ export function renderMessageDetailView(options = {}) {
     const statusClass = state.errorText
         ? 'is-error'
         : (state.sending ? 'is-pending' : (statusText ? 'is-success' : ''));
+    const sendPhase = String(state.sendPhase || '').trim();
+    const isAiPending = state.sending && sendPhase === 'ai';
+    const isArchivePending = state.sending && sendPhase === 'archive';
+    const sendButtonAction = isAiPending ? 'stop-message' : 'send-message';
+    const sendButtonText = isAiPending ? '取消' : (isArchivePending ? '归档中...' : '发送');
+    const sendButtonDisabled = isArchivePending;
+    const sendButtonClass = isAiPending ? ' is-stop' : (isArchivePending ? ' is-pending' : '');
     const selectedCount = Array.isArray(state.selectedMessageRowIndexes)
         ? state.selectedMessageRowIndexes.filter((rowIndex) => selectableRowIndexSet.has(rowIndex)).length
         : 0;
@@ -101,7 +108,7 @@ export function renderMessageDetailView(options = {}) {
                                 placeholder="输入消息，按 Enter 发送"
                                 ${state.sending ? 'disabled' : ''}
                             >${escapeHtml(currentDraft)}</textarea>
-                            <button type="button" class="phone-special-message-send-btn" data-action="send-message" ${state.sending ? 'disabled' : ''}>${state.sending ? '...' : '发送'}</button>
+                            <button type="button" class="phone-special-message-send-btn${sendButtonClass}" data-default-action="send-message" data-action="${sendButtonAction}" ${sendButtonDisabled ? 'disabled' : ''}>${escapeHtml(sendButtonText)}</button>
                         </div>
                         <div class="phone-special-message-compose-meta">
                             ${showComposeTemplateNote ? `<span class="phone-special-message-template-pill">${escapeHtml(activeAiInstructionPresetName)}</span>` : ''}

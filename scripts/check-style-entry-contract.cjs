@@ -6,8 +6,12 @@ const ROOT = process.cwd();
 const FILES = {
     entry: 'style.css',
     base: 'styles/01-phone-base.css',
+    home: 'styles/phone-base/02-page-home.css',
     readme: 'styles/README.md',
     phoneBaseReadme: 'styles/phone-base/README.md',
+    shell: 'styles/phone-base/01-shell-system.css',
+    settingsModern: 'styles/phone-base/07-settings-modern.css',
+    fontLibrary: 'modules/settings-app/services/appearance-settings/font-library-service.js',
 };
 
 const REMOVED_FILES = [
@@ -34,6 +38,17 @@ function exists(relativePath) {
 
 function has(content, snippet) {
     return content.includes(snippet);
+}
+
+function getCssRuleBlock(content, selector) {
+    const source = String(content || '');
+    const index = source.indexOf(selector);
+    if (index < 0) return '';
+    const openIndex = source.indexOf('{', index);
+    if (openIndex < 0) return '';
+    const closeIndex = source.indexOf('}', openIndex + 1);
+    if (closeIndex < 0) return '';
+    return source.slice(openIndex + 1, closeIndex);
 }
 
 function check(results, fileKey, description, ok) {
@@ -64,6 +79,37 @@ function main() {
     check(results, 'base', 'base 入口不再默认加载 table legacy', !has(contents.base, "@import url('./phone-base/03-table-legacy.css');"));
     check(results, 'base', 'base 入口不再默认加载 settings legacy', !has(contents.base, "@import url('./phone-base/04-settings-legacy.css');"));
     check(results, 'base', 'base 入口不再保留已清理的 Legacy archive 注释段落', !has(contents.base, 'Legacy archive'));
+
+    const homeOverlayBlock = getCssRuleBlock(contents.home, '.phone-home-overlay');
+    check(results, 'home', '主页 overlay 规则继续存在', homeOverlayBlock.length > 0);
+    check(results, 'home', '主页 overlay 保留暗色蒙层以保证图标文字可读', has(homeOverlayBlock, 'background: rgba(0, 0, 0, 0.15);'));
+    check(results, 'home', '主页 overlay 不得使用 backdrop-filter 模糊高清壁纸', !/backdrop-filter\s*:/i.test(homeOverlayBlock));
+    check(results, 'home', '主页 overlay 不得使用 -webkit-backdrop-filter 模糊高清壁纸', !/-webkit-backdrop-filter\s*:/i.test(homeOverlayBlock));
+    check(results, 'shell', '手机容器声明字体库 CSS 变量入口', has(contents.shell, '#yuzi-phone-standalone')
+        && has(contents.shell, '--yuzi-phone-font-family')
+        && has(contents.shell, 'font-family: var(--yuzi-phone-font-family);'));
+    check(results, 'fontLibrary', '字体库动态样式使用小手机作用域高优先级覆盖并排除专用字体节点', has(contents.fontLibrary, 'function buildScopedFontOverrideCss(')
+        && has(contents.fontLibrary, '[data-yuzi-phone-font-id]')
+        && has(contents.fontLibrary, '!important')
+        && has(contents.fontLibrary, ':not(.fa-solid)')
+        && has(contents.fontLibrary, ':not(.fa-brands)')
+        && has(contents.fontLibrary, ':not(code)')
+        && has(contents.fontLibrary, ':not(textarea)')
+        && has(contents.fontLibrary, 'buildScopedFontOverrideCss(activeFont)'));
+    check(results, 'fontLibrary', '字体库内置字体保持 4 种风格入口，不再保留像素/等宽入口', has(contents.fontLibrary, "id: 'builtin.system'")
+        && has(contents.fontLibrary, "id: 'builtin.rounded'")
+        && has(contents.fontLibrary, "id: 'builtin.serif'")
+        && has(contents.fontLibrary, "id: 'builtin.handwriting'")
+        && has(contents.fontLibrary, "name: '宋体阅读'")
+        && has(contents.fontLibrary, "name: '手写便签'")
+        && !has(contents.fontLibrary, "id: 'builtin.pixel'")
+        && !has(contents.fontLibrary, "id: 'builtin.mono'")
+        && !has(contents.fontLibrary, "name: '像素复古'")
+        && !has(contents.fontLibrary, "name: '等宽终端'"));
+    check(results, 'home', 'Dock 大字图标使用字体库变量', has(contents.home, 'font-family: var(--yuzi-phone-font-family'));
+    check(results, 'settingsModern', '设置页包含字体库预览样式', has(contents.settingsModern, '.phone-settings-font-panel')
+        && has(contents.settingsModern, '.phone-settings-font-preview')
+        && has(contents.settingsModern, '.phone-settings-font-preview-sample'));
 
     check(results, 'readme', 'styles README 说明顶层入口', has(contents.readme, '## 顶层入口'));
     check(results, 'readme', 'styles README 说明 phone-base 子目录', has(contents.readme, '## phone-base 子目录'));

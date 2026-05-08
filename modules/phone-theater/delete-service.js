@@ -1,4 +1,4 @@
-import { getTableData, saveTableData } from '../phone-core/data-api.js';
+import { deleteTableRowsBatch, getTableData } from '../phone-core/data-api.js';
 import { dispatchPhoneTableUpdated, refreshPhoneTableProjection } from '../phone-core/chat-support.js';
 import { getTheaterSceneDefinition } from './config.js';
 import { buildTheaterTableIndex, getCellByHeader, normalizeText, resolveRowIdentity, splitSemicolonText } from './core/table-index.js';
@@ -21,34 +21,53 @@ function normalizeSelectedKeys(selectedKeys) {
         .filter(Boolean));
 }
 
-function filterTableRows(table, shouldDelete) {
+function createDeletionPlanTracker() {
+    const planBySheetKey = new Map();
+
+    const addRowIndex = (table, rowIndex) => {
+        if (!table?.sheetKey || !Number.isInteger(rowIndex) || rowIndex < 0) return;
+        const sheetKey = normalizeText(table.sheetKey);
+        if (!sheetKey) return;
+        if (!planBySheetKey.has(sheetKey)) {
+            planBySheetKey.set(sheetKey, {
+                sheetKey,
+                tableName: normalizeText(table.tableName || table.name) || sheetKey,
+                rowIndexes: new Set(),
+                role: normalizeText(table.role),
+            });
+        }
+        planBySheetKey.get(sheetKey).rowIndexes.add(rowIndex);
+    };
+
+    return {
+        addRowIndex,
+        toPlans() {
+            return [...planBySheetKey.values()]
+                .map((item) => ({
+                    sheetKey: item.sheetKey,
+                    tableName: item.tableName,
+                    role: item.role,
+                    rowIndexes: [...item.rowIndexes].sort((a, b) => b - a),
+                }))
+                .filter((item) => item.rowIndexes.length > 0);
+        },
+    };
+}
+
+function filterTableRows(table, shouldDelete, tracker = null) {
     if (!table?.sheetKey || !Array.isArray(table.rows) || typeof shouldDelete !== 'function') {
         return { removed: 0, changed: false };
     }
 
-    const sheet = table.sheet;
-    if (!sheet || !Array.isArray(sheet.content) || sheet.content.length <= 1) {
-        return { removed: 0, changed: false };
-    }
-
-    const keptRows = [];
     let removed = 0;
     table.rows.forEach((row, rowIndex) => {
         if (shouldDelete(row, rowIndex)) {
             removed += 1;
-            return;
+            tracker?.addRowIndex?.(table, rowIndex);
         }
-        keptRows.push(row);
     });
 
-    if (removed <= 0) {
-        return { removed: 0, changed: false };
-    }
-
-    sheet.content = [sheet.content[0], ...keptRows];
-    table.rows = keptRows;
-    table.rowCount = keptRows.length;
-    return { removed, changed: true };
+    return { removed, changed: removed > 0 };
 }
 
 function normalizeRemovedCount(value) {
@@ -60,7 +79,9 @@ function normalizeRemovedCount(value) {
 function resolveSceneTables(index, scene) {
     const tables = {};
     Object.entries(scene.tableNames || scene.tables || {}).forEach(([role, tableName]) => {
-        tables[role] = index.tableByName.get(normalizeText(tableName)) || null;
+        const table = index.tableByName.get(normalizeText(tableName)) || null;
+        if (table) table.role = role;
+        tables[role] = table;
     });
     return tables;
 }
@@ -187,14 +208,14 @@ function validateSelectedTargets(scene, tables, selectedSet) {
     return { ok: true };
 }
 
-function buildDeleteContext(nextRawData, index, scene, tables, selectedSet) {
+function buildDeleteContext(rawData, index, scene, tables, selectedSet, tracker) {
     return Object.freeze({
-        rawData: nextRawData,
+        rawData,
         index,
         scene,
         tables,
         selectedSet,
-        filterTableRows,
+        filterTableRows: (table, shouldDelete) => filterTableRows(table, shouldDelete, tracker),
         buildDeleteTargets,
         hasDeleteTarget,
         helpers: Object.freeze({
@@ -205,6 +226,52 @@ function buildDeleteContext(nextRawData, index, scene, tables, selectedSet) {
             splitSemicolonText,
         }),
     });
+}
+
+function sortDeletionPlans(scene, plans = []) {
+    const primaryRole = normalizeText(scene?.primaryTableRole);
+    return [...plans].sort((a, b) => {
+        const aPrimary = normalizeText(a.role) === primaryRole;
+        const bPrimary = normalizeText(b.role) === primaryRole;
+        if (aPrimary !== bPrimary) return aPrimary ? 1 : -1;
+        return String(a.tableName || a.sheetKey).localeCompare(String(b.tableName || b.sheetKey));
+    });
+}
+
+async function executeTheaterDeletionPlans(scene, plans = []) {
+    const orderedPlans = sortDeletionPlans(scene, plans);
+    const results = [];
+    let deletedCount = 0;
+
+    for (const plan of orderedPlans) {
+        const result = await deleteTableRowsBatch(plan.tableName, plan.rowIndexes, {
+            refreshProjection: false,
+        });
+        results.push({
+            ...result,
+            sheetKey: plan.sheetKey,
+            tableName: plan.tableName,
+            role: plan.role,
+        });
+        deletedCount += Number(result.deletedCount || 0);
+        if (!result.ok) {
+            return {
+                ok: false,
+                code: result.code || 'partial_failed',
+                message: result.message || '小剧场删除失败：数据库未确认删除目标行',
+                deletedCount,
+                results,
+            };
+        }
+    }
+
+    return {
+        ok: true,
+        code: 'ok',
+        message: '小剧场行级删除成功',
+        deletedCount,
+        results,
+    };
 }
 
 export async function deleteTheaterEntities(rawData, sceneId, selectedKeys = []) {
@@ -224,12 +291,12 @@ export async function deleteTheaterEntities(rawData, sceneId, selectedKeys = [])
     }
 
     const latestRawData = getTableData();
-    const nextRawData = cloneRawData(latestRawData);
-    if (!nextRawData) {
+    const readOnlyRawData = cloneRawData(latestRawData);
+    if (!readOnlyRawData) {
         return { ok: false, message: '删除失败：无法读取最新数据，请刷新后重试', deletedCount: 0 };
     }
 
-    const index = buildTheaterTableIndex(nextRawData);
+    const index = buildTheaterTableIndex(readOnlyRawData);
     const tables = resolveSceneTables(index, scene);
     const primaryTable = index.tableByName.get(normalizeText(scene.primaryTableName));
     if (!primaryTable) {
@@ -242,27 +309,43 @@ export async function deleteTheaterEntities(rawData, sceneId, selectedKeys = [])
     }
 
     const affectedSheetKeys = getAffectedSheetKeys(index, scene);
-    const deletion = scene.deleteEntities(buildDeleteContext(nextRawData, index, scene, tables, selectedSet)) || { removed: 0 };
+    const tracker = createDeletionPlanTracker();
+    const deletion = scene.deleteEntities(buildDeleteContext(readOnlyRawData, index, scene, tables, selectedSet, tracker)) || { removed: 0 };
     const removedCount = normalizeRemovedCount(deletion.removed);
+    const deletionPlans = tracker.toPlans();
 
-    if (removedCount <= 0) {
+    if (removedCount <= 0 || deletionPlans.length <= 0) {
         return { ok: false, message: '未找到可删除的数据', deletedCount: 0 };
     }
 
-    const saved = await saveTableData(nextRawData);
-    if (!saved) {
-        return { ok: false, message: '删除失败：保存数据失败', deletedCount: 0 };
-    }
-
+    const execution = await executeTheaterDeletionPlans(scene, deletionPlans);
     const refreshed = await refreshPhoneTableProjection();
-    const notifiedSheetKeys = Array.from(new Set([...(deletion.affectedSheetKeys || []), ...affectedSheetKeys].filter(Boolean)));
+    const notifiedSheetKeys = Array.from(new Set([
+        ...(deletion.affectedSheetKeys || []),
+        ...affectedSheetKeys,
+        ...deletionPlans.map(plan => plan.sheetKey),
+    ].filter(Boolean)));
     notifiedSheetKeys.forEach(sheetKey => dispatchPhoneTableUpdated(sheetKey));
+
+    if (!execution.ok) {
+        return {
+            ok: false,
+            message: `${execution.message || '删除失败'}；已删除 ${execution.deletedCount} / ${removedCount} 条相关数据，请刷新后核对`,
+            deletedCount: execution.deletedCount,
+            expectedDeletedCount: removedCount,
+            refreshed,
+            affectedSheetKeys: notifiedSheetKeys,
+            results: execution.results,
+        };
+    }
 
     return {
         ok: true,
-        message: refreshed ? `已删除 ${removedCount} 条相关数据` : `已删除 ${removedCount} 条相关数据，但刷新投影失败`,
-        deletedCount: removedCount,
+        message: refreshed ? `已删除 ${execution.deletedCount} 条相关数据` : `已删除 ${execution.deletedCount} 条相关数据，但刷新投影失败`,
+        deletedCount: execution.deletedCount,
+        expectedDeletedCount: removedCount,
         refreshed,
         affectedSheetKeys: notifiedSheetKeys,
+        results: execution.results,
     };
 }

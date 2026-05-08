@@ -2,8 +2,9 @@ import { Logger } from '../error-handler.js';
 import { PHONE_ICONS } from '../phone-home/icons.js';
 import { dispatchPhoneTableUpdated, refreshPhoneTableProjection } from '../phone-core/chat-support.js';
 import { sleep } from '../phone-core/db-bridge.js';
-import { escapeHtml } from '../utils/dom-escape.js';
+import { escapeHtml, escapeHtmlAttr } from '../utils/dom-escape.js';
 import { EventManager } from '../utils/event-manager.js';
+import { createDdlFieldMetadata, findFirstEnumValidationError, getDdlFieldMetadataForIndex } from './ddl-field-metadata.js';
 import { resolveViewerRuntime } from './runtime.js';
 
 const logger = Logger.withScope({ scope: 'table-viewer/add-row-modal', feature: 'table-viewer' });
@@ -85,6 +86,75 @@ function isRuntimeActive(runtime) {
     return !isRuntimeDisposed(runtime);
 }
 
+function buildAddRowFieldControlHtml(field) {
+    const fieldMetadata = field.fieldMetadata;
+    if (fieldMetadata?.type === 'enum' && Array.isArray(fieldMetadata.options) && fieldMetadata.options.length > 0) {
+        return `
+            <select class="phone-modal-field-input" data-field-idx="${escapeHtmlAttr(String(field.rawIdx))}" data-field-control="select">
+                <option value="">请选择${escapeHtml(field.header)}</option>
+                ${fieldMetadata.options.map((option) => `<option value="${escapeHtmlAttr(option)}">${escapeHtml(option)}</option>`).join('')}
+            </select>
+        `;
+    }
+
+    return `<textarea class="phone-modal-field-input" data-field-idx="${escapeHtmlAttr(String(field.rawIdx))}" data-field-control="textarea" placeholder="请输入${escapeHtml(field.header)}" rows="1"></textarea>`;
+}
+
+function hasMappedDdlFields(ddlFieldMetadata) {
+    return !!(
+        ddlFieldMetadata?.byRawIndex
+        && typeof ddlFieldMetadata.byRawIndex === 'object'
+        && Object.keys(ddlFieldMetadata.byRawIndex).length > 0
+    );
+}
+
+function resolveAddRowDdlFieldMetadata(options = {}) {
+    const {
+        ddlFieldMetadata,
+        getTableData,
+        sheetKey = '',
+        headers = [],
+        rawHeaders = [],
+    } = options;
+
+    if (hasMappedDdlFields(ddlFieldMetadata)) {
+        return ddlFieldMetadata;
+    }
+
+    if (typeof getTableData !== 'function') {
+        return ddlFieldMetadata || createDdlFieldMetadata({ headers, rawHeaders });
+    }
+
+    let rawData = null;
+    try {
+        rawData = getTableData();
+    } catch (error) {
+        logger.warn({
+            action: 'add-row.ddl-metadata-fallback.failed',
+            message: '新增弹窗读取表格快照以解析 DDL 元数据失败',
+            context: { sheetKey: String(sheetKey || '') },
+            error,
+        });
+        return ddlFieldMetadata || createDdlFieldMetadata({ headers, rawHeaders });
+    }
+
+    const safeSheetKey = String(sheetKey || '').trim();
+    const sheet = rawData && typeof rawData === 'object' && safeSheetKey
+        ? rawData[safeSheetKey]
+        : null;
+    const ddl = String(sheet?.sourceData?.ddl || '');
+
+    if (!ddl.trim()) {
+        return ddlFieldMetadata || createDdlFieldMetadata({ headers, rawHeaders });
+    }
+
+    return createDdlFieldMetadata({
+        ddl,
+        headers,
+        rawHeaders,
+    });
+}
+
 async function reconcileInsertedRow(options = {}) {
     const {
         sheetKey = '',
@@ -156,10 +226,12 @@ export function showGenericAddRowModal(options = {}) {
         tableName = '',
         sheetKey = '',
         rows = [],
+        ddlFieldMetadata,
         state,
         container,
         insertTableRow,
         getTableData,
+        buildMutationDiagnostics,
         getTableLockState,
         showInlineToast,
         renderKeepScroll,
@@ -219,6 +291,13 @@ export function showGenericAddRowModal(options = {}) {
 
     const firstRawHeader = String(rawHeaders[0] ?? '').trim();
     const shouldHideLeadingPlaceholder = firstRawHeader === '';
+    const effectiveDdlFieldMetadata = resolveAddRowDdlFieldMetadata({
+        ddlFieldMetadata,
+        getTableData,
+        sheetKey,
+        headers,
+        rawHeaders,
+    });
 
     const editableFields = [];
     headers.forEach((header, idx) => {
@@ -229,6 +308,7 @@ export function showGenericAddRowModal(options = {}) {
         editableFields.push({
             header,
             rawIdx: idx,
+            fieldMetadata: getDdlFieldMetadataForIndex(effectiveDdlFieldMetadata, idx),
         });
     });
 
@@ -244,7 +324,7 @@ export function showGenericAddRowModal(options = {}) {
                 ${editableFields.map((field) => `
                     <div class="phone-modal-field">
                         <label class="phone-modal-field-label">${escapeHtml(field.header)}</label>
-                        <textarea class="phone-modal-field-input" data-field-idx="${field.rawIdx}" placeholder="请输入${escapeHtml(field.header)}" rows="1"></textarea>
+                        ${buildAddRowFieldControlHtml(field)}
                     </div>
                 `).join('')}
             </div>
@@ -280,7 +360,7 @@ export function showGenericAddRowModal(options = {}) {
     };
     modalAny.__yuziCleanup = closeModal;
 
-    const firstInput = /** @type {HTMLTextAreaElement | null} */ (modal.querySelector('.phone-modal-field-input'));
+    const firstInput = /** @type {HTMLTextAreaElement | HTMLSelectElement | null} */ (modal.querySelector('.phone-modal-field-input'));
     if (firstInput) {
         focusTimerId = setManagedTimeout(() => {
             focusTimerId = null;
@@ -304,17 +384,23 @@ export function showGenericAddRowModal(options = {}) {
     modalEventManager.add(document, 'keydown', handleEsc);
 
     modal.querySelectorAll('.phone-modal-field-input').forEach((inputNode) => {
-        const input = /** @type {HTMLTextAreaElement} */ (inputNode);
-        modalEventManager.add(input, 'input', () => {
+        const input = /** @type {HTMLTextAreaElement | HTMLSelectElement} */ (inputNode);
+        const syncDraftValue = () => {
             const idx = Number(input.getAttribute('data-field-idx'));
             if (!Number.isNaN(idx)) {
                 draftData[idx] = input.value;
             }
-        });
-        modalEventManager.add(input, 'input', () => {
-            input.style.height = 'auto';
-            input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-        });
+        };
+        if (input instanceof HTMLTextAreaElement) {
+            modalEventManager.add(input, 'input', () => {
+                syncDraftValue();
+                input.style.height = 'auto';
+                input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+            });
+            return;
+        }
+
+        modalEventManager.add(input, 'change', syncDraftValue);
     });
 
     modalEventManager.add(modal.querySelector('#phone-modal-confirm-btn'), 'click', async () => {
@@ -334,6 +420,52 @@ export function showGenericAddRowModal(options = {}) {
                 const value = draftData[idx] ?? '';
                 newData[String(header)] = value;
             });
+
+            const enumValidationError = findFirstEnumValidationError({
+                ddlFieldMetadata: effectiveDdlFieldMetadata,
+                data: newData,
+                valuesByRawIndex: draftData,
+                fieldIndexes: editableFields.map((field) => field.rawIdx),
+            });
+            if (enumValidationError) {
+                const validationDiagnostics = typeof buildMutationDiagnostics === 'function'
+                    ? buildMutationDiagnostics(newData, {
+                        operation: 'insert',
+                        validation: 'ddl-enum',
+                        validationError: enumValidationError,
+                    })
+                    : {
+                        sheetKey,
+                        tableName,
+                        validation: 'ddl-enum',
+                        validationError: enumValidationError,
+                    };
+                logger.warn({
+                    action: 'add-row.validation-failed',
+                    message: '通用表新增前置校验失败',
+                    context: validationDiagnostics,
+                });
+                showInlineToast(container, enumValidationError.message || '新增失败：字段值不在允许范围内');
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = '确定';
+                }
+                return;
+            }
+
+            const submissionDiagnostics = () => (typeof buildMutationDiagnostics === 'function'
+                ? buildMutationDiagnostics(newData, {
+                    operation: 'insert',
+                    editableFields: editableFields.map((field) => ({
+                        header: String(field.header || ''),
+                        rawIdx: field.rawIdx,
+                    })),
+                })
+                : {
+                    sheetKey,
+                    tableName,
+                    payloadKeys: Object.keys(newData),
+                });
 
             const localRowsBefore = rows.length;
             const result = await insertTableRow(tableName, newData);
@@ -384,6 +516,19 @@ export function showGenericAddRowModal(options = {}) {
                     });
                 });
             } else {
+                logger.warn({
+                    action: 'add-row.failed',
+                    message: '通用表新增失败',
+                    context: {
+                        ...submissionDiagnostics(),
+                        resultCode: result?.code || '',
+                        resultMessage: result?.message || '',
+                        rawRowIndex: result?.rawRowIndex,
+                        persisted: result?.persisted,
+                        refreshed: result?.refreshed,
+                        repositoryDiagnostics: result?.diagnostics || null,
+                    },
+                });
                 const failureParts = [];
                 if (result?.message) failureParts.push(result.message);
                 if (result?.code && result.code !== 'failed') failureParts.push(`错误码：${result.code}`);

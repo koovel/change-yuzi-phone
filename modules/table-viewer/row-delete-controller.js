@@ -12,8 +12,28 @@ function isRuntimeActive(runtime) {
     return !isRuntimeDisposed(runtime);
 }
 
-function createDeleteOutcome({ ok = false, deleted = false, message = '', refreshed = null, viewSynced = null } = {}) {
-    return { ok, deleted, message, refreshed, viewSynced };
+function createDeleteOutcome({
+    ok = false,
+    deleted = false,
+    message = '',
+    refreshed = null,
+    viewSynced = null,
+    deletedCount = 0,
+    requestedRowIndexes = [],
+    deletedRowIndexes = [],
+    failedRowIndexes = [],
+} = {}) {
+    return {
+        ok,
+        deleted,
+        message,
+        refreshed,
+        viewSynced,
+        deletedCount,
+        requestedRowIndexes,
+        deletedRowIndexes,
+        failedRowIndexes,
+    };
 }
 
 export function createRowDeleteController(options) {
@@ -63,23 +83,36 @@ export function createRowDeleteController(options) {
         const result = await deletePhoneSheetRows(sheetKey, [rowIndex], {
             tableName: liveTableName,
         });
-        if (!result.ok) {
+        const deletedRowIndexes = Array.isArray(result.deletedRowIndexes) ? result.deletedRowIndexes : [];
+        const deletedCurrentRow = deletedRowIndexes.includes(rowIndex);
+        if (!result.ok && !deletedCurrentRow) {
             const message = result.message || '删除失败';
             if (isViewerActive()) {
                 syncRowsFromSheet();
                 showInlineToast(container, message, true);
             }
-            return createDeleteOutcome({ message, refreshed: result.refreshed ?? null });
+            return createDeleteOutcome({
+                message,
+                refreshed: result.refreshed ?? null,
+                deletedCount: result.deletedCount || 0,
+                requestedRowIndexes: result.requestedRowIndexes || [rowIndex],
+                deletedRowIndexes,
+                failedRowIndexes: result.failedRowIndexes || [rowIndex],
+            });
         }
 
         applyLockStateAfterRowDelete(sheetKey, rowIndex);
         if (!isViewerActive()) {
             return createDeleteOutcome({
-                ok: true,
+                ok: !!result.ok,
                 deleted: true,
-                message: result.message || '删除成功',
+                message: result.message || (result.ok ? '删除成功' : '删除已部分完成'),
                 refreshed: result.refreshed ?? null,
                 viewSynced: null,
+                deletedCount: result.deletedCount || 1,
+                requestedRowIndexes: result.requestedRowIndexes || [rowIndex],
+                deletedRowIndexes: deletedRowIndexes.length > 0 ? deletedRowIndexes : [rowIndex],
+                failedRowIndexes: result.failedRowIndexes || [],
             });
         }
 
@@ -93,6 +126,10 @@ export function createRowDeleteController(options) {
                 message: `${message}，但当前视图未同步到最新表格`,
                 refreshed: result.refreshed ?? null,
                 viewSynced: false,
+                deletedCount: result.deletedCount || 1,
+                requestedRowIndexes: result.requestedRowIndexes || [rowIndex],
+                deletedRowIndexes: deletedRowIndexes.length > 0 ? deletedRowIndexes : [rowIndex],
+                failedRowIndexes: result.failedRowIndexes || [],
             });
         }
 
@@ -108,6 +145,10 @@ export function createRowDeleteController(options) {
             message,
             refreshed: result.refreshed ?? null,
             viewSynced: true,
+            deletedCount: result.deletedCount || 1,
+            requestedRowIndexes: result.requestedRowIndexes || [rowIndex],
+            deletedRowIndexes: deletedRowIndexes.length > 0 ? deletedRowIndexes : [rowIndex],
+            failedRowIndexes: result.failedRowIndexes || [],
         });
     };
 

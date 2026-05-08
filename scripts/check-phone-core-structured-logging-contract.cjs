@@ -62,7 +62,10 @@ function main() {
 
     check(results, 'tableRepository', 'table-repository 使用 scoped logger', has(contents.tableRepository, "const logger = Logger.withScope({ scope: 'phone-core/data-api/table-repository', feature: 'db-api' });"));
     check(results, 'tableRepository', 'table-repository getTableData 使用结构化日志', has(contents.tableRepository, "action: 'table-data.get'"));
-    check(results, 'tableRepository', 'table-repository saveTableData 使用结构化日志', has(contents.tableRepository, "action: 'table-data.save'"));
+    check(results, 'tableRepository', 'table-repository updateRow 异常使用结构化日志', has(contents.tableRepository, "action: 'update-row.error'"));
+    check(results, 'tableRepository', 'table-repository insertRow 异常使用结构化日志', has(contents.tableRepository, "action: 'insert-row.error'"));
+    check(results, 'tableRepository', 'table-repository deleteRow 异常使用结构化日志', has(contents.tableRepository, "action: 'delete-row.error'"));
+    check(results, 'tableRepository', 'table-repository 不再保留 saveTableData 结构化日志契约', !has(contents.tableRepository, "action: 'table-data.save'"));
 
     check(results, 'mutationQueue', 'mutation-queue 使用 scoped logger', has(contents.mutationQueue, "const logger = Logger.withScope({ scope: 'phone-core/data-api/mutation-queue', feature: 'db-api' });"));
     check(results, 'mutationQueue', 'mutation-queue 任务失败使用结构化日志', has(contents.mutationQueue, "action: 'mutation.run'"));

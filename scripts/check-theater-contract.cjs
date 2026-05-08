@@ -22,6 +22,7 @@ const FILES = {
     notifications: 'modules/phone-core/notifications.js',
     visibilitySettings: 'modules/settings-app/services/appearance-settings/visibility-settings.js',
     iconUploadService: 'modules/settings-app/services/appearance-settings/icon-upload-service.js',
+    iconSlots: 'modules/settings-app/services/appearance-settings/icon-slots.js',
     theaterLifecycleCheck: 'scripts/check-theater-lifecycle.cjs',
     theaterCss: 'styles/06-phone-theater.css',
     theaterCssIndex: 'styles/phone-theater/index.css',
@@ -241,17 +242,19 @@ function main() {
     pushCheck(results, 'scenesIndex', 'normalizeTheaterSceneId 只移除 theater route 前缀', has(contents.scenesIndex, 'text.startsWith(THEATER_ROUTE_PREFIX)') && has(contents.scenesIndex, 'text.slice(THEATER_ROUTE_PREFIX.length).trim()') && !has(contents.scenesIndex, "replace(THEATER_ROUTE_PREFIX, '')"));
 
     pushCheck(results, 'deleteService', 'delete-service 导出 deleteTheaterEntities()', has(contents.deleteService, 'export async function deleteTheaterEntities(rawData, sceneId, selectedKeys = [])'));
-    pushCheck(results, 'deleteService', 'delete-service 使用整表保存 saveTableData()', has(contents.deleteService, 'saveTableData(nextRawData)'));
-    pushCheck(results, 'deleteService', 'delete-service 保存前重读最新 rawData', has(contents.deleteService, 'getTableData') && has(contents.deleteService, 'saveTableData') && has(contents.deleteService, 'const latestRawData = getTableData();') && has(contents.deleteService, 'cloneRawData(latestRawData)') && !has(contents.deleteService, 'const nextRawData = cloneRawData(rawData);'));
-    pushCheck(results, 'deleteService', 'delete-service 保存前执行 selected key 并发校验', has(contents.deleteService, 'function validateSelectedTargets') && has(contents.deleteService, 'const validation = validateSelectedTargets(scene, tables, selectedSet);') && indexOfOrInfinity(contents.deleteService, 'const validation = validateSelectedTargets(scene, tables, selectedSet);') < indexOfOrInfinity(contents.deleteService, 'scene.deleteEntities(') && indexOfOrInfinity(contents.deleteService, 'scene.deleteEntities(') < indexOfOrInfinity(contents.deleteService, 'saveTableData(nextRawData)'));
+    pushCheck(results, 'deleteService', 'delete-service 禁止整表保存 saveTableData()', !has(contents.deleteService, 'saveTableData'));
+    pushCheck(results, 'deleteService', 'delete-service 使用行级删除计划 deleteTableRowsBatch()', has(contents.deleteService, 'deleteTableRowsBatch') && has(contents.deleteService, 'async function executeTheaterDeletionPlans(scene, plans = [])') && has(contents.deleteService, 'const result = await deleteTableRowsBatch(plan.tableName, plan.rowIndexes,'));
+    pushCheck(results, 'deleteService', 'delete-service 删除前重读最新 rawData', has(contents.deleteService, 'getTableData') && has(contents.deleteService, 'const latestRawData = getTableData();') && has(contents.deleteService, 'cloneRawData(latestRawData)') && !has(contents.deleteService, 'const nextRawData = cloneRawData(rawData);'));
+    pushCheck(results, 'deleteService', 'delete-service 行级删除前执行 selected key 并发校验', has(contents.deleteService, 'function validateSelectedTargets') && has(contents.deleteService, 'const validation = validateSelectedTargets(scene, tables, selectedSet);') && indexOfOrInfinity(contents.deleteService, 'const validation = validateSelectedTargets(scene, tables, selectedSet);') < indexOfOrInfinity(contents.deleteService, 'scene.deleteEntities(') && indexOfOrInfinity(contents.deleteService, 'scene.deleteEntities(') < indexOfOrInfinity(contents.deleteService, 'executeTheaterDeletionPlans(scene, deletionPlans)'));
     pushCheck(results, 'deleteService', 'delete-service 并发校验区分 deleteRole 与 tableRole', has(contents.deleteService, 'function buildDeleteRoleMappings') && has(contents.deleteService, 'getDeleteRoleCandidates(tableRole)') && has(contents.deleteService, 'mappings.get(target.role)') && has(contents.deleteService, 'const tableRole = mappedTableRoles[0];') && has(contents.deleteService, 'resolveTargetIdentity(scene, target.role, tableRole'));
     pushCheck(results, 'deleteService', 'delete-service 支持组合 identity 字段协议', has(contents.deleteService, "identitySpec.split('|')") && has(contents.deleteService, "getCellByHeader(table, row, header)") && has(contents.deleteService, ".join('|')"));
     pushCheck(results, 'deleteService', 'delete-service 删除后刷新投影并派发表更新', has(contents.deleteService, 'refreshPhoneTableProjection()') && has(contents.deleteService, 'dispatchPhoneTableUpdated(sheetKey)'));
     pushCheck(results, 'deleteService', 'delete-service 调用 scene.deleteEntities(context)', has(contents.deleteService, 'scene.deleteEntities(buildDeleteContext'));
     pushCheck(results, 'deleteService', 'delete-service 将 typed delete helpers 注入 context', has(contents.deleteService, 'buildDeleteTargets,') && has(contents.deleteService, 'hasDeleteTarget,'));
     pushCheck(results, 'deleteService', 'delete-service 不再使用裸 sidebar 前缀判断', !has(contents.deleteService, "startsWith('sidebar:')"));
-    pushCheck(results, 'deleteService', 'delete-service 删除后同步 table.rows 与 rowCount', has(contents.deleteService, 'table.rows = keptRows') && has(contents.deleteService, 'table.rowCount = keptRows.length'));
-    pushCheck(results, 'deleteService', 'delete-service 规范化 scene 删除数量', has(contents.deleteService, 'function normalizeRemovedCount') && has(contents.deleteService, 'const removedCount = normalizeRemovedCount(deletion.removed)') && has(contents.deleteService, 'deletedCount: removedCount'));
+    pushCheck(results, 'deleteService', 'delete-service 不修改只读快照 table.rows 与 rowCount', !has(contents.deleteService, 'table.rows = keptRows') && !has(contents.deleteService, 'table.rowCount = keptRows.length'));
+    pushCheck(results, 'deleteService', 'delete-service 通过 deletion plan tracker 收集待删行', has(contents.deleteService, 'function createDeletionPlanTracker()') && has(contents.deleteService, 'tracker?.addRowIndex?.(table, rowIndex)') && has(contents.deleteService, 'const deletionPlans = tracker.toPlans();'));
+    pushCheck(results, 'deleteService', 'delete-service 规范化 scene 删除数量', has(contents.deleteService, 'function normalizeRemovedCount') && has(contents.deleteService, 'const removedCount = normalizeRemovedCount(deletion.removed)') && has(contents.deleteService, 'expectedDeletedCount: removedCount'));
 
     pushCheck(results, 'render', 'theater render 导出 renderTheaterScene()', has(contents.render, 'export function renderTheaterScene(container, sceneId'));
     pushCheck(results, 'render', 'theater render 使用 scene.collectDeletableKeys', has(contents.render, 'viewModel?.scene?.collectDeletableKeys'));
@@ -325,9 +328,10 @@ function main() {
     pushCheck(results, 'visibilitySettings', '隐藏设置生成组合项', has(contents.visibilitySettings, 'const theaterItems = getAvailableTheaterScenes(rawData).map'));
     pushCheck(results, 'visibilitySettings', '隐藏设置过滤已成组子表', has(contents.visibilitySettings, 'groupedTheaterSheetKeys.has(sheetKey)'));
 
-    pushCheck(results, 'iconUploadService', '自定义图标导入 theater 分组函数', has(contents.iconUploadService, "from '../../../phone-theater/data.js'"));
-    pushCheck(results, 'iconUploadService', '自定义图标生成 theater 虚拟项', has(contents.iconUploadService, 'const theaterItems = getAvailableTheaterScenes(rawData).map'));
-    pushCheck(results, 'iconUploadService', '自定义图标过滤 theater 子表', has(contents.iconUploadService, 'groupedTheaterSheetKeys.has(sheetKey)'));
+    pushCheck(results, 'iconUploadService', '自定义图标复用共享 icon slot 枚举', has(contents.iconUploadService, "import { collectAppearanceIconSlots } from './icon-slots.js';") && has(contents.iconUploadService, 'collectAppearanceIconSlots(rawData)'));
+    pushCheck(results, 'iconSlots', '自定义图标导入 theater 分组函数', has(contents.iconSlots, "from '../../../phone-theater/data.js'"));
+    pushCheck(results, 'iconSlots', '自定义图标生成 theater 虚拟项', has(contents.iconSlots, 'const theaterItems = getAvailableTheaterScenes(rawData).map'));
+    pushCheck(results, 'iconSlots', '自定义图标过滤 theater 子表', has(contents.iconSlots, 'groupedTheaterSheetKeys.has(sheetKey)'));
 
     pushCheck(results, 'specDoc', '扩展规范文档包含 scene module 契约', has(contents.specDoc, 'Scene module 必填契约') && has(contents.specDoc, 'buildViewModel') && has(contents.specDoc, 'deleteEntities'));
     pushCheck(results, 'specDoc', '扩展规范文档明确禁止裸 delete key', has(contents.specDoc, '禁止使用裸自然键') && has(contents.specDoc, 'role:rowIndex:encodedIdentity'));

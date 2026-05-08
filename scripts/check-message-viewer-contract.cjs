@@ -48,12 +48,18 @@ function main() {
     check(results, 'actions', 'actions 暴露 createMessageViewerActions()', has(contents.actions, 'export function createMessageViewerActions('));
     check(results, 'actions', 'actions 内部承接 handleSendMessage()', has(contents.actions, 'const handleSendMessage = async ('));
     check(results, 'actions', 'actions 内部承接 handleRetryMessage()', has(contents.actions, 'const handleRetryMessage = async ('));
+    check(results, 'actions', 'actions 内部承接 handleStopMessage()', has(contents.actions, 'const handleStopMessage = async ('));
+    check(results, 'actions', 'actions 使用 activeSendRequest 隔离晚到 AI 结果', has(contents.actions, 'state.activeSendRequest = requestState') && has(contents.actions, 'shouldIgnoreSendResult(requestState)'));
+    check(results, 'actions', 'actions 取消等待只做本地 abort 与回填，不再调用宿主全局 stopPhoneChatAI', has(contents.actions, 'abortRequest(requestState') && has(contents.actions, 'cancelBeforeArchive(requestState') && !has(contents.actions, 'stopPhoneChatAI'));
 
     check(results, 'viewer', 'message-viewer 继续通过 renderMessageConversationView() 装配会话页', has(contents.viewer, 'renderMessageConversationView({'));
+    check(results, 'viewer', 'message-viewer 使用 sendPhase 区分 AI 等待与归档阶段', has(contents.viewer, "sendPhase: 'idle'") && has(contents.viewer, "phase === 'ai'") && has(contents.viewer, "phase === 'archive'"));
+    check(results, 'viewer', 'message-viewer 输入框 resize 使用 RAF 调度', has(contents.viewer, 'function scheduleComposeInputResize') || has(contents.viewer, 'const scheduleComposeInputResize = (inputEl) => {'));
     check(results, 'detailView', 'detail-view 为返回按钮提供稳定 data-action', has(contents.detailView, 'data-action="nav-back"'));
     check(results, 'detailView', 'detail-view 为删除模式切换按钮提供稳定 data-action', has(contents.detailView, 'data-action="toggle-delete-mode"'));
     check(results, 'detailView', 'detail-view 为管理条按钮提供稳定 data-action', has(contents.detailView, 'data-action="select-all"'));
-    check(results, 'detailView', 'detail-view 为发送按钮提供稳定 data-action', has(contents.detailView, 'data-action="send-message"'));
+    check(results, 'detailView', 'detail-view 为发送按钮提供稳定默认 action', has(contents.detailView, 'data-default-action="send-message"') && has(contents.detailView, "const sendButtonAction = isAiPending ? 'stop-message' : 'send-message'"));
+    check(results, 'detailView', 'detail-view 为取消等待按钮提供稳定 data-action', has(contents.detailView, "const sendButtonAction = isAiPending ? 'stop-message' : 'send-message'"));
     check(results, 'detailView', 'detail-view 为重试按钮提供稳定 data-action', has(contents.detailView, 'data-action="retry-message"'));
 
     check(results, 'helpers', 'helpers 为消息选择 toggle 提供稳定 data-action', has(contents.helpers, 'data-action="toggle-row-selection"'));
@@ -66,6 +72,8 @@ function main() {
     check(results, 'detailController', 'detail-controller 通过 viewer runtime 注册单一 input 委托', has(contents.detailController, "addListener(container, 'input', (event) => {"));
     check(results, 'detailController', 'detail-controller 通过 viewer runtime 注册单一 keydown 委托', has(contents.detailController, "addListener(container, 'keydown', (event) => {"));
     check(results, 'detailController', 'detail-controller 委托事件发生时读取最新 context', has(contents.detailController, 'const currentContext = getDetailContextForEvent(container);'));
+    check(results, 'detailController', 'detail-controller 分发 stop-message 到 handleStopMessage()', has(contents.detailController, "case 'stop-message':") && has(contents.detailController, 'handleStopMessage(context);'));
+    check(results, 'detailController', 'detail-controller input 事件不再每键完整 patch compose', has(contents.detailController, 'scheduleComposeInputResize(composeInput)') && has(contents.detailController, 'patchCompose(currentContext, { resizeInput: false })'));
     check(results, 'detailController', 'detail-controller 保留 stable tap 防合成 click 语义但不再逐节点绑定', has(contents.detailController, 'function shouldSuppressSyntheticClick(') && !has(contents.detailController, 'function bindStableTapAction('));
     check(results, 'detailController', 'detail-controller 已移除消息选择批量绑定旧写法', !has(contents.detailController, "container.querySelectorAll('.phone-special-message-select-toggle').forEach((btn) => {"));
     check(results, 'detailController', 'detail-controller 已移除媒体按钮批量绑定旧写法', !has(contents.detailController, "container.querySelectorAll('.phone-special-media-item').forEach((mediaEl) => {"));

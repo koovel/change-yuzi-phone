@@ -1,6 +1,23 @@
 import { escapeHtml, escapeHtmlAttr } from '../utils/dom-escape.js';
 import { PHONE_ICONS } from '../phone-home/icons.js';
 
+function buildDetailEditControlHtml(pair) {
+    const fieldMetadata = pair.fieldMetadata;
+    if (fieldMetadata?.type === 'enum' && Array.isArray(fieldMetadata.options) && fieldMetadata.options.length > 0) {
+        const value = String(pair.value ?? '');
+        const hasCurrentOption = value === '' || fieldMetadata.options.includes(value);
+        return `
+            <select class="phone-row-detail-input" data-input-col="${escapeHtmlAttr(String(pair.rawColIndex))}" data-input-control="select" ${pair.isLocked ? 'disabled' : ''}>
+                <option value="">请选择${escapeHtml(pair.key)}</option>
+                ${!hasCurrentOption ? `<option value="${escapeHtmlAttr(value)}" selected>${escapeHtml(`${value}（不在可选项中）`)}</option>` : ''}
+                ${fieldMetadata.options.map((option) => `<option value="${escapeHtmlAttr(option)}" ${option === value ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}
+            </select>
+        `;
+    }
+
+    return `<textarea class="phone-row-detail-input" data-input-col="${escapeHtmlAttr(String(pair.rawColIndex))}" data-input-control="textarea" ${pair.isLocked ? 'disabled' : ''}>${escapeHtml(pair.value)}</textarea>`;
+}
+
 export function buildGenericDetailPageHtml(options = {}) {
     const {
         title = '',
@@ -33,7 +50,7 @@ export function buildGenericDetailPageHtml(options = {}) {
                                     ${pair.isLocked ? `<span class="phone-generic-field-lock-state">${pair.cellLocked ? '字段锁定' : '整行锁定'}</span>` : ''}
                                 </div>
                                 ${state.editMode
-                                    ? `<textarea class="phone-row-detail-input" data-input-col="${pair.rawColIndex}" ${pair.isLocked ? 'disabled' : ''}>${escapeHtml(pair.value)}</textarea>`
+                                    ? buildDetailEditControlHtml(pair)
                                     : `<span class="phone-row-detail-value">${escapeHtml(pair.value || '—')}</span>`
                                 }
                                 <div class="phone-row-detail-tools phone-generic-slot-detail-tools">
