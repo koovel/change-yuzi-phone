@@ -3,6 +3,7 @@ import { callApiWithTimeout, getDB } from '../db-bridge.js';
 import { deleteTableRowsBatch, getTableData, insertTableRow, insertTableRowsBatch, updateTableRow } from '../data-api.js';
 
 const logger = Logger.withScope({ scope: 'phone-core/chat-support/message-projection', feature: 'chat-support' });
+const PHONE_MESSAGE_ARCHIVE_INSERT_TIMEOUT_MS = 30000;
 
 const PHONE_MESSAGE_HEADER_CANDIDATES = Object.freeze({
     threadId: ['threadId', '会话ID', '会话Id', '会话编号', '对话ID'],
@@ -204,6 +205,7 @@ export async function appendPhoneMessageRecordsBatch(sheetKey, messages = [], op
     const rows = payloads.map((payload, index) => materializeMessageRowFromPayload(headers, snapshot.rows, payload, index));
     const insertResult = await insertTableRowsBatch(snapshot.tableName, payloads, {
         refreshProjection: options.refreshProjection,
+        insertTimeoutMs: PHONE_MESSAGE_ARCHIVE_INSERT_TIMEOUT_MS,
     });
 
     if (!insertResult.ok) {

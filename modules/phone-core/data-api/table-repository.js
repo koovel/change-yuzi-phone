@@ -418,6 +418,10 @@ export async function insertTableRowsBatch(tableName, rows = [], options = {}) {
         const safeTableName = normalizeTableName(tableName);
         const sourceRows = Array.isArray(rows) ? rows : [];
         const payloads = sourceRows.filter((row) => row && typeof row === 'object' && !Array.isArray(row)).map(normalizePayload);
+        const insertTimeoutRaw = Number(options?.insertTimeoutMs);
+        const insertTimeoutMs = Number.isFinite(insertTimeoutRaw) && insertTimeoutRaw > 0
+            ? Math.round(insertTimeoutRaw)
+            : DEFAULT_API_TIMEOUT;
         if (!safeTableName) return { ...buildTableNameMissingResult('批量新增行'), payloads: [], rowIndexes: [], rollback: null };
         if (payloads.length === 0) {
             return { ok: false, code: 'empty_rows', message: '批量新增失败：没有可新增的行', payloads: [], rowIndexes: [], refreshed: false, rollback: null };
@@ -435,7 +439,7 @@ export async function insertTableRowsBatch(tableName, rows = [], options = {}) {
                 const payload = payloads[index];
                 const rawRowIndex = await callApiWithTimeout(
                     () => api.insertRow(safeTableName, payload),
-                    DEFAULT_API_TIMEOUT,
+                    insertTimeoutMs,
                     `insertTableRowsBatch.insertRow.${index + 1}`,
                 );
                 const rowIndex = normalizeDbInsertedRowIndex(rawRowIndex);
