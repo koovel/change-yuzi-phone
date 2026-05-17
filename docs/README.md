@@ -20,7 +20,7 @@
 | [`reference/自定义表建表指南.md`](./reference/自定义表建表指南.md) | 自定义表结构参考 | 设计或解释用户自定义表结构时查阅 |
 | [`reference/theater-scene-extension-spec.md`](./reference/theater-scene-extension-spec.md) | 小剧场 scene 扩展规范 | 新增 theater scene 时查阅 scene contract、删除规则和样式入口 |
 | [`reference/merged-template-sample.json`](./reference/merged-template-sample.json) | 美化模板合并样本 | 阅读 [`modules/phone-beautify-templates/`](../modules/phone-beautify-templates) 时对照参考 |
-| [`reference/小剧场2.1.json`](./reference/小剧场2.1.json) | 小剧场参考数据 | 对照 theater 内置场景表结构和示例数据 |
+| [`reference/table-source-format.md`](./reference/table-source-format.md) | 表格 Markdown 事实源格式 | 维护 `tables/sources/**` 并合成 `tables/generated/**.json` 时查阅 |
 
 ## 与 plans/ 的关系
 

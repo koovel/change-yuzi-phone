@@ -7,6 +7,7 @@ import { getPhoneCoreState, phoneRuntime } from './state.js';
 const logger = Logger.withScope({ scope: 'phone-core/route-renderer', feature: 'route' });
 const EXIT_ANIM_MS = 220;
 const ROUTE_COMMIT_DELAY_MS = 16;
+const TABLE_GENERIC_ROUTE_PREFIX = 'table-generic:';
 
 function isActiveRouteRender(renderToken, state = getPhoneCoreState()) {
     if (!Number.isFinite(renderToken)) {
@@ -35,12 +36,38 @@ async function loadRouteRenderer(route, renderToken) {
     }
 
     if (route.startsWith('app:')) {
-        const sheetKey = route.replace('app:', '');
+        const sheetKey = route.replace('app:', '').trim();
+        const [{ getTableData }, { resolveTheaterSceneBySheetKey }] = await Promise.all([
+            import('./data-api.js'),
+            import('../phone-theater/data.js'),
+        ]);
+        const theaterScene = resolveTheaterSceneBySheetKey(getTableData(), sheetKey);
+        if (theaterScene) {
+            const { renderTheaterScene } = await import('../phone-theater/render.js');
+            return {
+                routeType: 'theater-app-redirect',
+                render(page) {
+                    renderTheaterScene(page, theaterScene.id, { renderToken });
+                },
+            };
+        }
+
         const { renderTableViewer } = await import('../table-viewer/render.js');
         return {
             routeType: 'app',
             render(page) {
                 renderTableViewer(page, sheetKey);
+            },
+        };
+    }
+
+    if (route.startsWith(TABLE_GENERIC_ROUTE_PREFIX)) {
+        const sheetKey = route.slice(TABLE_GENERIC_ROUTE_PREFIX.length).trim();
+        const { renderTableViewer } = await import('../table-viewer/render.js');
+        return {
+            routeType: 'table-generic',
+            render(page) {
+                renderTableViewer(page, sheetKey, { forceGenericList: true });
             },
         };
     }

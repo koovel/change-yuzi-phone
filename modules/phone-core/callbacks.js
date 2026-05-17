@@ -3,6 +3,7 @@ import { getDB } from './db-bridge.js';
 import { getPhoneCoreState } from './state.js';
 
 const logger = Logger.withScope({ scope: 'phone-core/callbacks', feature: 'callbacks' });
+const tableUpdateSubscribers = new Set();
 
 function clearRegisteredTableUpdateCallback(state = getPhoneCoreState()) {
     state.registeredTableUpdateCallback = null;
@@ -10,6 +11,86 @@ function clearRegisteredTableUpdateCallback(state = getPhoneCoreState()) {
 
 function clearRegisteredTableFillStartCallback(state = getPhoneCoreState()) {
     state.registeredTableFillStartCallback = null;
+}
+
+function dispatchTableUpdateToSubscribers(newData) {
+    for (const subscriber of Array.from(tableUpdateSubscribers)) {
+        try {
+            subscriber(newData);
+        } catch (error) {
+            logger.warn({
+                action: 'table-update.subscriber-error',
+                message: '表格更新订阅回调执行失败',
+                error,
+            });
+        }
+    }
+}
+
+function ensureTableUpdateNativeListener() {
+    const state = getPhoneCoreState();
+    if (state.registeredTableUpdateCallback) return true;
+
+    const api = getDB();
+    if (!api || typeof api.registerTableUpdateCallback !== 'function') {
+        logger.debug({
+            action: 'table-update.register',
+            message: '表格更新回调API不可用（可选 API 缺失，已降级）',
+        });
+        return false;
+    }
+
+    const nativeCallback = (newData) => dispatchTableUpdateToSubscribers(newData);
+
+    try {
+        state.registeredTableUpdateCallback = nativeCallback;
+        api.registerTableUpdateCallback(nativeCallback);
+        logger.debug({
+            action: 'table-update.register',
+            message: '表格更新底层回调已注册',
+        });
+        return true;
+    } catch (error) {
+        logger.warn({
+            action: 'table-update.register',
+            message: '注册表格更新底层回调失败',
+            error,
+        });
+        clearRegisteredTableUpdateCallback(state);
+        return false;
+    }
+}
+
+export function subscribeTableUpdate(callback) {
+    if (typeof callback !== 'function') {
+        logger.warn({
+            action: 'table-update.subscribe',
+            message: '表格更新订阅失败：回调必须是函数',
+        });
+        return () => {};
+    }
+
+    tableUpdateSubscribers.add(callback);
+    const registered = ensureTableUpdateNativeListener();
+    if (!registered) {
+        tableUpdateSubscribers.delete(callback);
+        return () => {};
+    }
+
+    logger.debug({
+        action: 'table-update.subscribe',
+        message: '表格更新订阅已注册',
+        context: { subscriberCount: tableUpdateSubscribers.size },
+    });
+
+    return () => {
+        tableUpdateSubscribers.delete(callback);
+        logger.debug({
+            action: 'table-update.unsubscribe',
+            message: '表格更新订阅已移除',
+            context: { subscriberCount: tableUpdateSubscribers.size },
+        });
+    };
 }
 
 export function registerTableUpdateListener(callback) {
@@ -21,41 +102,26 @@ export function registerTableUpdateListener(callback) {
         return false;
     }
 
-    const api = getDB();
-    if (!api || typeof api.registerTableUpdateCallback !== 'function') {
-        logger.debug({
-            action: 'table-update.register',
-            message: '表格更新回调API不可用（可选 API 缺失，已降级）',
-        });
-        return false;
+    if (typeof registerTableUpdateListener.unsubscribe === 'function') {
+        registerTableUpdateListener.unsubscribe();
+        registerTableUpdateListener.unsubscribe = null;
     }
 
-    unregisterTableUpdateListener();
-
-    try {
-        const state = getPhoneCoreState();
-        state.registeredTableUpdateCallback = callback;
-        api.registerTableUpdateCallback(callback);
-        logger.debug({
-            action: 'table-update.register',
-            message: '表格更新回调已注册',
-        });
-        return true;
-    } catch (error) {
-        logger.warn({
-            action: 'table-update.register',
-            message: '注册表格更新回调失败',
-            error,
-        });
-        clearRegisteredTableUpdateCallback();
-        return false;
-    }
+    const unsubscribe = subscribeTableUpdate(callback);
+    registerTableUpdateListener.unsubscribe = unsubscribe;
+    return tableUpdateSubscribers.has(callback);
 }
 
 export function unregisterTableUpdateListener() {
     const api = getDB();
     const state = getPhoneCoreState();
     const callback = state.registeredTableUpdateCallback;
+
+    if (typeof registerTableUpdateListener.unsubscribe === 'function') {
+        registerTableUpdateListener.unsubscribe();
+        registerTableUpdateListener.unsubscribe = null;
+    }
+    tableUpdateSubscribers.clear();
 
     if (!api || typeof api.unregisterTableUpdateCallback !== 'function') {
         clearRegisteredTableUpdateCallback(state);
@@ -68,17 +134,18 @@ export function unregisterTableUpdateListener() {
         api.unregisterTableUpdateCallback(callback);
         logger.debug({
             action: 'table-update.unregister',
-            message: '表格更新回调已注销',
+            message: '表格更新底层回调已注销',
         });
     } catch (error) {
         logger.warn({
             action: 'table-update.unregister',
-            message: '注销表格更新回调失败',
+            message: '注销表格更新底层回调失败',
             error,
         });
     }
     clearRegisteredTableUpdateCallback(state);
 }
+registerTableUpdateListener.unsubscribe = null;
 
 export function registerTableFillStartListener(callback) {
     if (typeof callback !== 'function') {

@@ -74,6 +74,34 @@ export const newScene = Object.freeze({
 | `deleteEntities` | 是 | 执行主表删除与附表级联。 |
 | `renderContent` | 是 | 返回 scene 内容 HTML。 |
 | `bindInteractions` | 可选 | 场景专属交互，例如直播弹幕暂停。 |
+| `editableTables` | 可选 | 美化页可进入编辑的原始表列表。单表直接跳转，多表由 shell 弹出选择菜单。 |
+
+### 2.1 editableTables 编辑桥契约
+
+`editableTables` 用于声明“小剧场美化页 → 原始通用表列表”的统一编辑入口。它不渲染表内容，只描述哪些 scene table role 可以被编辑。
+
+示例：
+
+```js
+editableTables: Object.freeze([
+    Object.freeze({
+        role: 'items',
+        label: '编辑主表',
+        description: '进入原始主表列表',
+    }),
+])
+```
+
+规则：
+
+1. `role` 必须存在于同一 scene 的 `tables` 中；registry 会在启动时校验，写错 role 应立即失败。
+2. 当前 scene 只有一个可用编辑表时，右上“编辑”按钮直接导航到 `table-generic:<sheetKey>`。
+3. 当前 scene 有多个可用编辑表时，右上“编辑”按钮打开表选择菜单，菜单项再导航到 `table-generic:<sheetKey>`。
+4. `table-generic:<sheetKey>` 是强制通用表列表桥。它必须跳过 special renderer，直接进入原始表的通用列表页。
+5. 编辑桥必须通过标准 route history 进入。用户在原始通用表列表点击返回时，必须回到来源小剧场美化页。
+6. 缺失或当前 rawData 中不可用的表项不得触发无效导航；UI 应隐藏或禁用该项。
+
+不要在 scene 的 `bindInteractions` 中自己手搓 `app:${sheetKey}` 跳转，也不要直接 import Table Viewer 或手写返回目标。那会重新进入普通 App 分流，未来遇到 special 表时又被拦截，还会破坏“编辑后返回美化页”的交互合同。标准做法是统一走 `table-generic:<sheetKey>`。
 
 ## 3. 数据读取与 ViewModel
 
@@ -200,8 +228,9 @@ npm run build --silent
 
 - scene module 文件存在。
 - registry 中 id / appKey / tableName 唯一。
-- 三个内置 scene 仍注册。
-- 样式 index 按 core → square → forum → live 顺序引入。
+- 三个内置 scene 仍注册，新增 calendar scene 也必须注册。
+- 样式 index 按 core → square → forum → live → calendar 顺序引入。
+- `editableTables` role 必须属于 scene `tables`，且编辑入口统一走 `table-generic:<sheetKey>`。
 - 核心 data/templates/delete-service/render/interactions 不出现 `sceneId === 'square'` 这类分支。
 - typed delete key 没有回退。
 - 禁止裸 `startsWith('sidebar:')`。
@@ -215,6 +244,7 @@ npm run build --silent
 - [ ] 实现 `collectDeletableKeys`，只返回 typed delete key。
 - [ ] 实现 `deleteEntities`，主表精确删除，附表按明确外键级联。
 - [ ] 实现 `renderContent`，全部用户内容正确转义。
+- [ ] 如需从美化页编辑原始表，声明 `editableTables`，并确认会进入 `table-generic:<sheetKey>`。
 - [ ] 如有专属交互，实现 `bindInteractions`，确保幂等。
 - [ ] 新增 `styles/phone-theater/new-scene.css` 并登记 import。
 - [ ] 在 `modules/phone-theater/scenes/index.js` 注册 scene。

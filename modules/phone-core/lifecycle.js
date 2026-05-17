@@ -6,6 +6,10 @@ import { initPhoneShellDrag } from '../window/drag.js';
 import { initPhoneShellResize } from '../window/resize.js';
 import { unregisterTableFillStartListener, unregisterTableUpdateListener, initSmartRefreshListener } from './callbacks.js';
 import { debugCheckAPI } from './data-api.js';
+import {
+    startChronicleTodayRelationInjection,
+    stopChronicleTodayRelationInjection,
+} from './derived-fields/chronicle-today-relation.js';
 import { getPhoneCoreState, phoneRuntime, resetPhoneCoreState, resetPhoneRuntimeScope } from './state.js';
 import { startDataWatcherForNotifications, stopDataWatcherForNotifications } from './notifications.js';
 import {
@@ -154,6 +158,7 @@ function initializePhoneRuntimeBindings(state = getPhoneCoreState()) {
     ensureRouteRenderSubscription(state);
     scheduleIdleApiDebugTask(state);
     initSmartRefreshListener();
+    startChronicleTodayRelationInjection();
     scheduleShellWindowInteractions(state);
     ensureVisibilityLifecycle(state);
 
@@ -208,6 +213,7 @@ function cleanupPhoneRuntimeBindings(state = getPhoneCoreState()) {
     clearIdleApiDebugTask(state);
     clearVisibilityLifecycle(state);
     clearRouteRenderSubscription(state);
+    stopChronicleTodayRelationInjection();
     unregisterTableUpdateListener();
     unregisterTableFillStartListener();
     destroyPhoneWindowInteractions();

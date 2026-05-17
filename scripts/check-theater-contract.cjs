@@ -17,6 +17,7 @@ const FILES = {
     squareScene: 'modules/phone-theater/scenes/square.js',
     forumScene: 'modules/phone-theater/scenes/forum.js',
     liveScene: 'modules/phone-theater/scenes/live.js',
+    calendarScene: 'modules/phone-theater/scenes/calendar.js',
     homeViewModel: 'modules/phone-home/view-model.js',
     routeRenderer: 'modules/phone-core/route-renderer.js',
     notifications: 'modules/phone-core/notifications.js',
@@ -30,9 +31,11 @@ const FILES = {
     squareCss: 'styles/phone-theater/square.css',
     forumCss: 'styles/phone-theater/forum.css',
     liveCss: 'styles/phone-theater/live.css',
+    calendarCss: 'styles/phone-theater/calendar.css',
     homeCss: 'styles/phone-base/02-page-home.css',
     rootCss: 'style.css',
     specDoc: 'docs/reference/theater-scene-extension-spec.md',
+    architectureGuide: 'docs/architecture-guide.md',
 };
 
 const CORE_NO_SCENE_BRANCH_FILES = [
@@ -97,12 +100,33 @@ const SCENES = [
         requiredClasses: [
             'phone-theater-live-page',
             'phone-theater-live-room',
-            'phone-theater-live-stage',
-            'phone-theater-barrage-overlay',
-            'phone-theater-barrage-pool',
+            'phone-theater-live-status-strip',
+            'phone-theater-live-hero',
+            'phone-theater-live-barrage-wall',
+            'phone-theater-live-barrage-item',
             'phone-theater-barrage-toggle',
+            'is-barrage-hidden',
         ],
         requiredDeletionFields: ['直播间名', '所属直播间名'],
+    },
+    {
+        key: 'calendarScene',
+        cssKey: 'calendarCss',
+        id: 'calendar',
+        exportName: 'calendarScene',
+        appKey: '__theater_calendar',
+        tables: ['小日历表'],
+        roles: ['days'],
+        deleteRoles: [],
+        requiredClasses: [
+            'phone-theater-calendar-page',
+            'phone-theater-calendar-header',
+            'phone-theater-calendar-grid',
+            'phone-theater-calendar-day',
+            'phone-theater-calendar-detail',
+        ],
+        requiredDeletionFields: [],
+        requiredEditableRoles: ['days'],
     },
 ];
 
@@ -155,8 +179,13 @@ function checkSceneModule(results, contents, scene) {
     pushCheck(results, scene.key, `${scene.id} scene 实现 renderContent`, has(content, 'function renderContent(') && has(content, 'renderContent,'));
     pushCheck(results, scene.key, `${scene.id} scene 表名齐全`, scene.tables.every(tableName => has(content, tableName)));
     pushCheck(results, scene.key, `${scene.id} scene role 齐全`, scene.roles.every(role => has(content, `${role}:`)));
-    pushCheck(results, scene.key, `${scene.id} scene 使用 typed delete key`, scene.deleteRoles.every(role => has(content, `buildTheaterDeleteKey('${role}'`)));
+    pushCheck(results, scene.key, `${scene.id} scene 使用 typed delete key`, scene.deleteRoles.length <= 0 || scene.deleteRoles.every(role => has(content, `buildTheaterDeleteKey('${role}'`)));
     pushCheck(results, scene.key, `${scene.id} scene 删除字段齐全`, scene.requiredDeletionFields.every(field => has(content, field)));
+    if (Array.isArray(scene.requiredEditableRoles) && scene.requiredEditableRoles.length > 0) {
+        pushCheck(results, scene.key, `${scene.id} scene 声明 editableTables`, has(content, 'editableTables: Object.freeze') && scene.requiredEditableRoles.every(role => has(content, `role: '${role}'`)));
+        pushCheck(results, 'scenesIndex', `${scene.id} registry 支持 editableTables role 校验`, has(contents.scenesIndex, 'function normalizeEditableTables') && has(contents.scenesIndex, 'editableTables role'));
+        pushCheck(results, 'data', `${scene.id} 数据层解析 editableTables`, has(contents.data, 'function buildEditableTableEntries') && has(contents.data, 'editableTables: buildEditableTableEntries'));
+    }
     if (Array.isArray(scene.requiredIdentityAliases) && scene.requiredIdentityAliases.length > 0) {
         pushCheck(results, scene.key, `${scene.id} scene 声明身份字段别名`, has(content, 'identityAliases') && scene.requiredIdentityAliases.every(field => has(content, field)));
         pushCheck(results, 'deleteService', `${scene.id} delete-service 支持身份字段别名`, has(contents.deleteService, 'function getIdentityAliases') && has(contents.deleteService, 'resolveIdentityByAliases') && has(contents.deleteService, 'identityAliases'));
@@ -275,7 +304,10 @@ function main() {
     pushCheck(results, 'interactions', 'interactions 导出 bindTheaterSceneInteractions()', has(contents.interactions, 'export function bindTheaterSceneInteractions(container, options = {})'));
     pushCheck(results, 'interactions', 'interactions 调用 scene.bindInteractions hook', has(contents.interactions, 'options?.scene?.bindInteractions') && has(contents.interactions, 'binder(container'));
     pushCheck(results, 'interactions', 'interactions 导入 deleteTheaterEntities()', has(contents.interactions, "from './delete-service.js'"));
+    pushCheck(results, 'interactions', 'interactions 导入 navigateTo()', has(contents.interactions, "from '../phone-core/routing.js'") && has(contents.interactions, 'navigateTo(`table-generic:${sheetKey}`)'));
     pushCheck(results, 'interactions', 'interactions 绑定删除管理 action', has(contents.interactions, 'toggle-theater-delete-mode') && has(contents.interactions, 'theater-select-all') && has(contents.interactions, 'theater-clear-selection') && has(contents.interactions, 'theater-toggle-select') && has(contents.interactions, 'theater-confirm-delete'));
+    pushCheck(results, 'interactions', 'interactions 绑定 theater 编辑入口 action', has(contents.interactions, 'toggle-theater-edit-menu') && has(contents.interactions, 'theater-open-edit-table') && has(contents.interactions, 'getAvailableEditableTables'));
+    pushCheck(results, 'interactions', 'interactions action 白名单放行 theater 编辑入口', has(contents.interactions, 'function isTheaterAction') && has(contents.interactions, "normalizedAction === 'toggle-theater-edit-menu'") && has(contents.interactions, 'if (!isTheaterAction(action)) return false;'));
     pushCheck(results, 'interactions', 'interactions 使用确认弹窗与 toast', has(contents.interactions, 'showConfirmDialog') && has(contents.interactions, 'showToast'));
     pushCheck(results, 'interactions', 'interactions 删除链路使用 lifecycle active guard', has(contents.interactions, 'function isTheaterInteractionActive') && has(contents.interactions, 'requestRenderIfActive(container, options)') && has(contents.interactions, 'showToastIfActive(container, options'));
     const theaterDeleteAwaitIndex = indexOfOrInfinity(contents.interactions, 'const result = await deleteTheaterEntities');
@@ -288,24 +320,34 @@ function main() {
 
     checkNoCoreSceneBranches(results, contents);
 
-    pushCheck(results, 'liveScene', 'live scene 负责弹幕暂停交互', has(contents.liveScene, 'phone-theater-barrage-toggle') && has(contents.liveScene, 'is-barrage-paused') && has(contents.liveScene, 'addEventListener') && has(contents.liveScene, 'phoneTheaterBarrageBound'));
+    pushCheck(results, 'liveScene', 'live scene 负责静态弹幕隐藏交互', has(contents.liveScene, 'phone-theater-barrage-toggle') && has(contents.liveScene, 'is-barrage-hidden') && has(contents.liveScene, 'addEventListener') && has(contents.liveScene, 'phoneTheaterBarrageBound'));
 
     pushCheck(results, 'rootCss', '入口 CSS 引入 06-phone-theater.css', has(contents.rootCss, "@import url('./styles/06-phone-theater.css')"));
     pushCheck(results, 'theaterCss', '06-phone-theater.css 仅作为兼容入口 import style registry', has(contents.theaterCss, "@import url('./phone-theater/index.css')") && !has(contents.theaterCss, '[data-theater-scene="square"]'));
-    pushCheck(results, 'theaterCssIndex', 'style registry 按 core → square → forum → live 顺序 import', indexOfOrInfinity(contents.theaterCssIndex, "./00-core.css") < indexOfOrInfinity(contents.theaterCssIndex, "./square.css") && indexOfOrInfinity(contents.theaterCssIndex, "./square.css") < indexOfOrInfinity(contents.theaterCssIndex, "./forum.css") && indexOfOrInfinity(contents.theaterCssIndex, "./forum.css") < indexOfOrInfinity(contents.theaterCssIndex, "./live.css"));
+    pushCheck(results, 'theaterCssIndex', 'style registry 按 core → square → forum → live → calendar 顺序 import', indexOfOrInfinity(contents.theaterCssIndex, "./00-core.css") < indexOfOrInfinity(contents.theaterCssIndex, "./square.css") && indexOfOrInfinity(contents.theaterCssIndex, "./square.css") < indexOfOrInfinity(contents.theaterCssIndex, "./forum.css") && indexOfOrInfinity(contents.theaterCssIndex, "./forum.css") < indexOfOrInfinity(contents.theaterCssIndex, "./live.css") && indexOfOrInfinity(contents.theaterCssIndex, "./live.css") < indexOfOrInfinity(contents.theaterCssIndex, "./calendar.css"));
     pushCheck(results, 'theaterCoreCss', 'core CSS 包含 theater 删除按钮与管理条样式', has(contents.theaterCoreCss, '.phone-theater-delete-toggle') && has(contents.theaterCoreCss, '.phone-theater-manage-bar') && has(contents.theaterCoreCss, '.phone-theater-manage-btn'));
+    pushCheck(results, 'theaterCoreCss', 'core CSS 包含 theater 编辑按钮与菜单样式', has(contents.theaterCoreCss, '.phone-theater-edit-toggle') && has(contents.theaterCoreCss, '.phone-theater-edit-menu') && has(contents.theaterCoreCss, '.phone-theater-nav-actions'));
     pushCheck(results, 'theaterCoreCss', 'core CSS 包含 theater 选择按钮与选中态样式', has(contents.theaterCoreCss, '.phone-theater-select-toggle') && has(contents.theaterCoreCss, '.is-delete-selected'));
     pushCheck(results, 'theaterCoreCss', 'core CSS 删除态定位使用通用 delete-key 协议', has(contents.theaterCoreCss, '[data-theater-delete-key]:not(.phone-theater-select-toggle)'));
     pushCheck(results, 'theaterCoreCss', 'core CSS 不引用内置 scene 容器 class', !hasAny(contents.theaterCoreCss, ['phone-theater-square-post', 'phone-theater-forum-hot-panel', 'phone-theater-forum-note-card', 'phone-theater-live-room']));
     pushCheck(results, 'squareCss', 'square CSS 覆盖 body 浅色背景与 nav 深色文字', has(contents.squareCss, '[data-theater-scene="square"] .phone-theater-body') && has(contents.squareCss, '[data-theater-scene="square"] .phone-theater-nav .phone-nav-title'));
     pushCheck(results, 'forumCss', 'forum CSS 覆盖 body 浅色背景与 nav 深色文字', has(contents.forumCss, '[data-theater-scene="forum"] .phone-theater-body') && has(contents.forumCss, '[data-theater-scene="forum"] .phone-theater-nav .phone-nav-title'));
     pushCheck(results, 'forumCss', 'forum CSS 4 色封面齐全', has(contents.forumCss, 'phone-theater-cover-mist') && has(contents.forumCss, 'phone-theater-cover-cream') && has(contents.forumCss, 'phone-theater-cover-sage') && has(contents.forumCss, 'phone-theater-cover-rose'));
-    pushCheck(results, 'liveCss', 'live CSS 保持暗色 body 背景', has(contents.liveCss, '[data-theater-scene="live"] .phone-theater-body') && has(contents.liveCss, 'background: #0a0a12'));
-    pushCheck(results, 'liveCss', 'live CSS 定义弹幕滚动 keyframes', has(contents.liveCss, '@keyframes phone-theater-barrage-scroll'));
-    pushCheck(results, 'liveCss', 'live CSS 弹幕暂停态使用 animation-play-state: paused', has(contents.liveCss, 'is-barrage-paused') && has(contents.liveCss, 'animation-play-state: paused'));
+    pushCheck(results, 'liveCss', 'live CSS 覆盖 body 柔和浅色背景', has(contents.liveCss, '[data-theater-scene="live"] .phone-theater-body') && has(contents.liveCss, '#f5f4ef'));
+    pushCheck(results, 'liveCss', 'live CSS 定义静态弹幕墙与粉丝团挂牌', has(contents.liveCss, '.phone-theater-live-barrage-wall') && has(contents.liveCss, '.phone-theater-live-barrage-item') && has(contents.liveCss, '.phone-theater-live-barrage-badge'));
+    pushCheck(results, 'liveCss', 'live CSS 支持参差弹幕缩进', ['[data-indent="0"]', '[data-indent="1"]', '[data-indent="2"]', '[data-indent="3"]', '[data-indent="4"]'].every(snippet => has(contents.liveCss, snippet)));
+    pushCheck(results, 'liveCss', 'live CSS 支持五种稳定弹幕 tone', ['tone-rose', 'tone-blue', 'tone-violet', 'tone-gold', 'tone-mint'].every(snippet => has(contents.liveCss, snippet)));
+    pushCheck(results, 'liveCss', 'live CSS 静态弹幕隐藏态使用 is-barrage-hidden', has(contents.liveCss, 'is-barrage-hidden') && has(contents.liveCss, 'pointer-events: none'));
     pushCheck(results, 'liveCss', 'live CSS 包含 prefers-reduced-motion 降级', has(contents.liveCss, 'prefers-reduced-motion: reduce'));
-    pushCheck(results, 'liveCss', 'live CSS 弹幕 pill 限制超长文本', has(contents.liveCss, 'max-width: min(72vw, 220px)') && has(contents.liveCss, 'overflow: hidden') && has(contents.liveCss, 'text-overflow: ellipsis'));
-    pushCheck(results, 'liveCss', 'live CSS 弹幕区分 fan/other/hater 三态', has(contents.liveCss, '.phone-theater-barrage-pill.is-fan') && has(contents.liveCss, '.phone-theater-barrage-pill.is-other') && has(contents.liveCss, '.phone-theater-barrage-pill.is-hater'));
+    pushCheck(results, 'liveCss', 'live CSS 弹幕挂牌限制超长文本', has(contents.liveCss, '.phone-theater-live-barrage-badge') && has(contents.liveCss, 'overflow: hidden') && has(contents.liveCss, 'text-overflow: ellipsis'));
+    pushCheck(results, 'liveCss', 'live CSS 不再依赖旧动态滚动弹幕模型', !hasAny(contents.liveCss, ['@keyframes phone-theater-barrage-scroll', 'is-barrage-paused', '.phone-theater-barrage-pill.is-fan', '.phone-theater-barrage-pill.is-other', '.phone-theater-barrage-pill.is-hater']));
+    pushCheck(results, 'calendarCss', 'calendar CSS 覆盖月历网格与详情面板', has(contents.calendarCss, '[data-theater-scene="calendar"]') && has(contents.calendarCss, '.phone-theater-calendar-grid') && has(contents.calendarCss, '.phone-theater-calendar-detail'));
+    pushCheck(results, 'calendarCss', 'calendar CSS 支持今天标红、有内容点、非当前月弱化', has(contents.calendarCss, '.phone-theater-calendar-day.is-today') && has(contents.calendarCss, '.phone-theater-calendar-dot') && has(contents.calendarCss, '.phone-theater-calendar-day.is-outside-month'));
+    pushCheck(results, 'calendarCss', 'calendar CSS 覆盖 nav 标题与返回按钮深色文字', has(contents.calendarCss, '[data-theater-scene="calendar"] .phone-theater-nav .phone-nav-title') && has(contents.calendarCss, '[data-theater-scene="calendar"] .phone-theater-nav .phone-nav-back') && has(contents.calendarCss, '.phone-theater-nav .phone-nav-back svg') && has(contents.calendarCss, 'fill: currentColor') && has(contents.calendarCss, 'stroke: currentColor'));
+    pushCheck(results, 'calendarScene', 'calendar scene 禁止原生年份 select 弹层', !has(contents.calendarScene, '<select') && !has(contents.calendarScene, 'HTMLSelectElement') && has(contents.calendarScene, 'function renderYearPicker') && has(contents.calendarScene, 'YEAR_PICKER_RANGE'));
+    pushCheck(results, 'calendarScene', 'calendar scene 自定义年份 picker 交互齐全', has(contents.calendarScene, 'toggle-year-picker') && has(contents.calendarScene, 'data-calendar-year') && has(contents.calendarScene, 'setYearPickerOpen(page, false)') && has(contents.calendarScene, 'renderYearOptions(container, year)'));
+    pushCheck(results, 'calendarCss', 'calendar CSS 使用自定义年份 picker 并支持滚动', has(contents.calendarCss, '.phone-theater-calendar-year-picker') && has(contents.calendarCss, '.phone-theater-calendar-year-toggle') && has(contents.calendarCss, '.phone-theater-calendar-year-panel') && has(contents.calendarCss, 'overflow-y: auto') && has(contents.calendarCss, 'overscroll-behavior: contain') && has(contents.calendarCss, '.phone-theater-calendar-year-option.is-selected'));
+    pushCheck(results, 'calendarCss', 'calendar CSS 不再依赖原生年份 select 样式', !has(contents.calendarCss, '.phone-theater-calendar-month-select select') && !has(contents.calendarCss, 'select option'));
     pushCheck(results, 'homeCss', '桌面普通 App text icon 使用正方形尺寸', has(contents.homeCss, '.phone-app-icon-svg .phone-dock-text-icon') && has(contents.homeCss, 'width: 100%') && has(contents.homeCss, 'height: 100%'));
 
     pushCheck(results, 'homeViewModel', '首页 view-model 导入组合数据函数', has(contents.homeViewModel, "from '../phone-theater/data.js'"));
@@ -318,6 +360,8 @@ function main() {
     pushCheck(results, 'routeRenderer', 'route-renderer 识别 theater route', has(contents.routeRenderer, 'if (isTheaterRoute(route))'));
     pushCheck(results, 'routeRenderer', 'route-renderer 动态导入 theater render', has(contents.routeRenderer, "await import('../phone-theater/render.js')"));
     pushCheck(results, 'routeRenderer', 'route-renderer 调用 renderTheaterScene() 并传递 renderToken', has(contents.routeRenderer, 'renderTheaterScene(page, sceneId, { renderToken })'));
+    pushCheck(results, 'routeRenderer', 'route-renderer 普通 app 子表兜底进入 theater scene', has(contents.routeRenderer, "import('./data-api.js')") && has(contents.routeRenderer, "import('../phone-theater/data.js')") && has(contents.routeRenderer, 'resolveTheaterSceneBySheetKey(getTableData(), sheetKey)') && has(contents.routeRenderer, "routeType: 'theater-app-redirect'") && has(contents.routeRenderer, 'renderTheaterScene(page, theaterScene.id, { renderToken })'));
+    pushCheck(results, 'routeRenderer', 'route-renderer 支持 table-generic 强制通用表 route', has(contents.routeRenderer, 'TABLE_GENERIC_ROUTE_PREFIX') && has(contents.routeRenderer, "routeType: 'table-generic'") && has(contents.routeRenderer, 'forceGenericList: true'));
 
     pushCheck(results, 'notifications', '通知导入 resolveTheaterSceneBySheetKey()', has(contents.notifications, "from '../phone-theater/data.js'"));
     pushCheck(results, 'notifications', '通知使用组合 appKey 聚合未读', has(contents.notifications, 'const targetBadgeKey = theaterScene?.appKey || sheetKey'));
@@ -338,6 +382,9 @@ function main() {
     pushCheck(results, 'specDoc', '扩展规范文档说明样式入口', has(contents.specDoc, 'styles/phone-theater/index.css') && has(contents.specDoc, '00-core.css'));
     pushCheck(results, 'specDoc', '扩展规范文档禁止 core CSS 引用内置 scene class', has(contents.specDoc, '00-core.css') && has(contents.specDoc, '不允许引用内置 scene') && has(contents.specDoc, '[data-theater-delete-key]'));
     pushCheck(results, 'specDoc', '扩展规范文档说明验证命令', has(contents.specDoc, 'node scripts/check-theater-contract.cjs') && has(contents.specDoc, 'npm run lint --silent') && has(contents.specDoc, 'npm run build --silent'));
+    pushCheck(results, 'specDoc', '扩展规范文档说明 editableTables 与 table-generic 编辑桥', has(contents.specDoc, 'editableTables') && has(contents.specDoc, 'table-generic:<sheetKey>'));
+    pushCheck(results, 'specDoc', '扩展规范文档说明编辑桥返回来源美化页', has(contents.specDoc, '编辑桥必须通过标准 route history 进入') && has(contents.specDoc, '必须回到来源小剧场美化页') && has(contents.specDoc, '不要直接 import Table Viewer'));
+    pushCheck(results, 'architectureGuide', '架构文档说明 table-generic 编辑桥返回语义', has(contents.architectureGuide, '小剧场编辑桥') && has(contents.architectureGuide, 'table-generic:<sheetKey>') && has(contents.architectureGuide, 'route history') && has(contents.architectureGuide, '回到来源小剧场美化页'));
 
     const failed = results.filter(item => !item.ok);
     if (failed.length > 0) {

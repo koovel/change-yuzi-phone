@@ -1,0 +1,331 @@
+/* ========================================
+   Phone Theater 小日历场景（月历网格）
+   ======================================== */
+
+.phone-app-page.phone-theater-page[data-theater-scene="calendar"] {
+    --calendar-red: #ff3b30;
+    --calendar-orange: #ff9500;
+    --calendar-text: #241f1f;
+    --calendar-muted: rgba(36, 31, 31, 0.48);
+    --calendar-border: rgba(255, 59, 48, 0.12);
+    --calendar-panel: rgba(255, 255, 255, 0.82);
+    background:
+        radial-gradient(circle at 20% 12%, rgba(255, 149, 0, 0.16) 0, rgba(255, 149, 0, 0) 30%),
+        radial-gradient(circle at 80% 20%, rgba(255, 59, 48, 0.13) 0, rgba(255, 59, 48, 0) 28%),
+        linear-gradient(180deg, #fff8f4 0%, #fff6f2 46%, #fffaf7 100%);
+    color: var(--calendar-text);
+}
+
+.phone-app-page.phone-theater-page[data-theater-scene="calendar"] .phone-theater-nav {
+    background: rgba(255, 248, 244, 0.92);
+    border-bottom: 1px solid rgba(255, 59, 48, 0.1);
+    color: var(--calendar-text);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.phone-app-page.phone-theater-page[data-theater-scene="calendar"] .phone-theater-nav .phone-nav-title,
+.phone-app-page.phone-theater-page[data-theater-scene="calendar"] .phone-theater-nav .phone-nav-back,
+.phone-app-page.phone-theater-page[data-theater-scene="calendar"] .phone-theater-nav .phone-nav-back span {
+    color: var(--calendar-text);
+}
+
+.phone-app-page.phone-theater-page[data-theater-scene="calendar"] .phone-theater-nav .phone-nav-back svg {
+    color: var(--calendar-text);
+    fill: currentColor;
+    stroke: currentColor;
+}
+
+.phone-app-page.phone-theater-page[data-theater-scene="calendar"] .phone-theater-body {
+    background: transparent;
+    color: var(--calendar-text);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-page {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-header {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    gap: 8px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid var(--calendar-border);
+    border-radius: 18px;
+    background: var(--calendar-panel);
+    box-shadow: 0 12px 28px rgba(255, 107, 82, 0.1);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-nav-btn {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--calendar-red);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-month-select {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-month-label {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-picker {
+    position: relative;
+    z-index: 12;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-toggle {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+    min-width: 72px;
+    padding: 3px 10px;
+    border: 1px solid rgba(255, 59, 48, 0.18);
+    border-radius: 999px;
+    background: #fffaf7;
+    color: var(--calendar-text);
+    font-size: 11px;
+    line-height: 1.35;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(255, 107, 82, 0.08);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-toggle:focus-visible {
+    outline: 2px solid rgba(255, 59, 48, 0.28);
+    outline-offset: 2px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-toggle-icon {
+    color: var(--calendar-red);
+    font-size: 10px;
+    transition: transform 0.16s ease;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-picker[data-calendar-year-picker="open"] .phone-theater-calendar-year-toggle-icon {
+    transform: rotate(180deg);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    z-index: 28;
+    display: none;
+    width: 108px;
+    max-height: 188px;
+    padding: 6px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid rgba(255, 59, 48, 0.16);
+    border-radius: 14px;
+    background: #fffaf7;
+    box-shadow: 0 14px 28px rgba(96, 36, 24, 0.18);
+    transform: translateX(-50%);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 59, 48, 0.42) rgba(255, 248, 244, 0.9);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-picker[data-calendar-year-picker="open"] .phone-theater-calendar-year-panel {
+    display: grid;
+    gap: 3px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-panel::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(255, 59, 48, 0.38);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-option {
+    width: 100%;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--calendar-text);
+    font-size: 12px;
+    line-height: 1.35;
+    text-align: center;
+    cursor: pointer;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-option:hover,
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-option:focus-visible {
+    background: rgba(255, 149, 0, 0.13);
+    outline: none;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-option.is-selected {
+    background: linear-gradient(135deg, var(--calendar-red) 0%, var(--calendar-orange) 100%);
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-weekdays,
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-weekdays {
+    padding: 0 4px;
+    color: var(--calendar-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-grid {
+    padding: 10px;
+    border: 1px solid rgba(255, 59, 48, 0.09);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.62);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-day {
+    position: relative;
+    aspect-ratio: 1;
+    min-width: 0;
+    border: 0;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.74);
+    color: var(--calendar-text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: transform 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-day:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 149, 0, 0.12);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-day.is-outside-month {
+    color: rgba(36, 31, 31, 0.26);
+    background: rgba(255, 255, 255, 0.36);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-day.is-today {
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--calendar-red) 0%, var(--calendar-orange) 100%);
+    box-shadow: 0 8px 18px rgba(255, 59, 48, 0.28);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-day.is-selected:not(.is-today) {
+    color: var(--calendar-red);
+    background: rgba(255, 59, 48, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(255, 59, 48, 0.18);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-day-number {
+    position: relative;
+    z-index: 1;
+    font-weight: 650;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-dot {
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    transform: translateX(-50%);
+    opacity: 0.78;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail {
+    padding: 13px;
+    border: 1px solid rgba(255, 59, 48, 0.1);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 12px 28px rgba(255, 107, 82, 0.09);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail.is-empty {
+    color: var(--calendar-muted);
+    text-align: center;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-head {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-date {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-relation {
+    margin-top: 2px;
+    color: var(--calendar-muted);
+    font-size: 11px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-status {
+    flex-shrink: 0;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(255, 149, 0, 0.13);
+    color: #b05a00;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-festival {
+    margin-bottom: 5px;
+    color: var(--calendar-red);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-event {
+    margin-bottom: 6px;
+    color: var(--calendar-text);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.45;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-content {
+    margin: 0;
+    color: rgba(36, 31, 31, 0.72);
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-day {
+        transition: none;
+    }
+}

@@ -112,6 +112,9 @@ export function createGenericTableViewerRuntime(container, context, hooks = {}) 
         rawHeaders,
     });
     const state = createTableViewerState(sheetKey);
+    if (hooks.forceListMode === true || hooks.initialMode === 'list') {
+        state.returnToListMode();
+    }
     const scrollPreserver = createTableViewerScrollPreserver(container, state, undefined, viewerRuntime);
     let activeListRefreshHandler = null;
     let isDispatchingListStateRefresh = false;

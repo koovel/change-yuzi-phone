@@ -371,6 +371,11 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    padding: 0;
+}
+
+#yuzi-phone-standalone .phone-special-app.phone-special-template-scope .phone-special-message-body.phone-app-body {
+    padding: 0;
 }
 
 .phone-special-app.phone-special-template-scope .phone-special-message-thread {
@@ -807,3 +812,724 @@
 }
 
 
+
+
+/* ========================================
+   消息详情页高端浅色微信风覆盖层
+   仅作用于消息记录详情页；不改 DOM、不依赖外部图片资源。
+   ======================================== */
+
+.phone-special-message.phone-special-template-scope {
+    --sp-premium-page-bg: #f7f3eb;
+    --sp-premium-surface: rgba(255, 252, 246, 0.86);
+    --sp-premium-surface-strong: rgba(255, 255, 255, 0.94);
+    --sp-premium-line: rgba(113, 91, 61, 0.11);
+    --sp-premium-text: #24302b;
+    --sp-premium-muted: rgba(57, 67, 62, 0.56);
+    --sp-premium-green: #4caf7a;
+    --sp-premium-green-deep: #2f8f5c;
+    --sp-premium-green-soft: #dff4e7;
+    --sp-premium-danger: #d96c62;
+    --sp-premium-danger-soft: #fff0ee;
+    --sp-premium-shadow-soft: 0 18px 42px rgba(88, 74, 52, 0.12);
+    --sp-premium-shadow-card: 0 10px 28px rgba(97, 86, 67, 0.11), 0 1px 0 rgba(255, 255, 255, 0.76) inset;
+    --sp-premium-shadow-bubble: 0 8px 20px rgba(96, 85, 68, 0.10), 0 1px 0 rgba(255, 255, 255, 0.90) inset;
+    background:
+        radial-gradient(circle at 18% 9%, rgba(255, 255, 255, 0.96) 0, rgba(255, 255, 255, 0.46) 18%, transparent 36%),
+        radial-gradient(circle at 88% 18%, rgba(208, 237, 215, 0.72) 0, rgba(208, 237, 215, 0.24) 23%, transparent 44%),
+        linear-gradient(180deg, #fbf8f2 0%, #f5efe4 52%, #f1eadf 100%);
+    color: var(--sp-premium-text);
+}
+
+.phone-special-message.phone-special-template-scope::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse at 12% 41%, rgba(255, 255, 255, 0.62) 0, transparent 32%),
+        radial-gradient(ellipse at 85% 68%, rgba(196, 228, 206, 0.42) 0, transparent 30%),
+        linear-gradient(120deg, rgba(255, 255, 255, 0.20), transparent 46%, rgba(255, 255, 255, 0.16));
+    opacity: 0.92;
+}
+
+.phone-special-message.phone-special-template-scope > * {
+    position: relative;
+    z-index: 1;
+}
+
+.phone-special-message.phone-special-template-scope .phone-nav-bar {
+    min-height: 56px;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid rgba(110, 92, 68, 0.09);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.80), rgba(255, 251, 244, 0.58));
+    color: var(--sp-premium-text);
+    box-shadow: 0 10px 28px rgba(107, 89, 63, 0.06);
+    backdrop-filter: blur(20px) saturate(1.24);
+    -webkit-backdrop-filter: blur(20px) saturate(1.24);
+}
+
+.phone-special-message.phone-special-template-scope .phone-nav-title {
+    color: #26342f;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.phone-special-message.phone-special-template-scope .phone-nav-back {
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0 10px;
+    border: 1px solid rgba(122, 105, 77, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.70);
+    color: #41534b;
+    box-shadow: 0 8px 20px rgba(78, 67, 48, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.phone-special-message.phone-special-template-scope .phone-nav-back:hover,
+.phone-special-message.phone-special-template-scope .phone-nav-back:focus-visible {
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--sp-premium-green-deep);
+    box-shadow: 0 10px 24px rgba(78, 67, 48, 0.12), 0 0 0 3px rgba(76, 175, 122, 0.12);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-nav-action-btn {
+    height: 34px;
+    min-height: 34px;
+    padding: 0 13px;
+    border-color: rgba(122, 105, 77, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.66);
+    color: rgba(54, 66, 60, 0.78);
+    box-shadow: 0 8px 20px rgba(78, 67, 48, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-nav-action-btn:hover {
+    border-color: rgba(76, 175, 122, 0.22);
+    background: rgba(239, 250, 243, 0.90);
+    color: var(--sp-premium-green-deep);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-nav-action-btn.is-active {
+    border-color: rgba(217, 108, 98, 0.22);
+    background: rgba(255, 240, 238, 0.92);
+    color: #bd5a53;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-body {
+    position: relative;
+    background:
+        radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.78) 0, transparent 34%),
+        radial-gradient(circle at 84% 32%, rgba(216, 241, 223, 0.58) 0, transparent 31%),
+        radial-gradient(circle at 24% 86%, rgba(244, 222, 190, 0.30) 0, transparent 34%),
+        linear-gradient(180deg, #fbf7ef 0%, #f5efe5 54%, #efe7dd 100%);
+    color: var(--sp-premium-text);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.20) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 72%, transparent 100%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 16%, #000 72%, transparent 100%);
+    opacity: 0.24;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-thread {
+    position: relative;
+    z-index: 1;
+    gap: 14px;
+    padding: 18px 14px 16px;
+    scrollbar-color: rgba(137, 154, 145, 0.48) rgba(255, 255, 255, 0.24);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-list {
+    gap: 16px;
+    padding: 3px 2px 8px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-item {
+    gap: 9px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-name-avatar {
+    width: 36px;
+    height: 36px;
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    background: linear-gradient(135deg, #8fc9aa 0%, #5fa87e 100%);
+    color: #ffffff;
+    font-size: 12px;
+    box-shadow: 0 8px 18px rgba(67, 83, 71, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-item.self .phone-special-name-avatar {
+    background: linear-gradient(135deg, #75c894 0%, #3f9a66 100%);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-bubble-wrap {
+    gap: 5px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-stack {
+    max-width: min(78%, 420px);
+    gap: 7px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-bubble {
+    position: relative;
+    padding: 10px 13px;
+    border: 1px solid rgba(124, 105, 77, 0.10);
+    border-radius: 18px 18px 18px 7px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 252, 247, 0.92) 100%);
+    color: #25312d;
+    line-height: 1.56;
+    letter-spacing: 0.005em;
+    box-shadow: var(--sp-premium-shadow-bubble);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-bubble::after {
+    content: '';
+    position: absolute;
+    left: -3px;
+    bottom: 7px;
+    width: 9px;
+    height: 11px;
+    border-bottom-right-radius: 10px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 252, 247, 0.92));
+    box-shadow: -1px 1px 0 rgba(124, 105, 77, 0.06);
+    transform: rotate(18deg);
+    pointer-events: none;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-item.self .phone-special-message-bubble {
+    border-color: rgba(71, 158, 102, 0.15);
+    border-radius: 18px 18px 7px 18px;
+    background: linear-gradient(180deg, #eaf9ef 0%, #d9f1e2 100%);
+    color: #163528;
+    box-shadow: 0 9px 22px rgba(68, 144, 94, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.74);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-item.self .phone-special-message-bubble::after {
+    left: auto;
+    right: -3px;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 10px;
+    background: linear-gradient(180deg, #eaf9ef 0%, #d9f1e2 100%);
+    box-shadow: 1px 1px 0 rgba(71, 158, 102, 0.08);
+    transform: rotate(-18deg);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-time {
+    color: rgba(69, 79, 74, 0.44);
+    font-size: 10px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-status {
+    border: 1px solid rgba(118, 101, 76, 0.08);
+    background: rgba(255, 255, 255, 0.52);
+    color: rgba(70, 81, 76, 0.54);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-status.is-pending {
+    border-color: rgba(74, 141, 205, 0.14);
+    background: rgba(232, 244, 255, 0.78);
+    color: #4b7faa;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-status.is-error {
+    border-color: rgba(217, 108, 98, 0.18);
+    background: rgba(255, 240, 238, 0.82);
+    color: #bf5d55;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-status.is-success {
+    border-color: rgba(76, 175, 122, 0.16);
+    background: rgba(232, 248, 238, 0.82);
+    color: #3a9160;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-media-actions {
+    justify-content: flex-start;
+    padding-left: 4px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-item.self .phone-special-message-media-actions {
+    justify-content: flex-end;
+    padding-left: 0;
+    padding-right: 4px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-media-btn {
+    width: 28px;
+    height: 28px;
+    border-color: rgba(115, 98, 73, 0.12);
+    background: rgba(255, 255, 255, 0.72);
+    color: rgba(48, 65, 57, 0.72);
+    box-shadow: 0 5px 14px rgba(82, 73, 58, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-media-btn:hover,
+.phone-special-message.phone-special-template-scope .phone-special-message-media-btn:focus-visible {
+    border-color: rgba(76, 175, 122, 0.24);
+    background: rgba(239, 250, 243, 0.92);
+    color: var(--sp-premium-green-deep);
+    box-shadow: 0 7px 16px rgba(70, 119, 88, 0.13), 0 0 0 3px rgba(76, 175, 122, 0.10);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-manage-bar {
+    z-index: 7;
+    margin: -4px -6px 4px;
+    padding: 8px 10px;
+    border: 1px solid rgba(122, 105, 77, 0.10);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.74);
+    box-shadow: 0 10px 24px rgba(91, 78, 59, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(18px) saturate(1.16);
+    -webkit-backdrop-filter: blur(18px) saturate(1.16);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-manage-btn {
+    border-radius: 999px;
+    border-color: rgba(122, 105, 77, 0.12);
+    background: rgba(255, 255, 255, 0.72);
+    color: rgba(54, 66, 60, 0.78);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-manage-delete-btn {
+    border-color: rgba(217, 108, 98, 0.18);
+    background: rgba(255, 240, 238, 0.90);
+    color: #bd5a53;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-select-toggle {
+    width: 25px;
+    height: 25px;
+    margin-top: 9px;
+    border: 1px solid rgba(113, 98, 75, 0.20);
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 5px 12px rgba(82, 73, 58, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-select-toggle.is-selected {
+    border-color: rgba(76, 175, 122, 0.22);
+    background: linear-gradient(180deg, #66c48a 0%, #3b9c66 100%);
+    color: #ffffff;
+    box-shadow: 0 7px 16px rgba(58, 145, 96, 0.24);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose {
+    position: relative;
+    z-index: 4;
+    gap: 7px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid rgba(111, 94, 69, 0.08);
+    background: transparent;
+    box-shadow: none;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose::before {
+    content: '';
+    position: absolute;
+    inset: 0 12px auto;
+    height: 1px;
+    border-radius: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent 0%, rgba(128, 112, 85, 0.08) 18%, rgba(128, 112, 85, 0.06) 82%, transparent 100%);
+    opacity: 1;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose > * {
+    position: relative;
+    z-index: 1;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-editor {
+    align-items: flex-end;
+    gap: 8px;
+    min-width: 0;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 40px;
+    max-height: 78px;
+    padding: 9px 14px;
+    border: 1px solid rgba(122, 105, 77, 0.13);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.94) !important;
+    color: #22302a !important;
+    -webkit-text-fill-color: #22302a !important;
+    line-height: 1.45;
+    overflow-y: auto;
+    box-shadow: inset 0 1px 3px rgba(105, 91, 69, 0.08), 0 8px 20px rgba(86, 76, 59, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    caret-color: var(--sp-premium-green-deep);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-input::placeholder {
+    color: rgba(69, 79, 74, 0.36) !important;
+    -webkit-text-fill-color: rgba(69, 79, 74, 0.36) !important;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-input:focus {
+    border-color: rgba(76, 175, 122, 0.34);
+    background: #ffffff !important;
+    box-shadow: inset 0 1px 3px rgba(105, 91, 69, 0.07), 0 0 0 3px rgba(76, 175, 122, 0.12), 0 10px 22px rgba(68, 126, 88, 0.11);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-input:disabled {
+    background: rgba(244, 242, 237, 0.86) !important;
+    color: rgba(69, 79, 74, 0.52) !important;
+    -webkit-text-fill-color: rgba(69, 79, 74, 0.52) !important;
+    box-shadow: inset 0 1px 2px rgba(105, 91, 69, 0.06);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-meta {
+    gap: 7px;
+    padding: 0 4px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-template-pill {
+    min-height: 20px;
+    max-width: 58%;
+    padding: 2px 9px;
+    border: 1px solid rgba(76, 175, 122, 0.13);
+    background: rgba(238, 249, 242, 0.82);
+    color: rgba(45, 126, 78, 0.84);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-status {
+    color: rgba(69, 79, 74, 0.48);
+    font-size: 10px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-status.is-pending {
+    color: #4b7faa;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-status.is-error {
+    color: #bd5a53;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-status.is-success {
+    color: #3a9160;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-retry-btn,
+.phone-special-message.phone-special-template-scope .phone-special-message-send-btn {
+    min-height: 40px;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow: 0 8px 18px rgba(64, 134, 91, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+    transition: transform var(--sp-duration-fast) var(--sp-ease-standard), box-shadow var(--sp-duration-fast) var(--sp-ease-standard), background var(--sp-duration-fast) var(--sp-ease-standard), color var(--sp-duration-fast) var(--sp-ease-standard), opacity var(--sp-duration-fast) var(--sp-ease-standard);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-send-btn,
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-editor .phone-special-message-send-btn {
+    min-width: 66px;
+    height: 40px;
+    padding: 0 16px;
+    border: 1px solid rgba(51, 148, 89, 0.18);
+    background: linear-gradient(180deg, #5fc486 0%, #3ba467 100%);
+    color: #ffffff;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-send-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 11px 22px rgba(64, 134, 91, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.40);
+    filter: none;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-send-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 6px 14px rgba(64, 134, 91, 0.18), inset 0 1px 2px rgba(24, 95, 52, 0.18);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-send-btn.is-stop {
+    border-color: rgba(217, 108, 98, 0.25);
+    background: linear-gradient(180deg, #e58279 0%, #cf665e 100%);
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(190, 91, 82, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-send-btn.is-pending,
+.phone-special-message.phone-special-template-scope .phone-special-message-send-btn:disabled {
+    border-color: rgba(116, 105, 86, 0.12);
+    background: rgba(255, 255, 255, 0.70);
+    color: rgba(69, 79, 74, 0.48);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.70);
+    filter: none;
+    transform: none;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-retry-btn {
+    min-height: 30px;
+    padding: 0 11px;
+    border-color: rgba(217, 108, 98, 0.18);
+    background: rgba(255, 240, 238, 0.88);
+    color: #bd5a53;
+    box-shadow: 0 5px 12px rgba(190, 91, 82, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.66);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-retry-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(217, 108, 98, 0.28);
+    background: rgba(255, 232, 229, 0.94);
+    filter: none;
+}
+
+.phone-special-message.phone-special-template-scope .phone-empty-msg {
+    margin: 28px auto;
+    padding: 18px 20px;
+    border: 1px solid rgba(122, 105, 77, 0.10);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.58);
+    color: rgba(69, 79, 74, 0.56);
+    box-shadow: var(--sp-premium-shadow-card);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+@media (max-width: 380px) {
+    .phone-special-message.phone-special-template-scope .phone-special-message-thread {
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-stack {
+        max-width: min(82%, 320px);
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-name-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 11px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-compose {
+        padding-right: 9px;
+        padding-left: 9px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-compose-editor {
+        gap: 6px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-send-btn,
+    .phone-special-message.phone-special-template-scope .phone-special-message-compose-editor .phone-special-message-send-btn {
+        min-width: 58px;
+        padding: 0 12px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-template-pill {
+        max-width: 50%;
+    }
+}
+
+
+/* ========================================
+   消息详情页截图反馈二次修正
+   目标：避让灵动岛、头像靠边、隐藏聊天滚动条、输入栏贴合屏幕。
+   ======================================== */
+
+.phone-special-message.phone-special-template-scope .phone-nav-bar {
+    min-height: 74px;
+    padding: clamp(30px, 7.6%, 42px) 14px 10px;
+    align-items: flex-end;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(251, 248, 241, 0.72) 100%);
+    box-shadow: 0 8px 18px rgba(102, 88, 68, 0.045);
+    --yuzi-phone-nav-side-safe-width: clamp(86px, 27vw, 116px);
+}
+
+.phone-special-message.phone-special-template-scope .phone-nav-title {
+    top: auto;
+    bottom: 17px;
+    line-height: 1.25;
+    padding: 0 6px;
+    font-size: 15px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-nav-back,
+.phone-special-message.phone-special-template-scope .phone-special-nav-action-btn {
+    min-height: 32px;
+    height: 32px;
+    margin-bottom: 0;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 5px 14px rgba(83, 73, 58, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-body,
+.phone-special-message.phone-special-template-scope .phone-special-message-thread {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-body::-webkit-scrollbar,
+.phone-special-message.phone-special-template-scope .phone-special-message-thread::-webkit-scrollbar,
+.phone-special-message.phone-special-template-scope .phone-app-body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-thread {
+    padding: 16px 19px 10px;
+    scrollbar-color: transparent transparent;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-list {
+    gap: 18px;
+    padding-right: 0;
+    padding-left: 0;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-item {
+    gap: 10px;
+    padding-right: 4px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-item.other,
+.phone-special-message.phone-special-template-scope .phone-special-message-item:not(.self) {
+    padding-left: 0;
+    padding-right: 20px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-item.self {
+    padding-left: 20px;
+    padding-right: 0;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-name-avatar {
+    width: 38px;
+    height: 38px;
+    margin-inline: 0;
+    box-shadow: 0 8px 18px rgba(57, 78, 66, 0.16), 0 0 0 3px rgba(255, 255, 255, 0.74);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-stack {
+    max-width: min(76%, 410px);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-bubble {
+    padding: 10px 14px;
+    border-color: rgba(122, 105, 77, 0.075);
+    box-shadow: 0 7px 18px rgba(96, 85, 68, 0.085), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose {
+    gap: 7px;
+    width: 100%;
+    margin: 0;
+    padding: 12px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-top: 0;
+    background:
+        linear-gradient(180deg, rgba(245, 239, 229, 0.18) 0%, #f2eadf 34%, #efe7dd 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose::before {
+    inset: 0 0 auto;
+    height: 1px;
+    border-radius: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(128, 112, 85, 0.07) 14%, rgba(128, 112, 85, 0.05) 86%, transparent 100%);
+    opacity: 1;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose > * {
+    position: relative;
+    z-index: 1;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-editor {
+    gap: 10px;
+    align-items: center;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-input {
+    min-height: 46px;
+    max-height: 78px;
+    padding: 11px 17px;
+    border: 1px solid rgba(54, 48, 39, 0.16) !important;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92) !important;
+    color: #24302b !important;
+    -webkit-text-fill-color: #24302b !important;
+    box-shadow: inset 0 1px 2px rgba(79, 70, 55, 0.045), 0 2px 6px rgba(88, 76, 58, 0.032);
+    line-height: 1.42;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-input:focus {
+    border-color: rgba(47, 143, 92, 0.30) !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    box-shadow: inset 0 1px 2px rgba(79, 70, 55, 0.04), 0 0 0 2px rgba(76, 175, 122, 0.08), 0 3px 10px rgba(73, 127, 91, 0.052);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-send-btn,
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-editor .phone-special-message-send-btn {
+    min-width: 80px;
+    height: 46px;
+    padding: 0 20px;
+    border-radius: 999px;
+    border-color: rgba(47, 143, 92, 0.18);
+    background: linear-gradient(180deg, #62c987 0%, #42ad6d 100%);
+    box-shadow: 0 5px 12px rgba(61, 151, 96, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-template-pill {
+    margin-left: 6px;
+    background: rgba(236, 248, 240, 0.66);
+    box-shadow: none;
+}
+
+@media (max-width: 380px) {
+    .phone-special-message.phone-special-template-scope .phone-nav-bar {
+        min-height: 72px;
+        padding-top: 32px;
+        --yuzi-phone-nav-side-safe-width: clamp(78px, 26vw, 104px);
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-thread {
+        padding-right: 16px;
+        padding-left: 16px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-item.other,
+    .phone-special-message.phone-special-template-scope .phone-special-message-item:not(.self) {
+        padding-right: 14px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-item.self {
+        padding-left: 14px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-stack {
+        max-width: min(78%, 320px);
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-compose {
+        padding-right: 14px;
+        padding-left: 14px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-send-btn,
+    .phone-special-message.phone-special-template-scope .phone-special-message-compose-editor .phone-special-message-send-btn {
+        min-width: 66px;
+        padding: 0 14px;
+    }
+}

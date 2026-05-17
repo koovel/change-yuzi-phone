@@ -122,9 +122,16 @@ sequenceDiagram
 - home route -> [`renderHomeScreen()`](../modules/phone-home/render.js:121)
 - table app route -> [`renderTableViewer()`](../modules/table-viewer/render.js:20)
 - theater route -> [`renderTheaterScene()`](../modules/phone-theater/render.js:58)
+- table-generic route -> [`renderTableViewer()`](../modules/table-viewer/render.js:20) with force generic list mode
 - settings route -> [`renderSettings()`](../modules/settings-app/render.js:79)
 - fusion route -> [`renderFusion()`](../modules/phone-fusion/render.js:80)
 - variable manager route -> [`renderVariableManager()`](../modules/variable-manager/index.js:145)
+
+小剧场编辑桥：
+
+- 小剧场美化页如果声明 `editableTables`，通用交互层通过 [`navigateTo()`](../modules/phone-core/routing.js:52) 进入 `table-generic:<sheetKey>`。
+- `table-generic:<sheetKey>` 由 [`loadRouteRenderer()`](../modules/phone-core/route-renderer.js:25) 识别，并调用 [`renderTableViewer()`](../modules/table-viewer/render.js:20) 的强制通用列表模式，绕开小剧场子表重定向和 special 模板检测。
+- 由于编辑桥使用标准 [`navigateTo()`](../modules/phone-core/routing.js:52) 压入 route history，编辑页返回必须走 [`navigateBack()`](../modules/phone-core/routing.js:67) 回到来源小剧场美化页。这是交互合同，不是偶然副作用。
 
 维护规则：
 
@@ -1194,6 +1201,7 @@ graph TD
 - 新增窗口交互：是否使用 [`getWindowInteractionRuntime()`](../modules/window/runtime.js:8)，并确认销毁后可重建。
 - 新增发布前改动：是否执行 [`npm run lint`](../package.json:13)、[`npm run check`](../package.json:11)、[`npm run check:ci`](../package.json:12)、[`npm run build`](../package.json:8)，并确认 [`manifest.json`](../manifest.json:6) 指向的 [`dist/yuzi-phone.bundle.js`](../dist/yuzi-phone.bundle.js) 与 [`dist/yuzi-phone.bundle.css`](../dist/yuzi-phone.bundle.css) 已由构建产物更新。
 - 新增文档事实：是否放入 [`docs/`](README.md) 或 [`docs/reference/`](reference)，并确认所有相对链接可跳转；未实施计划只能放入 [`plans/`](../plans)。
+- 新增或修改表格模板事实源：是否优先修改 [`tables/sources/`](../tables/sources) 下的 Markdown 文件，并通过 [`npm run tables:check`](../package.json:15) 与 [`npm run tables:build`](../package.json:16) 生成 [`tables/generated/`](../tables/generated) 产物；不要手工修改 generated JSON 伪装成事实源。
 
 ## 10. 当前文档边界
 

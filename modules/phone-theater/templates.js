@@ -2,14 +2,51 @@ import { escapeHtml, escapeHtmlAttr } from '../utils/dom-escape.js';
 import { PHONE_ICONS } from '../phone-home/icons.js';
 import { theaterRenderKit } from './core/render-kit.js';
 
-function renderNav(title, uiState = {}) {
+function renderEditMenu(editableTables = []) {
+    const entries = editableTables.filter(entry => entry?.available);
+    if (entries.length <= 1) return '';
+    return `
+        <div class="phone-theater-edit-menu" role="menu">
+            ${entries.map((entry) => `
+                <button type="button" class="phone-theater-edit-menu-item" data-action="theater-open-edit-table" data-edit-role="${escapeHtmlAttr(entry.role)}" role="menuitem">
+                    <span>${escapeHtml(entry.label || entry.tableName || '编辑表格')}</span>
+                    ${entry.description ? `<small>${escapeHtml(entry.description)}</small>` : ''}
+                </button>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderNavActions(uiState = {}) {
     const deleteMode = !!uiState.deleteManageMode;
     const deleting = !!uiState.deleting;
+    const editableTables = Array.isArray(uiState.editableTables) ? uiState.editableTables : [];
+    const canEdit = !!uiState.canEdit;
+    const canDelete = !!uiState.canDelete;
+    const editMenuOpen = !!uiState.editMenuOpen;
+    const editButtonLabel = editableTables.filter(entry => entry?.available).length > 1 && editMenuOpen ? '收起' : '编辑';
+
+    if (!canEdit && !canDelete) return '<div class="phone-theater-nav-actions" aria-hidden="true"></div>';
+
+    return `
+        <div class="phone-theater-nav-actions">
+            ${canEdit ? `
+                <div class="phone-theater-edit-wrapper ${editMenuOpen ? 'is-open' : ''}">
+                    <button type="button" class="phone-theater-edit-toggle" data-action="toggle-theater-edit-menu" aria-expanded="${editMenuOpen ? 'true' : 'false'}">${editButtonLabel}</button>
+                    ${editMenuOpen ? renderEditMenu(editableTables) : ''}
+                </div>
+            ` : ''}
+            ${canDelete ? `<button type="button" class="phone-theater-delete-toggle ${deleteMode ? 'is-active' : ''}" data-action="toggle-theater-delete-mode" ${deleting ? 'disabled' : ''}>${deleteMode ? '完成' : '删除'}</button>` : ''}
+        </div>
+    `;
+}
+
+function renderNav(title, uiState = {}) {
     return `
         <div class="phone-nav-bar phone-theater-nav">
             <button type="button" class="phone-nav-back">${PHONE_ICONS.back}<span>返回</span></button>
             <span class="phone-nav-title">${escapeHtml(title || '小剧场')}</span>
-            <button type="button" class="phone-theater-delete-toggle ${deleteMode ? 'is-active' : ''}" data-action="toggle-theater-delete-mode" ${deleting ? 'disabled' : ''}>${deleteMode ? '完成' : '删除'}</button>
+            ${renderNavActions(uiState)}
         </div>
     `;
 }

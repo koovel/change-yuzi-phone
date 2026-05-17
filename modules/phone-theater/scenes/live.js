@@ -2,38 +2,131 @@ import { escapeHtml, escapeHtmlAttr } from '../../utils/dom-escape.js';
 import { buildTheaterDeleteKey } from '../core/delete-key.js';
 import { getCellByHeader, mapTheaterRows, normalizeText, resolveRowIdentity, splitSemicolonText } from '../core/table-index.js';
 
-const BARRAGE_OVERLAY_LIMIT = 12;
-const BARRAGE_DELAY_STEP = 1.6;
-const BARRAGE_MIN_DURATION = 10;
-const BARRAGE_MAX_DURATION = 18;
-const PAUSED_CLASS = 'is-barrage-paused';
-const TEXT_PAUSE = '暂停弹幕';
-const TEXT_RESUME = '继续弹幕';
+const BARRAGE_TONES = Object.freeze(['rose', 'blue', 'violet', 'gold', 'mint']);
+const BARRAGE_MARKS = Object.freeze(['✦', '◇', '♕', '☂', '♪', '✧']);
+const BARRAGE_INDENTS = Object.freeze([0, 2, 1, 3, 0, 1, 2, 4, 1, 3]);
+const BARRAGE_KIND_LABELS = Object.freeze({
+    plot: '剧情',
+    stan: '推角',
+    clash: '对线',
+});
+const BARRAGE_HIDDEN_CLASS = 'is-barrage-hidden';
+const TEXT_HIDE_BARRAGE = '暂停弹幕';
+const TEXT_SHOW_BARRAGE = '显示弹幕';
 
 const LIVE_TABLES = Object.freeze({
     rooms: '直播间主表',
     barrageBands: '直播间弹幕分栏表',
 });
 
+function hashStringToIndex(text, modulo) {
+    if (!Number.isFinite(modulo) || modulo <= 0) return 0;
+    const value = String(text || '');
+    let hash = 0;
+    for (let index = 0; index < value.length; index += 1) {
+        hash = (hash * 31 + value.charCodeAt(index)) | 0;
+    }
+    return Math.abs(hash) % modulo;
+}
+
+function getStableTone(seed) {
+    return BARRAGE_TONES[hashStringToIndex(seed, BARRAGE_TONES.length)] || BARRAGE_TONES[0];
+}
+
+function getStableMark(seed) {
+    return BARRAGE_MARKS[hashStringToIndex(seed, BARRAGE_MARKS.length)] || BARRAGE_MARKS[0];
+}
+
+function getStableIndent(seed, index) {
+    const seedIndex = hashStringToIndex(seed, BARRAGE_INDENTS.length);
+    return BARRAGE_INDENTS[(seedIndex + index) % BARRAGE_INDENTS.length] || 0;
+}
+
+function buildBarrageItem({ text, kind, badge, favoredSide, funLevel, status, time, bandIndex, itemIndex }) {
+    const safeText = normalizeText(text);
+    if (!safeText) return null;
+    const safeBadge = normalizeText(badge) || '观众';
+    const safeFavoredSide = normalizeText(favoredSide);
+    const safeKind = BARRAGE_KIND_LABELS[kind] ? kind : 'plot';
+    const seed = `${safeBadge}|${safeFavoredSide}|${safeKind}|${safeText}|${bandIndex}|${itemIndex}`;
+    return {
+        text: safeText,
+        badge: safeBadge,
+        favoredSide: safeFavoredSide,
+        kind: safeKind,
+        kindLabel: BARRAGE_KIND_LABELS[safeKind],
+        funLevel: normalizeText(funLevel),
+        status: normalizeText(status),
+        time: normalizeText(time),
+        tone: getStableTone(`${safeBadge}|${safeFavoredSide}`),
+        mark: getStableMark(seed),
+        indent: getStableIndent(seed, itemIndex),
+    };
+}
+
+function pushBarrageItems(target, sourceTexts, options) {
+    sourceTexts.forEach((text, itemIndex) => {
+        const item = buildBarrageItem({ ...options, text, itemIndex });
+        if (item) target.push(item);
+    });
+}
+
 function buildViewModel(resolved) {
     const roomsTable = resolved.tables.rooms;
     const barrageTable = resolved.tables.barrageBands;
 
     const barragesByRoom = new Map();
-    mapTheaterRows(barrageTable, (row) => {
+    mapTheaterRows(barrageTable, (row, bandIndex) => {
         const roomName = normalizeText(getCellByHeader(barrageTable, row, '所属直播间名'));
         if (!roomName) return null;
-        const item = {
-            fan: splitSemicolonText(getCellByHeader(barrageTable, row, '粉丝弹幕串')),
-            hater: splitSemicolonText(getCellByHeader(barrageTable, row, '黑子弹幕串')),
-            other: splitSemicolonText(getCellByHeader(barrageTable, row, '其他弹幕串')),
-            rhythm: normalizeText(getCellByHeader(barrageTable, row, '节奏标签')),
-            time: normalizeText(getCellByHeader(barrageTable, row, '时间文本')),
-            status: normalizeText(getCellByHeader(barrageTable, row, '状态标签')),
+
+        const badge = normalizeText(getCellByHeader(barrageTable, row, '粉丝团挂牌')) || '观众';
+        const favoredSide = normalizeText(getCellByHeader(barrageTable, row, '主推角色/阵营'));
+        const funLevel = normalizeText(getCellByHeader(barrageTable, row, '乐子强度'));
+        const time = normalizeText(getCellByHeader(barrageTable, row, '时间文本'));
+        const status = normalizeText(getCellByHeader(barrageTable, row, '状态标签'));
+        const items = [];
+
+        pushBarrageItems(items, splitSemicolonText(getCellByHeader(barrageTable, row, '剧情弹幕串')), {
+            kind: 'plot',
+            badge,
+            favoredSide,
+            funLevel,
+            status,
+            time,
+            bandIndex,
+        });
+        pushBarrageItems(items, splitSemicolonText(getCellByHeader(barrageTable, row, '推角弹幕串')), {
+            kind: 'stan',
+            badge,
+            favoredSide,
+            funLevel,
+            status,
+            time,
+            bandIndex,
+        });
+        pushBarrageItems(items, splitSemicolonText(getCellByHeader(barrageTable, row, '对线弹幕串')), {
+            kind: 'clash',
+            badge,
+            favoredSide,
+            funLevel,
+            status,
+            time,
+            bandIndex,
+        });
+
+        const band = {
+            roomName,
+            badge,
+            favoredSide,
+            funLevel,
+            time,
+            status,
+            items,
         };
         if (!barragesByRoom.has(roomName)) barragesByRoom.set(roomName, []);
-        barragesByRoom.get(roomName).push(item);
-        return item;
+        barragesByRoom.get(roomName).push(band);
+        return band;
     });
 
     const rooms = mapTheaterRows(roomsTable, (row, rowIndex) => {
@@ -42,16 +135,16 @@ function buildViewModel(resolved) {
             roomName,
             deleteKey: buildTheaterDeleteKey('room', rowIndex, roomName),
             rowIndex,
-            streamer: normalizeText(getCellByHeader(roomsTable, row, '主播名', '主播')) || '主播',
-            tag: normalizeText(getCellByHeader(roomsTable, row, '主播标签')),
-            title: normalizeText(getCellByHeader(roomsTable, row, '直播标题')),
+            castLineup: normalizeText(getCellByHeader(roomsTable, row, '领衔阵容')),
+            castTag: normalizeText(getCellByHeader(roomsTable, row, '阵容标签')),
+            streamTitle: normalizeText(getCellByHeader(roomsTable, row, '直播标题')),
             liveStatus: normalizeText(getCellByHeader(roomsTable, row, '当前状态')),
-            summary: normalizeText(getCellByHeader(roomsTable, row, '直播内容概述')),
-            mood: normalizeText(getCellByHeader(roomsTable, row, '房间气氛')),
+            stageSummary: normalizeText(getCellByHeader(roomsTable, row, '剧情舞台概述')),
+            chemistryFocus: normalizeText(getCellByHeader(roomsTable, row, '对手戏看点')),
             interaction: normalizeText(getCellByHeader(roomsTable, row, '观看/互动数据')),
             time: normalizeText(getCellByHeader(roomsTable, row, '时间文本')),
             status: normalizeText(getCellByHeader(roomsTable, row, '状态标签')),
-            barrages: barragesByRoom.get(roomName) || [],
+            barrageBands: barragesByRoom.get(roomName) || [],
         };
     });
 
@@ -62,164 +155,121 @@ function collectDeletableKeys(viewModel) {
     return (viewModel?.content?.rooms || []).map(room => room?.deleteKey).filter(Boolean);
 }
 
-function flattenRoomBarrages(barrages) {
-    const items = [];
-    barrages.forEach((band) => {
-        (band.fan || []).forEach((text) => {
-            const value = normalizeText(text);
-            if (!value) return;
-            items.push({ text: value, type: 'fan' });
-        });
-        (band.other || []).forEach((text) => {
-            const value = normalizeText(text);
-            if (!value) return;
-            items.push({ text: value, type: 'other' });
-        });
-        (band.hater || []).forEach((text) => {
-            const value = normalizeText(text);
-            if (!value) return;
-            items.push({ text: value, type: 'hater' });
-        });
-    });
-    return items;
+function flattenRoomBarrages(barrageBands) {
+    return (Array.isArray(barrageBands) ? barrageBands : []).flatMap(band => (Array.isArray(band?.items) ? band.items : []));
 }
 
-function buildBarrageOverlayItems(items) {
-    const limited = items.slice(0, BARRAGE_OVERLAY_LIMIT);
-    const trackCounter = { fan: 0, other: 0, hater: 0 };
-    return limited.map((item, index) => {
-        let track;
-        if (item.type === 'fan') {
-            track = trackCounter.fan % 3;
-            trackCounter.fan += 1;
-        } else if (item.type === 'other') {
-            track = 3 + (trackCounter.other % 2);
-            trackCounter.other += 1;
-        } else {
-            track = 5;
-        }
-        const length = item.text.length;
-        const rawDuration = 8 + length * 0.25;
-        const duration = Math.min(BARRAGE_MAX_DURATION, Math.max(BARRAGE_MIN_DURATION, rawDuration));
-        const delay = Number((index * BARRAGE_DELAY_STEP).toFixed(2));
-        return {
-            ...item,
-            track,
-            delay,
-            duration: Number(duration.toFixed(2)),
-        };
-    });
+function getBarrageWallStatus(room) {
+    const firstBand = Array.isArray(room.barrageBands) && room.barrageBands.length > 0 ? room.barrageBands[0] : null;
+    return normalizeText(firstBand?.status) || normalizeText(room.status) || '弹幕热议';
 }
 
-function renderLiveBarrageOverlay(items) {
-    const overlayItems = buildBarrageOverlayItems(items);
-    if (overlayItems.length <= 0) {
-        return '<div class="phone-theater-barrage-overlay" aria-hidden="true"></div>';
-    }
+function getBarrageWallFunLevel(room) {
+    const firstBand = Array.isArray(room.barrageBands) && room.barrageBands.length > 0 ? room.barrageBands[0] : null;
+    return normalizeText(firstBand?.funLevel) || '正常滚动';
+}
+
+function renderMetricPills(room) {
+    const parts = splitSemicolonText(room.interaction).slice(0, 4);
+    const metricsHtml = parts.map(part => `<span class="phone-theater-live-stat-pill">${escapeHtml(part)}</span>`).join('');
+    const timeHtml = room.time ? `<span class="phone-theater-live-time-pill">◷ ${escapeHtml(room.time)}</span>` : '';
+    return `${metricsHtml}${timeHtml}`;
+}
+
+function renderLiveStatusStrip(room) {
     return `
-        <div class="phone-theater-barrage-overlay" aria-hidden="true">
-            ${overlayItems.map(item => `
-                <div class="phone-theater-barrage-rail" style="--phone-theater-barrage-track:${item.track};">
-                    <span class="phone-theater-barrage-pill is-${item.type}" style="--phone-theater-barrage-delay:${item.delay}s;--phone-theater-barrage-duration:${item.duration}s;">${escapeHtml(item.text)}</span>
-                </div>
-            `).join('')}
+        <section class="phone-theater-live-status-strip" aria-label="直播状态">
+            <span class="phone-theater-live-onair">
+                <span class="phone-theater-live-dot" aria-hidden="true"></span>
+                ${escapeHtml(room.liveStatus || '正在直播')}
+            </span>
+            <div class="phone-theater-live-stats">${renderMetricPills(room)}</div>
+        </section>
+    `;
+}
+
+function renderLivePoster(room) {
+    const title = room.streamTitle || room.roomName || '直播剧舞台';
+    const status = room.status || room.castTag || 'Stage';
+    return `
+        <div class="phone-theater-live-poster" aria-hidden="true">
+            <div class="phone-theater-live-poster-sky">
+                <span class="phone-theater-live-rain is-a"></span>
+                <span class="phone-theater-live-rain is-b"></span>
+                <span class="phone-theater-live-rain is-c"></span>
+                <span class="phone-theater-live-umbrella"></span>
+                <span class="phone-theater-live-poster-spark is-one">✦</span>
+                <span class="phone-theater-live-poster-spark is-two">✧</span>
+            </div>
+            <div class="phone-theater-live-poster-caption">
+                <span>Rainy</span>
+                <strong>Night</strong>
+            </div>
+            <span class="phone-theater-live-poster-status">${escapeHtml(status)}</span>
+            <span class="phone-theater-live-poster-title">${escapeHtml(title)}</span>
         </div>
     `;
 }
 
-function renderLiveStage(room, items, renderKit) {
-    const metricsParts = splitSemicolonText(room.interaction);
-    const metricsHtml = metricsParts.map(part => `<span class="phone-theater-live-metric">${escapeHtml(part)}</span>`).join('');
-    const isLive = /直播|live|on/i.test(room.liveStatus || '');
+function renderLiveHero(room) {
+    const title = room.streamTitle || room.roomName || '实时追剧片场';
     return `
-        <section class="phone-theater-live-stage" aria-label="直播舞台">
-            <div class="phone-theater-live-bg" aria-hidden="true">
-                <span class="phone-theater-live-glow phone-theater-live-glow-a"></span>
-                <span class="phone-theater-live-glow phone-theater-live-glow-b"></span>
-                <span class="phone-theater-live-glow phone-theater-live-glow-c"></span>
-                <svg class="phone-theater-live-wave" viewBox="0 0 320 60" preserveAspectRatio="none" aria-hidden="true">
-                    <path d="M0 30 Q 40 10 80 30 T 160 30 T 240 30 T 320 30" fill="none" stroke="currentColor" stroke-width="1"></path>
-                    <path d="M0 30 Q 40 50 80 30 T 160 30 T 240 30 T 320 30" fill="none" stroke="currentColor" stroke-width="1" opacity="0.6"></path>
-                </svg>
+        <section class="phone-theater-live-hero" aria-label="直播剧舞台信息">
+            ${renderLivePoster(room)}
+            <div class="phone-theater-live-hero-content">
+                <div class="phone-theater-live-hero-kicker">
+                    <span>Stage Live</span>
+                    <span class="phone-theater-live-gift">🎁 应援榜</span>
+                </div>
+                <h2 class="phone-theater-live-title">${escapeHtml(title)}</h2>
+                ${room.castLineup ? `<div class="phone-theater-live-cast">${escapeHtml(room.castLineup)}</div>` : ''}
+                <div class="phone-theater-live-chip-row">
+                    ${room.castTag ? `<span class="phone-theater-live-chip is-rose">${escapeHtml(room.castTag)}</span>` : ''}
+                    ${room.status ? `<span class="phone-theater-live-chip is-blue">${escapeHtml(room.status)}</span>` : ''}
+                </div>
+                ${room.stageSummary ? `<p class="phone-theater-live-summary-line"><span>剧情简介：</span>${escapeHtml(room.stageSummary)}</p>` : ''}
+                ${room.chemistryFocus ? `<p class="phone-theater-live-focus-line"><span>☆ 本场看点：</span>${escapeHtml(room.chemistryFocus)}</p>` : ''}
             </div>
-            <header class="phone-theater-live-topbar">
-                <div class="phone-theater-live-badge ${isLive ? 'is-on-air' : ''}">
-                    <span class="phone-theater-live-dot" aria-hidden="true"></span>
-                    <span>${escapeHtml(room.liveStatus || '直播间')}</span>
-                </div>
-                <div class="phone-theater-live-metrics">
-                    ${metricsHtml}
-                    ${room.time ? `<span class="phone-theater-live-metric is-time">${escapeHtml(room.time)}</span>` : ''}
-                </div>
-            </header>
-            <div class="phone-theater-live-center">
-                <div class="phone-theater-live-room-title">${escapeHtml(room.roomName)}</div>
-                ${room.title ? `<div class="phone-theater-live-topic">${escapeHtml(room.title)}</div>` : ''}
-                <div class="phone-theater-live-streamer">
-                    <span class="phone-theater-live-streamer-name">${escapeHtml(room.streamer)}</span>
-                    ${room.tag ? `<span class="phone-theater-live-streamer-tag">${escapeHtml(room.tag)}</span>` : ''}
-                </div>
-            </div>
-            ${renderLiveBarrageOverlay(items)}
-            <footer class="phone-theater-live-mood-row">
-                ${room.mood ? renderKit.renderTag(room.mood, 'is-mood') : ''}
-                ${room.status ? renderKit.renderTag(room.status, 'is-status') : ''}
-            </footer>
         </section>
     `;
 }
 
-function renderLiveSummaryCard(room, renderKit) {
-    if (!room.summary && !room.mood && !room.status) return '';
-    const metaItems = [
-        room.mood ? `房间气氛 · ${room.mood}` : '',
-        room.status ? `状态 · ${room.status}` : '',
-    ];
+function renderBarrageItem(item) {
+    const kindClass = `is-${item.kind}`;
+    const toneClass = `tone-${item.tone}`;
+    const indent = Number.isInteger(item.indent) ? item.indent : 0;
+    const side = item.favoredSide ? ` data-favored-side="${escapeHtmlAttr(item.favoredSide)}"` : '';
     return `
-        <section class="phone-theater-live-summary-card" aria-label="聊天摘要">
-            <div class="phone-theater-section-title">聊天摘要</div>
-            <div class="phone-theater-body-text">${escapeHtml(room.summary || '（暂无概述）')}</div>
-            ${renderKit.renderMetaLine(metaItems)}
-        </section>
+        <li class="phone-theater-live-barrage-item ${kindClass} ${toneClass}" data-indent="${indent}"${side}>
+            <span class="phone-theater-live-barrage-badge">${escapeHtml(item.badge)}</span>
+            <span class="phone-theater-live-barrage-text">${escapeHtml(item.text)}</span>
+            <span class="phone-theater-live-barrage-mark" aria-hidden="true">${escapeHtml(item.mark)}</span>
+        </li>
     `;
 }
 
-function getBarragePoolStatus(room) {
-    const first = Array.isArray(room.barrages) && room.barrages.length > 0 ? room.barrages[0] : null;
-    return normalizeText(first?.status) || '正常滚动';
-}
-
-function getBarrageTypeLabel(type) {
-    if (type === 'fan') return '粉丝';
-    if (type === 'hater') return '黑子';
-    return '路人';
-}
-
-function renderLiveBarragePool(items, room, renderKit) {
+function renderLiveBarrageWall(room, items, renderKit) {
+    const status = getBarrageWallStatus(room);
+    const funLevel = getBarrageWallFunLevel(room);
     if (items.length <= 0) {
         return `
-            <section class="phone-theater-barrage-pool" aria-label="弹幕池">
-                <div class="phone-theater-barrage-pool-head">
-                    <span class="phone-theater-section-title">弹幕池</span>
-                </div>
+            <section class="phone-theater-live-barrage-wall" aria-label="直播弹幕">
+                <header class="phone-theater-live-barrage-head">
+                    <span class="phone-theater-section-title">弹幕热议</span>
+                    <span class="phone-theater-live-barrage-status">${escapeHtml(status)}</span>
+                </header>
                 ${renderKit.renderEmpty('暂无弹幕切片')}
             </section>
         `;
     }
-    const statusText = getBarragePoolStatus(room);
     return `
-        <section class="phone-theater-barrage-pool" aria-label="弹幕池">
-            <div class="phone-theater-barrage-pool-head">
-                <span class="phone-theater-section-title">弹幕池</span>
-                <span class="phone-theater-barrage-pool-status">${escapeHtml(statusText)}</span>
-            </div>
-            <ul class="phone-theater-barrage-pool-list">
-                ${items.map(item => `
-                    <li class="phone-theater-barrage-pool-item is-${item.type}">
-                        <span class="phone-theater-barrage-pool-tag">${escapeHtml(getBarrageTypeLabel(item.type))}</span>
-                        <span class="phone-theater-barrage-pool-text">${escapeHtml(item.text)}</span>
-                    </li>
-                `).join('')}
+        <section class="phone-theater-live-barrage-wall" aria-label="直播弹幕">
+            <header class="phone-theater-live-barrage-head">
+                <span class="phone-theater-section-title">弹幕热议</span>
+                <span class="phone-theater-live-barrage-status">${escapeHtml(funLevel)} · ${escapeHtml(status)}</span>
+            </header>
+            <ul class="phone-theater-live-barrage-list">
+                ${items.map(renderBarrageItem).join('')}
             </ul>
         </section>
     `;
@@ -228,8 +278,9 @@ function renderLiveBarragePool(items, room, renderKit) {
 function renderLiveControls() {
     return `
         <footer class="phone-theater-live-controls" aria-label="直播控制">
-            <span class="phone-theater-live-input" role="presentation">说点什么…</span>
-            <button type="button" class="phone-theater-barrage-toggle" aria-pressed="false">暂停弹幕</button>
+            <span class="phone-theater-live-spark" aria-hidden="true">✧</span>
+            <span class="phone-theater-live-input" role="presentation">说点什么...</span>
+            <button type="button" class="phone-theater-barrage-toggle" aria-pressed="false">${TEXT_HIDE_BARRAGE}</button>
         </footer>
     `;
 }
@@ -240,14 +291,14 @@ function renderContent(viewModel, uiState = {}, renderKit) {
     return `
         <div class="phone-theater-live-page">
             ${rooms.map((room) => {
-        const items = flattenRoomBarrages(room.barrages || []);
+        const items = flattenRoomBarrages(room.barrageBands || []);
         const selected = uiState.deleteManageMode && uiState.selectedKeys?.has(room.deleteKey);
         return `
                     <article class="phone-theater-live-room ${selected ? 'is-delete-selected' : ''}" data-room-name="${escapeHtmlAttr(room.roomName)}" data-theater-delete-key="${escapeHtmlAttr(room.deleteKey)}">
                         ${renderKit.renderDeleteSelectButton(room.deleteKey, uiState)}
-                        ${renderLiveStage(room, items, renderKit)}
-                        ${renderLiveSummaryCard(room, renderKit)}
-                        ${renderLiveBarragePool(items, room, renderKit)}
+                        ${renderLiveStatusStrip(room)}
+                        ${renderLiveHero(room)}
+                        ${renderLiveBarrageWall(room, items, renderKit)}
                         ${renderLiveControls()}
                     </article>
                 `;
@@ -287,10 +338,10 @@ function findClosestRoom(element) {
     return room instanceof HTMLElement ? room : null;
 }
 
-function applyToggleState(toggleButton, room, paused) {
-    room.classList.toggle(PAUSED_CLASS, paused);
-    toggleButton.setAttribute('aria-pressed', paused ? 'true' : 'false');
-    toggleButton.textContent = paused ? TEXT_RESUME : TEXT_PAUSE;
+function applyToggleState(toggleButton, room, hidden) {
+    room.classList.toggle(BARRAGE_HIDDEN_CLASS, hidden);
+    toggleButton.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+    toggleButton.textContent = hidden ? TEXT_SHOW_BARRAGE : TEXT_HIDE_BARRAGE;
 }
 
 function bindBarrageToggle(toggleButton, context = {}) {
@@ -308,8 +359,8 @@ function bindBarrageToggle(toggleButton, context = {}) {
         if (typeof context.isDisposed === 'function' && context.isDisposed()) return;
         const currentRoom = findClosestRoom(toggleButton);
         if (!currentRoom) return;
-        const nowPaused = !currentRoom.classList.contains(PAUSED_CLASS);
-        applyToggleState(toggleButton, currentRoom, nowPaused);
+        const nowHidden = !currentRoom.classList.contains(BARRAGE_HIDDEN_CLASS);
+        applyToggleState(toggleButton, currentRoom, nowHidden);
     };
 
     if (typeof context.addEventListener === 'function') {
@@ -351,11 +402,12 @@ export const liveScene = Object.freeze({
         requiredClasses: [
             'phone-theater-live-page',
             'phone-theater-live-room',
-            'phone-theater-live-stage',
-            'phone-theater-barrage-overlay',
-            'phone-theater-barrage-pool',
+            'phone-theater-live-status-strip',
+            'phone-theater-live-hero',
+            'phone-theater-live-barrage-wall',
+            'phone-theater-live-barrage-item',
             'phone-theater-barrage-toggle',
-            'is-barrage-paused',
+            'is-barrage-hidden',
         ],
     }),
     buildViewModel,

@@ -23,8 +23,22 @@
     background-clip: padding-box;
 }
 
-.phone-app-page.phone-theater-page .phone-theater-delete-toggle {
+.phone-app-page.phone-theater-page .phone-theater-nav-actions {
+    position: relative;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 42px;
     margin-left: auto;
+}
+
+.phone-app-page.phone-theater-page .phone-theater-edit-wrapper {
+    position: relative;
+}
+
+.phone-app-page.phone-theater-page .phone-theater-delete-toggle,
+.phone-app-page.phone-theater-page .phone-theater-edit-toggle {
     padding: 4px 10px;
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 999px;
@@ -41,7 +55,67 @@
     border-color: rgba(177, 58, 50, 0.22);
 }
 
+.phone-app-page.phone-theater-page .phone-theater-edit-toggle {
+    color: #0a6f55;
+    background: rgba(236, 253, 245, 0.92);
+    border-color: rgba(10, 111, 85, 0.16);
+}
+
+.phone-app-page.phone-theater-page .phone-theater-edit-wrapper.is-open .phone-theater-edit-toggle {
+    color: #084c3d;
+    border-color: rgba(10, 111, 85, 0.32);
+    box-shadow: 0 4px 12px rgba(10, 111, 85, 0.12);
+}
+
+.phone-app-page.phone-theater-page .phone-theater-edit-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 178px;
+    padding: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
+}
+
+.phone-app-page.phone-theater-page .phone-theater-edit-menu-item {
+    width: 100%;
+    padding: 7px 8px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: rgba(0, 0, 0, 0.74);
+    font-size: 12px;
+    line-height: 1.35;
+    text-align: left;
+    cursor: pointer;
+}
+
+.phone-app-page.phone-theater-page .phone-theater-edit-menu-item:hover {
+    background: rgba(10, 111, 85, 0.08);
+}
+
+.phone-app-page.phone-theater-page .phone-theater-edit-menu-item span,
+.phone-app-page.phone-theater-page .phone-theater-edit-menu-item small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.phone-app-page.phone-theater-page .phone-theater-edit-menu-item small {
+    margin-top: 2px;
+    color: rgba(0, 0, 0, 0.42);
+    font-size: 11px;
+}
+
 .phone-app-page.phone-theater-page .phone-theater-delete-toggle:disabled,
+.phone-app-page.phone-theater-page .phone-theater-edit-toggle:disabled,
 .phone-app-page.phone-theater-page .phone-theater-manage-btn:disabled {
     cursor: not-allowed;
     opacity: 0.45;

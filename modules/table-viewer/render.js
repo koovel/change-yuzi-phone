@@ -20,7 +20,7 @@ import {
 
 const logger = Logger.withScope({ scope: 'table-viewer/render', feature: 'table-viewer' });
 
-export function renderTableViewer(container, sheetKey) {
+export function renderTableViewer(container, sheetKey, options = {}) {
     if (!(container instanceof HTMLElement)) {
         logger.warn({
             action: 'render.skip',
@@ -30,11 +30,16 @@ export function renderTableViewer(container, sheetKey) {
         return;
     }
 
+    const forceGenericList = options?.forceGenericList === true;
+    const rerenderViewer = (nextContainer, nextSheetKey) => {
+        renderTableViewer(nextContainer, nextSheetKey, options);
+    };
+
     const viewerRuntime = createViewerRuntime({
         container,
         sheetKey,
         addRowModalId: 'phone-add-row-modal',
-        rerenderViewer: renderTableViewer,
+        rerenderViewer,
     });
     if (!viewerRuntime) {
         logger.warn({
@@ -72,13 +77,13 @@ export function renderTableViewer(container, sheetKey) {
         tableName,
     } = viewerContext;
 
-    const specialMatch = detectSpecialTemplateForTable({
+    const specialMatch = forceGenericList ? null : detectSpecialTemplateForTable({
         sheetKey,
         tableName,
         headers,
     });
 
-    const specialType = specialMatch?.specialType || detectSpecialTableType(tableName);
+    const specialType = forceGenericList ? '' : specialMatch?.specialType || detectSpecialTableType(tableName);
 
     if (specialType) {
         const specialRuntime = createSpecialTableViewerRuntime(container, {
@@ -110,6 +115,7 @@ export function renderTableViewer(container, sheetKey) {
         genericMatch,
     }, {
         viewerRuntime,
+        forceListMode: forceGenericList,
     });
 
 }

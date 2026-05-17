@@ -48,6 +48,7 @@ function createInitialState(sceneId) {
         selectedKeys: new Set(),
         deleting: false,
         bodyScrollTop: 0,
+        editMenuOpen: false,
     };
 }
 
@@ -73,12 +74,26 @@ function buildUiState(state, viewModel) {
     const deletableKeys = collectDeletableKeys(viewModel);
     const availableKeys = new Set(deletableKeys);
     state.selectedKeys = new Set([...state.selectedKeys].filter(key => availableKeys.has(key)));
+    const editableTables = Array.isArray(viewModel?.editableTables) ? viewModel.editableTables : [];
+    const canDelete = deletableKeys.length > 0 && viewModel?.scene?.deletable !== false;
+    const canEdit = editableTables.some(entry => entry?.available);
+    if (!canDelete && state.deleteManageMode) {
+        state.deleteManageMode = false;
+        state.selectedKeys.clear();
+    }
+    if (!canEdit && state.editMenuOpen) {
+        state.editMenuOpen = false;
+    }
     return {
         deleteManageMode: !!state.deleteManageMode,
         selectedKeys: state.selectedKeys,
         selectedCount: state.selectedKeys.size,
         totalCount: deletableKeys.length,
         deleting: !!state.deleting,
+        canDelete,
+        canEdit,
+        editMenuOpen: !!state.editMenuOpen,
+        editableTables,
     };
 }
 

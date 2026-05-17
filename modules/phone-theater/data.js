@@ -114,6 +114,24 @@ export function resolveTheaterSceneBySheetKey(rawData, sheetKey) {
     };
 }
 
+function buildEditableTableEntries(scene, tables = {}) {
+    const editableTables = Array.isArray(scene?.editableTables) ? scene.editableTables : [];
+    return editableTables.map((entry) => {
+        const role = normalizeText(entry?.role);
+        const table = role ? tables[role] || null : null;
+        const tableName = normalizeText(table?.tableName || scene?.tables?.[role]);
+        const sheetKey = normalizeText(table?.sheetKey);
+        return Object.freeze({
+            role,
+            label: normalizeText(entry?.label) || tableName || role,
+            description: normalizeText(entry?.description),
+            tableName,
+            sheetKey,
+            available: !!sheetKey,
+        });
+    });
+}
+
 export function buildTheaterSceneViewModel(rawData, sceneId) {
     const scene = getTheaterSceneDefinition(sceneId);
     const resolved = resolveTheaterSceneTables(rawData, scene);
@@ -126,6 +144,7 @@ export function buildTheaterSceneViewModel(rawData, sceneId) {
             emptyText: scene?.emptyText || '暂无内容',
             rowCount: 0,
             childSheetKeys: [],
+            editableTables: buildEditableTableEntries(scene, resolved.tables || {}),
             tables: resolved.tables || {},
             content: {},
         };
@@ -152,6 +171,7 @@ export function buildTheaterSceneViewModel(rawData, sceneId) {
         emptyText: scene.emptyText,
         rowCount: resolved.rowCount,
         childSheetKeys: [...resolved.childSheetKeys],
+        editableTables: buildEditableTableEntries(scene, resolved.tables),
         tables: resolved.tables,
         content,
     };

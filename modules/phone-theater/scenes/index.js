@@ -1,6 +1,7 @@
 import { squareScene } from './square.js';
 import { forumScene } from './forum.js';
 import { liveScene } from './live.js';
+import { calendarScene } from './calendar.js';
 
 export const THEATER_ROUTE_PREFIX = 'theater:';
 
@@ -8,6 +9,7 @@ const RAW_THEATER_SCENES = Object.freeze([
     squareScene,
     forumScene,
     liveScene,
+    calendarScene,
 ]);
 
 function normalizeText(value) {
@@ -41,6 +43,25 @@ function assertUnique(map, key, label, sceneId) {
     map.set(key, sceneId);
 }
 
+function normalizeEditableTables(sceneId, editableTables, tables) {
+    if (!Array.isArray(editableTables)) return Object.freeze([]);
+
+    return Object.freeze(editableTables
+        .map((entry) => {
+            const role = normalizeText(entry?.role);
+            if (!role) return null;
+            if (!Object.prototype.hasOwnProperty.call(tables, role)) {
+                throw new Error(`[YuziPhone] Theater scene "${sceneId}" editableTables role "${role}" is not declared in tables`);
+            }
+            return Object.freeze({
+                role,
+                label: normalizeText(entry?.label) || normalizeText(tables[role]) || role,
+                description: normalizeText(entry?.description),
+            });
+        })
+        .filter(Boolean));
+}
+
 function normalizeSceneDefinition(scene) {
     const id = normalizeTheaterSceneId(scene?.id);
     const appKey = normalizeText(scene?.appKey);
@@ -50,6 +71,7 @@ function normalizeSceneDefinition(scene) {
     const primaryTableName = normalizeText(tables[primaryTableRole]);
     const childTableRoles = Object.freeze(Object.keys(tables));
     const childTableNames = Object.freeze(Object.values(tables).map(normalizeText).filter(Boolean));
+    const editableTables = normalizeEditableTables(id, scene?.editableTables, tables);
 
     if (!id) throw new Error('[YuziPhone] Theater scene missing id');
     if (!appKey) throw new Error(`[YuziPhone] Theater scene "${id}" missing appKey`);
@@ -83,6 +105,7 @@ function normalizeSceneDefinition(scene) {
         tableNames: tables,
         childTableRoles,
         childTableNames,
+        editableTables,
     });
 }
 
@@ -152,5 +175,6 @@ export function getTheaterSceneDefinitions() {
         tableNames: { ...scene.tableNames },
         childTableRoles: [...scene.childTableRoles],
         childTableNames: [...scene.childTableNames],
+        editableTables: scene.editableTables.map(entry => ({ ...entry })),
     }));
 }

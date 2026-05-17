@@ -1,4 +1,5 @@
 import { getTableData } from '../phone-core/data-api.js';
+import { navigateTo } from '../phone-core/routing.js';
 import { showConfirmDialog } from '../settings-app/ui/confirm-dialog.js';
 import { showToast } from '../settings-app/ui/toast.js';
 import { deleteTheaterEntities } from './delete-service.js';
@@ -178,15 +179,76 @@ function confirmDelete(container, options) {
     );
 }
 
+function getAvailableEditableTables(options = {}) {
+    const entries = Array.isArray(options?.viewModel?.editableTables) ? options.viewModel.editableTables : [];
+    return entries.filter(entry => entry?.available && normalizeText(entry.sheetKey));
+}
+
+function navigateToEditableTable(entry) {
+    const sheetKey = normalizeText(entry?.sheetKey);
+    if (!sheetKey) return false;
+    navigateTo(`table-generic:${sheetKey}`);
+    return true;
+}
+
+function toggleEditMenu(container, options) {
+    if (!isTheaterInteractionActive(container, options)) return;
+
+    const entries = getAvailableEditableTables(options);
+    if (entries.length <= 0) {
+        showToastIfActive(container, options, '没有可编辑的原始表', true);
+        return;
+    }
+    if (entries.length === 1) {
+        navigateToEditableTable(entries[0]);
+        return;
+    }
+
+    const state = ensureDeleteState(options);
+    state.editMenuOpen = !state.editMenuOpen;
+    requestRenderIfActive(container, options);
+}
+
+function openEditableTable(actionNode, container, options) {
+    if (!isTheaterInteractionActive(container, options)) return;
+
+    const role = normalizeText(actionNode?.dataset?.editRole);
+    const entry = getAvailableEditableTables(options).find(item => normalizeText(item.role) === role);
+    if (!entry) {
+        showToastIfActive(container, options, '编辑失败：原始表不可用', true);
+        return;
+    }
+
+    const state = ensureDeleteState(options);
+    state.editMenuOpen = false;
+    navigateToEditableTable(entry);
+}
+
+function isTheaterAction(action) {
+    const normalizedAction = normalizeText(action);
+    return normalizedAction === 'toggle-theater-edit-menu'
+        || normalizedAction === 'toggle-theater-delete-mode'
+        || normalizedAction.startsWith('theater-');
+}
+
 function handleDeleteAction(event, container, options) {
     const actionNode = event.target instanceof Element ? event.target.closest('[data-action]') : null;
     if (!(actionNode instanceof HTMLElement)) return false;
 
     const action = actionNode.dataset.action;
-    if (!action || !action.startsWith('theater-') && action !== 'toggle-theater-delete-mode') return false;
+    if (!isTheaterAction(action)) return false;
 
     event.preventDefault();
     event.stopPropagation();
+
+    if (action === 'toggle-theater-edit-menu') {
+        toggleEditMenu(container, options);
+        return true;
+    }
+    if (action === 'theater-open-edit-table') {
+        openEditableTable(actionNode, container, options);
+        return true;
+    }
 
     if (action === 'toggle-theater-delete-mode') {
         const state = ensureDeleteState(options);
