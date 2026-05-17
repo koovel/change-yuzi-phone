@@ -356,9 +356,22 @@ export function renderMessageTable(container, context, deps = {}) {
         });
     };
 
+    const showMessageConfirmDialog = (dialogContainer, title, message, onConfirm, confirmText = '确认', cancelText = '取消') => {
+        showConfirmDialog(
+            dialogContainer,
+            title,
+            message,
+            onConfirm,
+            confirmText,
+            cancelText,
+            runtime,
+            { overlayClassName: 'phone-special-viewport-overlay' }
+        );
+    };
+
     const renderContactPicker = () => {
         const pickerEl = document.createElement('div');
-        pickerEl.className = 'phone-special-contact-picker-mask';
+        pickerEl.className = 'phone-special-contact-picker-mask phone-special-viewport-overlay';
 
         pickerEl.innerHTML = `
             <div class="phone-special-contact-picker-modal">
@@ -372,11 +385,9 @@ export function renderMessageTable(container, context, deps = {}) {
         `;
 
         const appPage = container.querySelector('.phone-app-page');
-        if (appPage) {
-            appPage.appendChild(pickerEl);
-        } else {
-            container.appendChild(pickerEl);
-        }
+        const mountRoot = appPage instanceof HTMLElement ? appPage : container;
+        mountRoot.querySelectorAll(':scope > .phone-special-contact-picker-mask').forEach(existingPicker => existingPicker.remove());
+        mountRoot.appendChild(pickerEl);
 
         const selectContact = (name) => {
             const safeName = String(name || '').trim();
@@ -523,7 +534,7 @@ export function renderMessageTable(container, context, deps = {}) {
             render,
             renderKeepScroll,
             showInlineToast,
-            showConfirmDialog,
+            showConfirmDialog: showMessageConfirmDialog,
             executeDeleteSelectedMessages,
             normalizeMediaDesc,
             autoResizeComposeInput,

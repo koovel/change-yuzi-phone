@@ -23,6 +23,17 @@ function createDialogRuntime(runtime) {
     };
 }
 
+function normalizeClassTokens(value) {
+    if (Array.isArray(value)) {
+        return value.flatMap(normalizeClassTokens);
+    }
+    if (typeof value !== 'string') return [];
+    return value
+        .split(/\s+/)
+        .map(token => token.trim())
+        .filter(Boolean);
+}
+
 /**
  * 显示确认弹窗
  * @param {HTMLElement} container 容器
@@ -32,8 +43,10 @@ function createDialogRuntime(runtime) {
  * @param {string} confirmText 确认按钮文字
  * @param {string} cancelText 取消按钮文字
  * @param {Object} runtime 可选 runtime scope
+ * @param {Object} options 可选弹窗配置
+ * @param {string|string[]} options.overlayClassName overlay 额外 class
  */
-export function showConfirmDialog(container, title, message, onConfirm, confirmText = '确认', cancelText = '取消', runtime = null) {
+export function showConfirmDialog(container, title, message, onConfirm, confirmText = '确认', cancelText = '取消', runtime = null, options = {}) {
     const runtimeApi = createDialogRuntime(runtime);
     const candidateMountRoot = container.matches('.phone-app-page')
         ? container
@@ -44,6 +57,7 @@ export function showConfirmDialog(container, title, message, onConfirm, confirmT
 
     const overlay = document.createElement('div');
     overlay.className = 'phone-confirm-dialog-overlay';
+    normalizeClassTokens(options?.overlayClassName).forEach(className => overlay.classList.add(className));
     overlay.innerHTML = `
         <div class="phone-confirm-dialog">
             <div class="phone-confirm-dialog-title">${escapeHtml(title)}</div>

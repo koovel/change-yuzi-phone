@@ -171,7 +171,7 @@ export function renderMessageConversationView(options = {}) {
                 <button type="button" class="phone-nav-back" data-action="nav-back">${PHONE_ICONS.back}<span>返回</span></button>
                 <span class="phone-nav-title">${escapeHtml(tableName)}</span>
             </div>
-            <div class="phone-app-body phone-table-body">
+            <div class="phone-app-body phone-table-body phone-special-conversation-body">
                 <div class="phone-special-conversation-actions">
                     <select class="phone-special-prompt-select" data-action="select-prompt-preset" ${aiInstructionPresets.length > 0 ? '' : 'disabled'}>
                         ${aiInstructionPresets.length > 0

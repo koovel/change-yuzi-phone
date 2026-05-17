@@ -122,16 +122,34 @@
 }
 
 .phone-special-app.phone-special-template-scope .phone-special-conversation-template-note {
+    flex: 0 0 auto;
     padding: 0 4px var(--sp-gap-sm);
     font-size: var(--sp-font-size-xs);
     color: var(--sp-meta-text);
 }
 
+.phone-special-app.phone-special-template-scope .phone-special-conversation-body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.phone-special-app.phone-special-template-scope .phone-special-conversation-body > .phone-special-conversation-actions,
+.phone-special-app.phone-special-template-scope .phone-special-conversation-body > .phone-empty-msg {
+    flex: 0 0 auto;
+}
+
 .phone-special-app.phone-special-template-scope .phone-special-conversation-list {
+    flex: 1 1 auto;
+    min-height: 0;
     padding: 0;
     margin: 0;
     list-style: none;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
     border-radius: var(--sp-radius-sm);
 }
 
@@ -154,6 +172,10 @@
     transform: translateX(3px);
     background: var(--sp-list-item-hover-bg);
     box-shadow: var(--sp-shadow-sm);
+}
+
+.phone-special-app.phone-special-template-scope .phone-special-conversation-item:last-child {
+    border-bottom: none;
 }
 
 .phone-special-app.phone-special-template-scope .phone-special-conversation-avatar,
@@ -687,6 +709,40 @@
     justify-content: center;
     padding: var(--sp-gap-md);
     box-sizing: border-box;
+}
+
+.phone-special-message.phone-special-template-scope > .phone-special-viewport-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: max(var(--sp-gap-lg), env(safe-area-inset-top, 0px)) var(--sp-gap-lg) max(var(--sp-gap-lg), env(safe-area-inset-bottom, 0px));
+    overflow: hidden;
+    transform: translateZ(0);
+}
+
+.phone-special-message.phone-special-template-scope > .phone-special-contact-picker-mask.phone-special-viewport-overlay {
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.phone-special-message.phone-special-template-scope > .phone-special-viewport-overlay .phone-special-contact-picker-modal,
+.phone-special-message.phone-special-template-scope > .phone-special-viewport-overlay .phone-confirm-dialog {
+    width: min(calc(100% - 28px), 360px);
+    max-width: 360px;
+    margin: auto;
+    box-sizing: border-box;
+}
+
+.phone-special-message.phone-special-template-scope > .phone-special-viewport-overlay .phone-special-contact-picker-modal {
+    max-height: min(85%, 420px);
+}
+
+.phone-special-message.phone-special-template-scope > .phone-special-viewport-overlay .phone-confirm-dialog {
+    max-height: min(85%, 420px);
+    overflow-y: auto;
 }
 
 .phone-special-contact-picker-modal {
