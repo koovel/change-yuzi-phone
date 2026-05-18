@@ -1,4 +1,5 @@
 import { Logger } from '../../error-handler.js';
+import { findAutoManagedRowIdColumnIndex } from '../../utils/table-column-metadata.js';
 import { callApiWithTimeout, getDB } from '../db-bridge.js';
 import { deleteTableRowsBatch, getTableData, insertTableRow, insertTableRowsBatch, updateTableRow } from '../data-api.js';
 
@@ -63,13 +64,9 @@ export function getSheetDataByKey(sheetKey) {
     return buildSheetDataSnapshot(rawData, sheetKey);
 }
 
-function isRowIdHeader(header) {
-    return /^row[\s_-]*id$/i.test(String(header ?? '').trim());
-}
-
 function resolveNextRowIdFromRows(rows = [], headers = [], offset = 0) {
     const headerRow = Array.isArray(headers) ? headers : [];
-    const rowIdColIndex = headerRow.findIndex((header) => isRowIdHeader(header));
+    const rowIdColIndex = findAutoManagedRowIdColumnIndex(headerRow);
     if (rowIdColIndex < 0 || !Array.isArray(rows)) return '';
     const maxRowId = rows.reduce((max, row) => {
         if (!Array.isArray(row)) return max;
@@ -97,7 +94,7 @@ export function buildPhoneMessagePayloadFromHeaders(headers, message = {}) {
 
 function materializeMessageRowFromPayload(headers, existingRows = [], payload = {}, rowOffset = 0) {
     const headerRow = Array.isArray(headers) ? headers : [];
-    const rowIdColIndex = headerRow.findIndex((header) => isRowIdHeader(header));
+    const rowIdColIndex = findAutoManagedRowIdColumnIndex(headerRow);
 
     return headerRow.map((header, colIndex) => {
         if (colIndex === rowIdColIndex) {

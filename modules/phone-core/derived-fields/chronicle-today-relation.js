@@ -1,4 +1,5 @@
 import { Logger } from '../../error-handler.js';
+import { findAutoManagedRowIdColumnIndex } from '../../utils/table-column-metadata.js';
 import { getTableData, processTableData, updateTableCell } from '../data-api.js';
 import {
     calculateTodayRelation,
@@ -11,7 +12,6 @@ const logger = Logger.withScope({ scope: 'phone-core/derived-fields/chronicle-to
 
 const CALENDAR_TABLE_NAME = '小日历表';
 const CHRONICLE_TABLE_NAME = '纪要表';
-const HEADER_ROW_ID = 'row_id';
 const HEADER_CALENDAR_DATE = '日期';
 const HEADER_TIME_SPAN = '时间跨度';
 const HEADER_TODAY_RELATION = '与今天的关系';
@@ -55,6 +55,19 @@ function resolveRequiredIndexes(table, names) {
         indexes[key] = index;
     }
     return indexes;
+}
+
+function resolveChronicleIndexes(chronicleTable) {
+    const requiredIndexes = resolveRequiredIndexes(chronicleTable, {
+        timeSpan: HEADER_TIME_SPAN,
+        todayRelation: HEADER_TODAY_RELATION,
+    });
+    if (!requiredIndexes) return null;
+
+    return {
+        ...requiredIndexes,
+        rowId: findAutoManagedRowIdColumnIndex(chronicleTable?.headers),
+    };
 }
 
 function buildChronicleInputSignature(chronicleTable, chronicleIndexes) {
@@ -157,11 +170,7 @@ async function runChronicleTodayRelationInjection() {
             if (!calendarIndexes) return;
             calendarIndexes.monthDays = monthDaysIndex;
 
-            const chronicleIndexes = resolveRequiredIndexes(resolved.chronicleTable, {
-                rowId: HEADER_ROW_ID,
-                timeSpan: HEADER_TIME_SPAN,
-                todayRelation: HEADER_TODAY_RELATION,
-            });
+            const chronicleIndexes = resolveChronicleIndexes(resolved.chronicleTable);
             if (!chronicleIndexes) return;
 
             const inputSignature = buildChronicleInputSignature(resolved.chronicleTable, chronicleIndexes);
@@ -177,11 +186,7 @@ async function runChronicleTodayRelationInjection() {
             const latestRawData = getTableData();
             const latestResolved = resolveTables(latestRawData);
             const latestChronicleIndexes = latestResolved
-                ? resolveRequiredIndexes(latestResolved.chronicleTable, {
-                    rowId: HEADER_ROW_ID,
-                    timeSpan: HEADER_TIME_SPAN,
-                    todayRelation: HEADER_TODAY_RELATION,
-                })
+                ? resolveChronicleIndexes(latestResolved.chronicleTable)
                 : null;
             if (!latestChronicleIndexes) return;
 

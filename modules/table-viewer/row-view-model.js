@@ -1,3 +1,5 @@
+import { shouldSkipAutoManagedColumn } from '../utils/table-column-metadata.js';
+
 const DEFAULT_GENERIC_FIELD_BINDINGS_BY_VIEWER = Object.freeze({
     summaryTitle: ['标题', '名称', '姓名', '主题', '会话标题', '发帖人', '发帖人网名'],
     summarySubtitle: ['副标题', '分类', '标签', '话题', '位置'],
@@ -42,9 +44,11 @@ export function normalizeGenericFieldBindingsForViewer(rawFieldBindings) {
     return merged;
 }
 
-function buildGenericHeaderIndexMap(headers = [], rawHeaders = []) {
+function buildGenericHeaderIndexMap(headers = [], rawHeaders = [], row = []) {
     const map = new Map();
     headers.forEach((header, idx) => {
+        if (shouldSkipRowModelColumn(headers, rawHeaders, idx, row)) return;
+
         const candidates = [rawHeaders[idx], header];
         candidates.forEach((candidate) => {
             const key = String(candidate || '').trim();
@@ -88,13 +92,29 @@ function isLikelyMetaField(header, value) {
         || /^[\d\s:/_.-]+$/.test(valueText);
 }
 
-function countNonEmptyInRow(row, rawHeaders = []) {
+function shouldSkipRowModelColumn(headers = [], rawHeaders = [], idx = -1, row = []) {
+    const index = Number(idx);
+    if (!Number.isInteger(index) || index < 0) return false;
+
+    const rawHeader = String(rawHeaders[index] ?? headers[index] ?? '').trim();
+    const shouldHideLeadingPlaceholder = String(rawHeaders[0] ?? '').trim() === '';
+    if (shouldHideLeadingPlaceholder && index === 0 && rawHeader === '') return true;
+
+    return shouldSkipAutoManagedColumn({
+        headers,
+        rawHeaders,
+        colIndex: index,
+        row,
+        hideLeadingPlaceholder: shouldHideLeadingPlaceholder,
+    });
+}
+
+function countNonEmptyInRow(row, headers = [], rawHeaders = []) {
     let count = 0;
     if (!Array.isArray(row)) return count;
 
     row.forEach((value, idx) => {
-        const header = String(rawHeaders[idx] ?? '').trim();
-        if (idx === 0 && header === '') return;
+        if (shouldSkipRowModelColumn(headers, rawHeaders, idx, row)) return;
         if (value !== undefined && value !== null && String(value).trim() !== '') {
             count++;
         }
@@ -110,7 +130,7 @@ function findFirstFieldByPattern(row, headers = [], rawHeaders = [], pattern) {
         const header = String(rawHeaders[idx] ?? headers[idx] ?? '').trim();
         const text = normalizeCellDisplayValue(row[idx]);
         if (!text) continue;
-        if (idx === 0 && header === '') continue;
+        if (shouldSkipRowModelColumn(headers, rawHeaders, idx, row)) continue;
         if (pattern.test(header)) {
             return {
                 idx,
@@ -128,6 +148,7 @@ function buildSearchIndex(row, headers = [], rawHeaders = []) {
 
     return row
         .map((value, idx) => {
+            if (shouldSkipRowModelColumn(headers, rawHeaders, idx, row)) return '';
             const header = String(rawHeaders[idx] ?? headers[idx] ?? '').trim();
             const text = normalizeCellDisplayValue(value);
             if (!text && !header) return '';
@@ -151,7 +172,7 @@ function resolveStatusTone(value, locked = false) {
 export function getRowEntryTitle(row, headers = [], rawHeaders = [], fieldBindings = {}) {
     if (!Array.isArray(row)) return '未命名';
 
-    const headerMap = buildGenericHeaderIndexMap(headers, rawHeaders);
+    const headerMap = buildGenericHeaderIndexMap(headers, rawHeaders, row);
     const boundTitle = getCellByGenericHeaders(row, headerMap, fieldBindings.summaryTitle || []);
     if (boundTitle) return boundTitle;
 
@@ -159,6 +180,7 @@ export function getRowEntryTitle(row, headers = [], rawHeaders = [], fieldBindin
         .map((value, idx) => {
             const text = normalizeCellDisplayValue(value);
             if (!text) return null;
+            if (shouldSkipRowModelColumn(headers, rawHeaders, idx, row)) return null;
 
             const header = String(rawHeaders[idx] ?? headers[idx] ?? '').trim();
             let score = idx === 1 ? 6 : 0;
@@ -197,9 +219,9 @@ export function shouldPreferFullRowField(pair) {
 }
 
 export function buildGenericRowViewModel(row, rowIndex, headers = [], rawHeaders = [], rowLocked = false, fieldBindings = {}) {
-    const headerMap = buildGenericHeaderIndexMap(headers, rawHeaders);
+    const headerMap = buildGenericHeaderIndexMap(headers, rawHeaders, row);
     const title = getRowEntryTitle(row, headers, rawHeaders, fieldBindings);
-    const nonEmptyCount = countNonEmptyInRow(row, rawHeaders);
+    const nonEmptyCount = countNonEmptyInRow(row, headers, rawHeaders);
     const boundStatus = getCellByGenericHeaders(row, headerMap, fieldBindings.summaryStatus || []);
     const boundTime = getCellByGenericHeaders(row, headerMap, fieldBindings.summaryTime || []);
     const boundSubtitle = getCellByGenericHeaders(row, headerMap, fieldBindings.summarySubtitle || []);
@@ -212,7 +234,7 @@ export function buildGenericRowViewModel(row, rowIndex, headers = [], rawHeaders
             const header = String(rawHeaders[idx] ?? headers[idx] ?? '').trim();
             const text = normalizeCellDisplayValue(value);
             if (!text) return '';
-            if (idx === 0 && header === '') return '';
+            if (shouldSkipRowModelColumn(headers, rawHeaders, idx, row)) return '';
             if (text === title) return '';
             if (statusField && idx === statusField.idx) return '';
             if (timeField && idx === timeField.idx) return '';

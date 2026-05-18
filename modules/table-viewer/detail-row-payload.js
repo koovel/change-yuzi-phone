@@ -1,3 +1,4 @@
+import { shouldHideLeadingPlaceholderColumn, shouldSkipAutoManagedColumn, toVisibleDataColumnIndex } from '../utils/table-column-metadata.js';
 import { getDdlFieldMetadataForIndex } from './ddl-field-metadata.js';
 import { getRowEntryTitle, shouldPreferFullRowField } from './row-view-model.js';
 
@@ -53,17 +54,16 @@ export function buildGenericDetailRowPayload(options = {}) {
         : -1;
     const rowLocked = rowIndexForLock >= 0 && isTableRowLocked(sheetKey, rowIndexForLock);
 
-    const firstRawHeader = String(rawHeaders[0] ?? '').trim();
-    const firstRawValue = row?.[0];
-    const shouldHideLeadingPlaceholder = firstRawHeader === '' && String(firstRawValue ?? '').trim() === '';
-    const shouldSkipRowIdColumn = /^row[_\s-]*id$/i.test(firstRawHeader);
+    const shouldHideLeadingPlaceholder = shouldHideLeadingPlaceholderColumn(rawHeaders, row);
+    const shouldSkipColumn = rawColIndex => shouldSkipAutoManagedColumn({
+        headers,
+        rawHeaders,
+        colIndex: rawColIndex,
+        row,
+        hideLeadingPlaceholder: shouldHideLeadingPlaceholder,
+    });
 
-    const toLockColIndex = (rawColIndex) => {
-        const idx = Number(rawColIndex);
-        if (!Number.isInteger(idx) || idx < 0) return -1;
-        if (shouldHideLeadingPlaceholder || shouldSkipRowIdColumn) return idx - 1;
-        return idx;
-    };
+    const toLockColIndex = rawColIndex => toVisibleDataColumnIndex(rawColIndex, headers, rawHeaders, row);
 
     const pagerInfo = buildGenericDetailPagerInfo({
         rowIndex: state.rowIndex,
@@ -78,11 +78,7 @@ export function buildGenericDetailRowPayload(options = {}) {
             const draftValue = Object.prototype.hasOwnProperty.call(state.draftValues, rawColIndex)
                 ? String(state.draftValues[rawColIndex] ?? '')
                 : originValue;
-            const rawHeader = String(rawHeaders[rawColIndex] ?? '').trim();
-            const isPlaceholderCol = shouldHideLeadingPlaceholder && rawColIndex === 0 && rawHeader === '' && originValue.trim() === '';
-            const isRowIdCol = shouldSkipRowIdColumn && rawColIndex === 0;
-
-            if (isPlaceholderCol || isRowIdCol) return null;
+            if (shouldSkipColumn(rawColIndex)) return null;
 
             const lockColIndex = toLockColIndex(rawColIndex);
             const cellLocked = lockColIndex >= 0 && isTableCellLocked(sheetKey, rowIndexForLock, lockColIndex);
@@ -109,6 +105,7 @@ export function buildGenericDetailRowPayload(options = {}) {
         rowIndexForLock,
         rowLocked,
         shouldHideLeadingPlaceholder,
+        shouldSkipColumn,
         toLockColIndex,
         kvPairs,
         pagerInfo,

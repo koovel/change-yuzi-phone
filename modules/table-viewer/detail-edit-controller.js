@@ -54,6 +54,7 @@ export function bindGenericDetailEditController(options = {}) {
         rows,
         ddlFieldMetadata,
         shouldHideLeadingPlaceholder,
+        shouldSkipColumn,
         toLockColIndex,
         render,
         restoreListScroll,
@@ -236,6 +237,7 @@ export function bindGenericDetailEditController(options = {}) {
                 if (Number.isNaN(rawColIndex)) return;
 
                 if (shouldHideLeadingPlaceholder && rawColIndex === 0) return;
+                if (typeof shouldSkipColumn === 'function' && shouldSkipColumn(rawColIndex)) return;
 
                 const lockColIndex = toLockColIndex(rawColIndex);
                 if (lockColIndex < 0) return;

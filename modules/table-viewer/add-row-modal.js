@@ -4,6 +4,7 @@ import { dispatchPhoneTableUpdated, refreshPhoneTableProjection } from '../phone
 import { sleep } from '../phone-core/db-bridge.js';
 import { escapeHtml, escapeHtmlAttr } from '../utils/dom-escape.js';
 import { EventManager } from '../utils/event-manager.js';
+import { shouldSkipAutoManagedColumn } from '../utils/table-column-metadata.js';
 import { createDdlFieldMetadata, findFirstEnumValidationError, getDdlFieldMetadataForIndex } from './ddl-field-metadata.js';
 import { resolveViewerRuntime } from './runtime.js';
 
@@ -24,17 +25,13 @@ function summarizeSheetSnapshot(rawData, sheetKey) {
     };
 }
 
-function isAutoManagedRowIdHeader(header) {
-    return /^row[\s_-]*id$/i.test(String(header ?? '').trim());
-}
-
-function shouldSkipAddRowField(header, rawHeader, idx, shouldHideLeadingPlaceholder) {
-    const normalizedHeader = String(header ?? '').trim();
-    const normalizedRawHeader = String(rawHeader ?? '').trim();
-    if (shouldHideLeadingPlaceholder && idx === 0 && normalizedRawHeader === '') {
-        return true;
-    }
-    return isAutoManagedRowIdHeader(normalizedRawHeader) || isAutoManagedRowIdHeader(normalizedHeader);
+function shouldSkipAddRowField(headers, rawHeaders, idx, shouldHideLeadingPlaceholder) {
+    return shouldSkipAutoManagedColumn({
+        headers,
+        rawHeaders,
+        colIndex: idx,
+        hideLeadingPlaceholder: shouldHideLeadingPlaceholder,
+    });
 }
 
 function buildOptimisticRow(headers = [], rawHeaders = [], data = {}) {
@@ -42,11 +39,7 @@ function buildOptimisticRow(headers = [], rawHeaders = [], data = {}) {
     const shouldHideLeadingPlaceholder = firstRawHeader === '';
 
     return headers.map((header, idx) => {
-        const rawHeader = String(rawHeaders[idx] ?? '').trim();
-        if (shouldHideLeadingPlaceholder && idx === 0 && rawHeader === '') {
-            return '';
-        }
-        if (isAutoManagedRowIdHeader(rawHeader) || isAutoManagedRowIdHeader(header)) {
+        if (shouldSkipAddRowField(headers, rawHeaders, idx, shouldHideLeadingPlaceholder)) {
             return '';
         }
 
@@ -301,8 +294,7 @@ export function showGenericAddRowModal(options = {}) {
 
     const editableFields = [];
     headers.forEach((header, idx) => {
-        const rawHeader = String(rawHeaders[idx] ?? '').trim();
-        if (shouldSkipAddRowField(header, rawHeader, idx, shouldHideLeadingPlaceholder)) {
+        if (shouldSkipAddRowField(headers, rawHeaders, idx, shouldHideLeadingPlaceholder)) {
             return;
         }
         editableFields.push({
@@ -413,8 +405,7 @@ export function showGenericAddRowModal(options = {}) {
         try {
             const newData = {};
             headers.forEach((header, idx) => {
-                const rawHeader = String(rawHeaders[idx] ?? '').trim();
-                if (shouldSkipAddRowField(header, rawHeader, idx, shouldHideLeadingPlaceholder)) {
+                if (shouldSkipAddRowField(headers, rawHeaders, idx, shouldHideLeadingPlaceholder)) {
                     return;
                 }
                 const value = draftData[idx] ?? '';
