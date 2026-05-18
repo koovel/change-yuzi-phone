@@ -142,7 +142,7 @@
 }
 
 .phone-app-label {
-    font-size: 11px;
+    font-size: calc(11px * var(--yuzi-phone-readable-text-scale, 1));
     font-weight: 500;
     color: rgba(255, 255, 255, 0.95);
     text-align: center;
@@ -249,7 +249,11 @@
 .phone-dock-item .phone-app-label {
     max-width: 100%;
     width: 100%;
-    font-size: clamp(10px, 2.8vw, 11px);
+    font-size: clamp(
+        calc(10px * var(--yuzi-phone-readable-text-scale, 1)),
+        calc(2.8vw * var(--yuzi-phone-readable-text-scale, 1)),
+        calc(11px * var(--yuzi-phone-readable-text-scale, 1))
+    );
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
@@ -277,7 +281,7 @@
     }
 
     .phone-dock-item .phone-app-label {
-        font-size: 10px;
+        font-size: calc(10px * var(--yuzi-phone-readable-text-scale, 1));
     }
 }
 
@@ -292,6 +296,6 @@
     }
 
     .phone-dock-item .phone-app-label {
-        font-size: 9.5px;
+        font-size: calc(9.5px * var(--yuzi-phone-readable-text-scale, 1));
     }
 }

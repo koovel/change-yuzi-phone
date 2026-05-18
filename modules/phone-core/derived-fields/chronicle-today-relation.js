@@ -4,7 +4,7 @@ import { getTableData, processTableData, updateTableCell } from '../data-api.js'
 import {
     calculateTodayRelation,
     parseDateText,
-    parseFirstDateFromTimeSpan,
+    parseRelationDateFromTimeSpan,
 } from '../date-relation.js';
 import { subscribeTableUpdate } from '../callbacks.js';
 
@@ -101,7 +101,7 @@ function collectChronicleUpdates(chronicleTable, chronicleIndexes, todayDate) {
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
         const row = rows[rowIndex];
         const timeSpan = normalizeText(readCell(row, chronicleIndexes.timeSpan));
-        const targetDate = parseFirstDateFromTimeSpan(timeSpan);
+        const targetDate = parseRelationDateFromTimeSpan(timeSpan);
         if (!targetDate) continue;
 
         const relation = calculateTodayRelation(todayDate, targetDate);

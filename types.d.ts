@@ -426,6 +426,7 @@ export interface PhoneSettings {
     appIcons: Record<string, string>;
     appearanceResourcePool: AppearanceResourcePoolSettings;
     appearanceFontLibrary: AppearanceFontLibrarySettings;
+    phoneReadableTextScalePercent: number;
     hideTableCountBadge: boolean;
     hiddenTableApps: Record<string, boolean>;
     beautifyTemplateSourceModeSpecial: BeautifySourceMode;

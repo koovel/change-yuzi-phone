@@ -20,6 +20,11 @@ import {
     importAppearanceFontFile as importAppearanceFontFileImpl,
     selectAppearanceFont as selectAppearanceFontImpl,
 } from './appearance-settings/font-library-service.js';
+import {
+    applyReadableTextScale as applyReadableTextScaleImpl,
+    getReadableTextScalePercentValue as getReadableTextScalePercentValueImpl,
+    setupReadableTextScaleSettings as setupReadableTextScaleSettingsImpl,
+} from './appearance-settings/readable-text-scale-settings.js';
 
 const { renderIconUploadList: renderIconUploadListImpl } = createIconUploadService();
 
@@ -73,6 +78,18 @@ export function deleteAppearanceFont(fontId) {
 
 export function applyAppearanceFontLibrary(root = null) {
     return applyAppearanceFontLibraryImpl(root);
+}
+
+export function getReadableTextScalePercentValue() {
+    return getReadableTextScalePercentValueImpl();
+}
+
+export function applyReadableTextScale(root = null, percent) {
+    return applyReadableTextScaleImpl(root, percent);
+}
+
+export function setupReadableTextScaleSettings(container) {
+    return setupReadableTextScaleSettingsImpl(container);
 }
 
 export function getLayoutValue(key, fallback) {

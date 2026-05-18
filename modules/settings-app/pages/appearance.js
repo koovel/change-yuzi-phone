@@ -184,6 +184,9 @@ export function renderAppearancePage(ctx) {
     const renderIconUploadList = appearancePageService.renderIconUploadList;
     const getAppearanceFontLibraryViewModel = appearancePageService.getAppearanceFontLibraryViewModel;
     const applyAppearanceFontLibrary = appearancePageService.applyAppearanceFontLibrary;
+    const getReadableTextScalePercentValue = appearancePageService.getReadableTextScalePercentValue;
+    const applyReadableTextScale = appearancePageService.applyReadableTextScale;
+    const setupReadableTextScaleSettings = appearancePageService.setupReadableTextScaleSettings;
 
     const layoutValues = {
         appGridColumns: getLayoutValue('appGridColumns', 4),
@@ -197,8 +200,10 @@ export function renderAppearancePage(ctx) {
         layoutValues,
         hideTableCountBadge: !!getPhoneSettings().hideTableCountBadge,
         fontLibrary: getAppearanceFontLibraryViewModel(),
+        readableTextScalePercent: getReadableTextScalePercentValue(),
     });
     applyAppearanceFontLibrary();
+    applyReadableTextScale();
 
     const runtime = pageRuntime && typeof pageRuntime === 'object' ? pageRuntime : null;
     const bindEvent = (target, type, listener, options) => {
@@ -221,6 +226,7 @@ export function renderAppearancePage(ctx) {
         runtime.registerCleanup(renderIconUploadList(container.querySelector('#phone-icon-upload-list'), { runtime }));
         runtime.registerCleanup(bindAppearanceResourcePackActions(ctx, runtime));
         runtime.registerCleanup(bindAppearanceFontLibraryActions(ctx, runtime));
+        runtime.registerCleanup(setupReadableTextScaleSettings(container));
     } else if (typeof registerCleanup === 'function') {
         registerCleanup(setupBgUpload(container));
         registerCleanup(setupIconLayoutSettings(container));
@@ -229,5 +235,6 @@ export function renderAppearancePage(ctx) {
         registerCleanup(renderIconUploadList(container.querySelector('#phone-icon-upload-list')));
         registerCleanup(bindAppearanceResourcePackActions(ctx, null));
         registerCleanup(bindAppearanceFontLibraryActions(ctx, null));
+        registerCleanup(setupReadableTextScaleSettings(container));
     }
 }

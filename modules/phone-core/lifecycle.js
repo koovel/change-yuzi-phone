@@ -1,6 +1,6 @@
 import { Logger } from '../error-handler.js';
 import { scheduleIdleTask } from '../runtime-manager.js';
-import { applyAppearanceFontLibrary } from '../settings-app/services/appearance-settings.js';
+import { applyAppearanceFontLibrary, applyReadableTextScale } from '../settings-app/services/appearance-settings.js';
 import { destroyPhoneWindowInteractions } from '../window/runtime.js';
 import { initPhoneShellDrag } from '../window/drag.js';
 import { initPhoneShellResize } from '../window/resize.js';
@@ -247,6 +247,7 @@ export function initPhoneUI() {
 
     $container.html(buildPhoneShellHtml());
     applyAppearanceFontLibrary(state.phoneContainer);
+    applyReadableTextScale(state.phoneContainer);
     state.isPhoneUiInitialized = true;
 
     initializePhoneRuntimeBindings(state);
@@ -270,6 +271,7 @@ export function onPhoneActivated() {
     }
 
     applyAppearanceFontLibrary(state.phoneContainer);
+    applyReadableTextScale(state.phoneContainer);
     activatePhoneRuntimeState(state);
 
     logger.debug({

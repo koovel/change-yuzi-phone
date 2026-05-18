@@ -878,14 +878,14 @@
 .phone-generic-root.phone-generic-template-scope .phone-generic-list-index {
     flex-shrink: 0;
     min-width: 34px;
-    font-size: 12px;
+    font-size: calc(12px * var(--yuzi-phone-readable-text-scale, 1));
     font-family: Consolas, 'SFMono-Regular', monospace;
     color: var(--_gt-muted-text);
 }
 
 .phone-generic-root.phone-generic-template-scope .phone-generic-slot-list-main {
     min-width: 0;
-    font-size: var(--_gt-typo-list-title-size);
+    font-size: calc(var(--_gt-typo-list-title-size) * var(--yuzi-phone-readable-text-scale, 1));
     font-weight: 700;
     line-height: 1.45;
     color: var(--_gt-text);
@@ -902,7 +902,7 @@
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
-    font-size: var(--_gt-typo-list-preview-size);
+    font-size: calc(var(--_gt-typo-list-preview-size) * var(--yuzi-phone-readable-text-scale, 1));
     line-height: 1.6;
     color: var(--_gt-muted-text);
 }
@@ -1047,14 +1047,14 @@
 }
 
 .phone-generic-root.phone-generic-template-scope .phone-row-detail-key {
-    font-size: var(--_gt-typo-detail-key-size);
+    font-size: calc(var(--_gt-typo-detail-key-size) * var(--yuzi-phone-readable-text-scale, 1));
     font-weight: 600;
     letter-spacing: 0.02em;
     color: var(--_gt-muted-text);
 }
 
 .phone-generic-root.phone-generic-template-scope .phone-row-detail-value {
-    font-size: var(--_gt-typo-detail-value-size);
+    font-size: calc(var(--_gt-typo-detail-value-size) * var(--yuzi-phone-readable-text-scale, 1));
     line-height: 1.78;
     color: var(--_gt-detail-value-text);
 }
@@ -1070,7 +1070,7 @@
     color: var(--_gt-detail-value-text) !important;
     -webkit-text-fill-color: var(--_gt-detail-value-text) !important;
     caret-color: var(--_gt-detail-value-text);
-    font-size: var(--_gt-typo-detail-value-size);
+    font-size: calc(var(--_gt-typo-detail-value-size) * var(--yuzi-phone-readable-text-scale, 1));
     line-height: 1.65;
     resize: vertical;
     appearance: none;
@@ -1293,7 +1293,7 @@
     }
 
     .phone-generic-root.phone-generic-template-scope .phone-detail-bottom-bar {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
         padding-left: 12px;
         padding-right: 12px;
@@ -1302,11 +1302,6 @@
     .phone-generic-root.phone-generic-template-scope .phone-list-bottom-btn,
     .phone-generic-root.phone-generic-template-scope .phone-detail-bottom-btn {
         min-height: 44px;
-    }
-
-    .phone-generic-root.phone-generic-template-scope .phone-detail-bottom-bar #phone-save-row {
-        grid-column: 1 / -1;
-        order: -1;
     }
 
     .phone-generic-root.phone-generic-template-scope .phone-list-bottom-bar #phone-list-add-btn,
@@ -1349,10 +1344,6 @@
         font-size: 14px;
     }
 
-    .phone-generic-root.phone-generic-template-scope .phone-detail-bottom-bar {
-        grid-template-columns: 1fr;
-    }
-
     .phone-generic-root.phone-generic-template-scope .phone-generic-slot-list-side {
         grid-template-columns: 1fr;
         align-items: stretch;
@@ -1361,10 +1352,6 @@
     .phone-generic-root.phone-generic-template-scope .phone-generic-list-side-meta,
     .phone-generic-root.phone-generic-template-scope .phone-generic-slot-list-side {
         align-items: flex-start;
-    }
-
-    .phone-generic-root.phone-generic-template-scope .phone-detail-bottom-bar #phone-save-row {
-        order: 0;
     }
 }
 

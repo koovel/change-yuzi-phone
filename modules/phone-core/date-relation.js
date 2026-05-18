@@ -4,6 +4,8 @@ const ABSTRACT_MONTHS_PER_YEAR = 12;
 const ABSTRACT_DAYS_PER_MONTH = 30;
 const ABSTRACT_DAYS_PER_YEAR = ABSTRACT_MONTHS_PER_YEAR * ABSTRACT_DAYS_PER_MONTH;
 
+const REAL_DATE_TEXT_PATTERN = /^[+-]?\d{1,}-\d{1,2}-\d{1,2}$/;
+
 function normalizeDateText(value) {
     return String(value ?? '').trim();
 }
@@ -162,20 +164,68 @@ export function getDateWithOffset(anchor, offset) {
     };
 }
 
-export function extractFirstDateFromTimeSpan(timeSpan) {
-    const text = normalizeDateText(timeSpan);
-    if (!text) return '';
+function extractLeadingDateFromText(text) {
+    const value = normalizeDateText(text);
+    if (!value) return '';
 
-    const realMatch = text.match(/^[+-]?\d{1,}-\d{1,2}-\d{1,2}(?=\s|$|~)/);
+    const realMatch = value.match(/^[+-]?\d{1,}-\d{1,2}-\d{1,2}(?=\s|$|~)/);
     if (realMatch) return realMatch[0];
 
-    const abstractMatch = text.match(/^(.+?-.+?-\d{1,2})(?=\s|$|~)/);
+    const abstractMatch = value.match(/^(.+?-.+?-\d{1,2})(?=\s|$|~)/);
     return abstractMatch ? abstractMatch[1].trim() : '';
+}
+
+export function extractFirstDateFromTimeSpan(timeSpan) {
+    return extractLeadingDateFromText(timeSpan);
 }
 
 export function parseFirstDateFromTimeSpan(timeSpan, monthDaysValue = '') {
     const firstDate = extractFirstDateFromTimeSpan(timeSpan);
     return firstDate ? parseDateText(firstDate, monthDaysValue) : null;
+}
+
+function extractTimeSpanRelationDateCandidates(timeSpan) {
+    const text = normalizeDateText(timeSpan);
+    if (!text) {
+        return {
+            firstDate: '',
+            endDate: '',
+            hasRangeSeparator: false,
+        };
+    }
+
+    const separatorIndex = text.indexOf('~');
+    const hasRangeSeparator = separatorIndex >= 0;
+    const firstSegment = hasRangeSeparator ? text.slice(0, separatorIndex) : text;
+
+    return {
+        firstDate: extractLeadingDateFromText(firstSegment),
+        endDate: hasRangeSeparator ? extractLeadingDateFromText(text.slice(separatorIndex + 1)) : '',
+        hasRangeSeparator,
+    };
+}
+
+function parseRelationDateCandidate(dateText, monthDaysValue = '') {
+    const text = normalizeDateText(dateText);
+    if (!text) return null;
+
+    const parsed = parseDateText(text, monthDaysValue);
+    if (!REAL_DATE_TEXT_PATTERN.test(text)) return parsed;
+
+    return parsed?.kind === 'real' && parsed.raw === text ? parsed : null;
+}
+
+export function extractRelationDateFromTimeSpan(timeSpan) {
+    const { firstDate, endDate, hasRangeSeparator } = extractTimeSpanRelationDateCandidates(timeSpan);
+    return hasRangeSeparator ? endDate || firstDate : firstDate;
+}
+
+export function parseRelationDateFromTimeSpan(timeSpan, monthDaysValue = '') {
+    const { firstDate, endDate, hasRangeSeparator } = extractTimeSpanRelationDateCandidates(timeSpan);
+    const endParsed = hasRangeSeparator ? parseRelationDateCandidate(endDate, monthDaysValue) : null;
+    if (endParsed) return endParsed;
+
+    return parseRelationDateCandidate(firstDate, monthDaysValue);
 }
 
 function resolveAbstractYearIndex(yearLabel) {

@@ -73,6 +73,9 @@ import {
     selectAppearanceFont,
     deleteAppearanceFont,
     applyAppearanceFontLibrary,
+    getReadableTextScalePercentValue,
+    applyReadableTextScale,
+    setupReadableTextScaleSettings,
     getLayoutValue,
 } from './services/appearance-settings.js';
 import { createSettingsPageRenderers } from './page-renderers.js';
@@ -248,6 +251,9 @@ export function renderSettings(container) {
             selectAppearanceFont,
             deleteAppearanceFont,
             applyAppearanceFontLibrary,
+            getReadableTextScalePercentValue,
+            applyReadableTextScale,
+            setupReadableTextScaleSettings,
         },
         dataConfig: {
             getTableData,

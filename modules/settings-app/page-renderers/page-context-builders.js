@@ -94,6 +94,9 @@ function buildAppearancePageService(services) {
         selectAppearanceFont: services.appearance.selectAppearanceFont,
         deleteAppearanceFont: services.appearance.deleteAppearanceFont,
         applyAppearanceFontLibrary: services.appearance.applyAppearanceFontLibrary,
+        getReadableTextScalePercentValue: services.appearance.getReadableTextScalePercentValue,
+        applyReadableTextScale: services.appearance.applyReadableTextScale,
+        setupReadableTextScaleSettings: services.appearance.setupReadableTextScaleSettings,
     };
 }
 

@@ -24,7 +24,7 @@ function buildFontLibraryOptionsHtml(fontLibrary) {
     }).join('');
 }
 
-export function buildAppearancePageHtml({ layoutValues, hideTableCountBadge, fontLibrary = {} }) {
+export function buildAppearancePageHtml({ layoutValues, hideTableCountBadge, fontLibrary = {}, readableTextScalePercent = 100 }) {
     const activeFont = fontLibrary?.activeFont || {};
     const userFontCount = Number(fontLibrary?.stats?.userFontCount) || 0;
     const maxFonts = Number(fontLibrary?.limits?.maxFonts) || 0;
@@ -33,6 +33,7 @@ export function buildAppearancePageHtml({ layoutValues, hideTableCountBadge, fon
     const singleFontBytes = Number(fontLibrary?.limits?.singleFontBytes) || 0;
     const fontOptionsHtml = buildFontLibraryOptionsHtml(fontLibrary);
     const canDeleteActiveFont = !!activeFont?.id && !activeFont?.builtin;
+    const readableTextScaleValue = Math.max(80, Math.min(160, Math.round(Number(readableTextScalePercent) || 100)));
 
     const heroHtml = buildSettingsHeroHtml({
         eyebrow: '界面外观',
@@ -108,6 +109,21 @@ export function buildAppearancePageHtml({ layoutValues, hideTableCountBadge, fon
                         <span class="phone-settings-font-preview-sample">${escapeHtml(activeFont.previewText || '玉子手机 · 字体预览 Aa 123')}</span>
                     </div>
                     <div class="phone-settings-note">已保存 ${escapeHtml(String(userFontCount))} / ${escapeHtml(String(maxFonts))} 个用户字体；字体库占用 ${escapeHtml(formatBytes(totalFontBytes))} / ${escapeHtml(formatBytes(maxTotalFontBytes))}；单个字体上限 ${escapeHtml(formatBytes(singleFontBytes))}。</div>
+                </div>
+            `,
+        })}
+
+        ${buildSettingsSectionHtml({
+            title: '主要内容字体大小',
+            desc: '只调整首页 App 名称、通用表列表行文字与通用表详情字段文字。标题栏、搜索区和所有按钮保持原字号。',
+            bodyHtml: `
+                <div class="phone-settings-readable-text-scale-panel">
+                    <div class="phone-settings-readable-text-scale-row">
+                        <input type="range" min="80" max="160" step="1" id="phone-readable-text-scale-range" value="${escapeHtmlAttr(readableTextScaleValue)}" aria-label="主要内容字体大小">
+                        <input type="number" min="80" max="160" step="1" id="phone-readable-text-scale-input" class="phone-settings-input" value="${escapeHtmlAttr(readableTextScaleValue)}" aria-label="主要内容字体大小百分比">
+                        <span class="phone-settings-readable-text-scale-value" id="phone-readable-text-scale-value">${escapeHtml(String(readableTextScaleValue))}%</span>
+                    </div>
+                    <div class="phone-settings-note">范围 80%~160%；不影响返回标题栏、搜索框、排序、底部操作按钮、行右侧查看按钮、专属消息表、小剧场或变量管理。</div>
                 </div>
             `,
         })}

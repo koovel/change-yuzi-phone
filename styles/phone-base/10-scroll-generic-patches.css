@@ -545,13 +545,13 @@
 }
 
 .phone-generic-root.phone-generic-template-scope .phone-row-detail-key {
-    font-size: 12px;
+    font-size: calc(12px * var(--yuzi-phone-readable-text-scale, 1));
     font-weight: 500;
     color: var(--gtDetailKeyText, rgba(255, 255, 255, 0.6));
 }
 
 .phone-generic-root.phone-generic-template-scope .phone-row-detail-value {
-    font-size: 14px;
+    font-size: calc(14px * var(--yuzi-phone-readable-text-scale, 1));
     color: var(--gtDetailValueText, rgba(255, 255, 255, 0.9));
     word-break: break-word;
     white-space: pre-wrap;
@@ -564,7 +564,7 @@
     border: 1px solid var(--gtDetailFieldBorder, rgba(255, 255, 255, 0.15));
     background: var(--gtDetailFieldBg, rgba(255, 255, 255, 0.06));
     color: var(--gtDetailValueText, rgba(255, 255, 255, 0.95));
-    font-size: 14px;
+    font-size: calc(14px * var(--yuzi-phone-readable-text-scale, 1));
     line-height: 1.5;
     resize: none;
     min-height: auto;

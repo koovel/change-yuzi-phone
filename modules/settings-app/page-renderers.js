@@ -68,6 +68,9 @@ function validateSettingsRendererDeps(deps = {}) {
         'selectAppearanceFont',
         'deleteAppearanceFont',
         'applyAppearanceFontLibrary',
+        'getReadableTextScalePercentValue',
+        'applyReadableTextScale',
+        'setupReadableTextScaleSettings',
     ]);
     assertFunctionDeps('dataConfig', deps.dataConfig, [
         'getTableData',

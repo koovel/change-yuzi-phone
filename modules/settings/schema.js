@@ -126,6 +126,7 @@ export const defaultSettings = {
         activeFontId: 'builtin.system',
         userFonts: [],
     },
+    phoneReadableTextScalePercent: 100,
     phoneChat: {
         useStoryContext: true,
         storyContextTurns: 3,
@@ -170,6 +171,7 @@ const validationRules = {
     beautifyActiveTemplateIdsSpecial: { type: 'object' },
     appearanceResourcePool: { type: 'object' },
     appearanceFontLibrary: { type: 'object' },
+    phoneReadableTextScalePercent: { min: 80, max: 160, type: 'number' },
     phoneChat: { type: 'object' },
     phoneAiInstruction: { type: 'object' },
     worldbookSelection: { type: 'object' },
