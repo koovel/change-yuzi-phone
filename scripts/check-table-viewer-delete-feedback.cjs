@@ -72,35 +72,52 @@ assert(outcomeBody.includes('deletedCount,') && outcomeBody.includes('requestedR
 
 const deleteBody = extractFunctionBody(
     rowDelete,
-    'deleteRowFromList',
-    /const\s+deleteRowFromList\s*=\s*async\s*\([^)]*\)\s*=>\s*{/
+    'deleteRowsFromList',
+    /const\s+deleteRowsFromList\s*=\s*async\s*\([^)]*\)\s*=>\s*{/
 );
-assert(deleteBody.includes('return createDeleteOutcome({ message });'), '前置校验失败必须返回结构化失败结果');
+assert(deleteBody.includes('return createDeleteOutcome({ message });'), '未选择条目时必须返回结构化失败结果');
 assert(deleteBody.includes('showInlineToast(container, message, true);'), '前置校验失败必须使用错误样式');
+assert(deleteBody.includes('requestedRowIndexes, failedRowIndexes: requestedRowIndexes'), '前置校验失败必须透传请求行与失败行');
 assertOrdered(deleteBody, [
-    'const result = await deletePhoneSheetRows(sheetKey, [rowIndex], {',
-    'const deletedRowIndexes = Array.isArray(result.deletedRowIndexes) ? result.deletedRowIndexes : [];',
-    'const deletedCurrentRow = deletedRowIndexes.includes(rowIndex);',
-    'if (!result.ok && !deletedCurrentRow) {',
+    'const result = await deletePhoneSheetRows(sheetKey, requestedRowIndexes, {',
+    'const deletedRowIndexes = normalizeRowIndexes(result.deletedRowIndexes || []);',
+    'const failedRowIndexes = normalizeRowIndexes(result.failedRowIndexes || requestedRowIndexes.filter((rowIndex) => !deletedRowIndexes.includes(rowIndex)));',
+    'const hasDeletion = deletedRowIndexes.length > 0;',
+    'const failedRowIndexesAfterDelete = remapRemainingRowIndexes(failedRowIndexes, deletedRowIndexes);',
+], 'deleteRowsFromList 必须使用批量行级删除结果并重映射失败行');
+assertOrdered(deleteBody, [
+    'if (!result.ok && !hasDeletion) {',
+    'if (isViewerActive()) {',
+    'syncRowsFromSheet();',
+    'showInlineToast(container, message, true);',
     'return createDeleteOutcome({',
-    'failedRowIndexes: result.failedRowIndexes || [rowIndex],',
-], 'deleteRowFromList 删除失败结构化返回并透传部分失败字段');
+    'failedRowIndexes,',
+], 'deleteRowsFromList 删除失败结构化返回并只在 active 时同步旧 UI');
 assertOrdered(deleteBody, [
-    'applyLockStateAfterRowDelete(sheetKey, rowIndex);',
+    'if (hasDeletion) {',
+    'applyLockStateAfterRowsDelete(sheetKey, deletedRowIndexes);',
     'if (!isViewerActive()) {',
     'return createDeleteOutcome({',
-    'deleted: true,',
+    'deleted: hasDeletion,',
     'refreshed: result.refreshed ?? null,',
-], 'deleteRowFromList inactive 成功路径必须保留 refreshed');
+], 'deleteRowsFromList 成功或部分成功后必须先重排锁状态并阻断 inactive UI 回写');
 assertOrdered(deleteBody, [
     'const synced = syncRowsFromSheet();',
-    'const message = result.message || \'删除成功\';',
+    "const message = result.message || (deletedRowIndexes.length > 1 ? `已删除 ${deletedRowIndexes.length} 条记录` : '删除成功');",
     'if (!synced) {',
     'viewSynced: false,',
-], 'deleteRowFromList 必须区分本地视图同步失败');
-assert(deleteBody.includes('refreshed: result.refreshed ?? null,'), 'deleteRowFromList 成功路径必须透传 refreshed');
-assert(!/return\s+true\s*;/.test(deleteBody), 'deleteRowFromList 不能再把成功压缩为裸 true');
-assert(!/return\s+false\s*;/.test(deleteBody), 'deleteRowFromList 不能再把失败压缩为裸 false');
+], 'deleteRowsFromList 必须区分本地视图同步失败');
+assertOrdered(deleteBody, [
+    'if (rows.length === 0) {',
+    'selectedDeleteRowIndexes: [],',
+    '} else if (failedRowIndexesAfterDelete.length > 0) {',
+    'state.setSelectedDeleteRowIndexes(failedRowIndexesAfterDelete);',
+    '} else {',
+    'state.clearDeleteSelection();',
+], 'deleteRowsFromList 成功后必须按空表、部分失败、全成功维护删除选择状态');
+assert(deleteBody.includes('refreshed: result.refreshed ?? null,'), 'deleteRowsFromList 成功路径必须透传 refreshed');
+assert(!/return\s+true\s*;/.test(deleteBody), 'deleteRowsFromList 不能把成功压缩为裸 true');
+assert(!/return\s+false\s*;/.test(deleteBody), 'deleteRowsFromList 不能把失败压缩为裸 false');
 
 const normalizeBody = extractFunctionBody(
     listController,
@@ -109,28 +126,30 @@ const normalizeBody = extractFunctionBody(
 );
 assert(normalizeBody.includes('refreshed: result.refreshed ?? null,'), 'list controller 必须保留 refreshed 字段');
 assert(normalizeBody.includes('viewSynced: result.viewSynced ?? null,'), 'list controller 必须保留 viewSynced 字段');
+assert(normalizeBody.includes('deletedCount: Number(result.deletedCount || 0),'), 'list controller 必须保留批量删除数量字段');
+assert(normalizeBody.includes('failedRowIndexes: normalizeRowIndexes(result.failedRowIndexes || []),'), 'list controller 必须保留批量删除失败行字段');
 
 const handleBody = extractFunctionBody(
     listController,
-    'handleDeleteRow',
-    /async\s+function\s+handleDeleteRow\s*\([^)]*\)\s*{/
+    'executeDeleteSelectedRows',
+    /async\s+function\s+executeDeleteSelectedRows\s*\([^)]*\)\s*{/
 );
-assert(handleBody.includes('let deleteOutcome = normalizeDeleteOutcome(false);'), 'handleDeleteRow 必须使用结构化删除结果变量');
-assert(!handleBody.includes('deleted = !!(await context.deleteRowFromList(idx));'), 'handleDeleteRow 不能再把删除结果强转成布尔值');
-assert(!handleBody.includes("context.showInlineToast(container, '删除成功');"), 'handleDeleteRow 不能固定展示删除成功');
+assert(handleBody.includes('let deleteOutcome = normalizeDeleteOutcome(false);'), 'executeDeleteSelectedRows 必须使用结构化删除结果变量');
+assert(!handleBody.includes('deleted = !!(await context.deleteRowsFromList(rowIndexes));'), 'executeDeleteSelectedRows 不能把删除结果强转成布尔值');
+assert(!handleBody.includes("context.showInlineToast(container, '删除成功');"), 'executeDeleteSelectedRows 不能固定展示删除成功');
 assertOrdered(handleBody, [
-    'deleteOutcome = normalizeDeleteOutcome(await context.deleteRowFromList(idx));',
+    'deleteOutcome = normalizeDeleteOutcome(await context.deleteRowsFromList(rowIndexes));',
     'if (deleteOutcome.deleted && isGenericListContextActive(context)) {',
-    'const toastIsError = deleteOutcome.refreshed === false || deleteOutcome.viewSynced === false;',
+    'const toastIsError = deleteOutcome.refreshed === false || deleteOutcome.viewSynced === false || deleteOutcome.failedRowIndexes.length > 0;',
     'context.showInlineToast(container, toastMessage, toastIsError);',
-], 'handleDeleteRow 必须根据 refreshed/viewSynced 选择 toast 样式');
+], 'executeDeleteSelectedRows 必须根据 refreshed/viewSynced/failedRowIndexes 选择 toast 样式');
 assertOrdered(handleBody, [
     'if (deleteOutcome.deleted) {',
     'refreshListAfterDataMutation(container);',
-], 'handleDeleteRow 仍只能在实际删除后刷新列表');
-assert(handleBody.includes("context.showInlineToast(container, `删除异常: ${err?.message || '未知错误'}`, true);"), 'handleDeleteRow 异常必须使用错误样式');
+], 'executeDeleteSelectedRows 仍只能在实际删除后刷新列表');
+assert(handleBody.includes("context.showInlineToast(container, `删除异常: ${err?.message || '未知错误'}`, true);"), 'executeDeleteSelectedRows 异常必须使用错误样式');
 
 console.log('[table-viewer-delete-feedback-check] 检查通过');
-console.log('- OK | 通用表删除结果保留 ok/deleted/message/refreshed/viewSynced');
+console.log('- OK | 通用表批量删除结果保留 ok/deleted/message/refreshed/viewSynced');
 console.log('- OK | 通用表外层不再把删除结果强转为布尔值');
-console.log('- OK | 通用表投影刷新失败或视图同步失败会使用异常样式');
+console.log('- OK | 通用表投影刷新失败、视图同步失败或部分失败会使用异常样式');

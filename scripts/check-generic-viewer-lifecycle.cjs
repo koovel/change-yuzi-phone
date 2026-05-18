@@ -40,12 +40,13 @@ function main() {
 
     assertIncludes(rowDelete, 'function isRuntimeDisposed(runtime) {\n    return !!(runtime && typeof runtime.isDisposed === \'function\' && runtime.isDisposed());\n}', 'row-delete-controller 暴露 runtime disposed helper', failures);
     assertIncludes(rowDelete, 'viewerRuntime,\n    } = options;\n\n    const isViewerActive = () => isRuntimeActive(viewerRuntime);', 'row-delete-controller 接收 viewerRuntime 并建立 active helper', failures);
-    assertIncludes(rowDelete, 'const result = await deletePhoneSheetRows(sheetKey, [rowIndex], {\n            tableName: liveTableName,\n        });\n        const deletedRowIndexes = Array.isArray(result.deletedRowIndexes) ? result.deletedRowIndexes : [];\n        const deletedCurrentRow = deletedRowIndexes.includes(rowIndex);\n        if (!result.ok && !deletedCurrentRow) {', 'row-delete-controller 删除失败 await 后只在 active 时同步旧 UI，并兼容部分删除结果', failures);
-    assertIncludes(rowDelete, 'applyLockStateAfterRowDelete(sheetKey, rowIndex);\n        if (!isViewerActive()) {\n            return createDeleteOutcome({\n                ok: !!result.ok,\n                deleted: true,', 'row-delete-controller 删除成功或目标行已删除后保留锁状态重排并阻断 inactive UI 回写', failures);
-    assertIncludes(rowDelete, 'const synced = syncRowsFromSheet();\n        const message = result.message || \'删除成功\';', 'row-delete-controller active 成功路径才同步当前视图', failures);
+    assertIncludes(rowDelete, 'const result = await deletePhoneSheetRows(sheetKey, requestedRowIndexes, {\n            tableName: liveTableName,\n        });\n        const deletedRowIndexes = normalizeRowIndexes(result.deletedRowIndexes || []);\n        const failedRowIndexes = normalizeRowIndexes(result.failedRowIndexes || requestedRowIndexes.filter((rowIndex) => !deletedRowIndexes.includes(rowIndex)));\n        const hasDeletion = deletedRowIndexes.length > 0;', 'row-delete-controller 批量删除 await 后解析部分成功结果', failures);
+    assertIncludes(rowDelete, 'if (!result.ok && !hasDeletion) {\n            const message = result.message || \'删除失败\';\n            if (isViewerActive()) {\n                syncRowsFromSheet();\n                showInlineToast(container, message, true);\n            }\n            return createDeleteOutcome({', 'row-delete-controller 删除失败 await 后只在 active 时同步旧 UI', failures);
+    assertIncludes(rowDelete, 'if (hasDeletion) {\n            applyLockStateAfterRowsDelete(sheetKey, deletedRowIndexes);\n        }\n        if (!isViewerActive()) {\n            return createDeleteOutcome({\n                ok: !!result.ok,\n                deleted: hasDeletion,', 'row-delete-controller 删除成功或部分成功后保留锁状态重排并阻断 inactive UI 回写', failures);
+    assertIncludes(rowDelete, 'const synced = syncRowsFromSheet();\n        const message = result.message || (deletedRowIndexes.length > 1 ? `已删除 ${deletedRowIndexes.length} 条记录` : \'删除成功\');', 'row-delete-controller active 成功路径才同步当前视图', failures);
 
     assertIncludes(listController, 'function isRuntimeDisposed(runtime) {\n    return !!(runtime && typeof runtime.isDisposed === \'function\' && runtime.isDisposed());\n}\n\nfunction isGenericListContextActive(context) {', 'list-page-controller 暴露 context active helper', failures);
-    assertIncludes(listController, 'deleteOutcome = normalizeDeleteOutcome(await context.deleteRowFromList(idx));\n        if (deleteOutcome.deleted && isGenericListContextActive(context)) {', 'list-page-controller delete await 后 inactive 不 toast', failures);
+    assertIncludes(listController, 'deleteOutcome = normalizeDeleteOutcome(await context.deleteRowsFromList(rowIndexes));\n        if (deleteOutcome.deleted && isGenericListContextActive(context)) {', 'list-page-controller 批量 delete await 后 inactive 不 toast', failures);
     assertIncludes(listController, 'if (typeof nextContext.setSuppressExternalTableUpdate === \'function\') {\n            nextContext.setSuppressExternalTableUpdate(false);\n        }\n        if (!isGenericListContextActive(nextContext)) return;', 'list-page-controller finally 先恢复 suppress 再阻断旧 UI 回写', failures);
 
     assertIncludes(detailEdit, 'const isViewerActive = () => !(runtime && typeof runtime.isDisposed === \'function\' && runtime.isDisposed());', 'detail-edit-controller 建立 runtime active helper', failures);
@@ -61,7 +62,7 @@ function main() {
 
     console.log('[generic-viewer-lifecycle-check] 检查通过');
     console.log('- OK | 新增链路 insert/reconcile await 后接入 viewer lifecycle guard');
-    console.log('- OK | 删除链路区分锁状态重排副作用与旧 UI 回写');
+    console.log('- OK | 批量删除链路区分锁状态重排副作用与旧 UI 回写');
     console.log('- OK | 删除外层 finally 先恢复 suppress，再阻断旧 UI 刷新');
     console.log('- OK | 保存链路 save await 与 catch/finally 接入 viewer lifecycle guard');
 }
