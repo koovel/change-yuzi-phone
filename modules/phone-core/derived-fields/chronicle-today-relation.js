@@ -3,20 +3,18 @@ import { findAutoManagedRowIdColumnIndex } from '../../utils/table-column-metada
 import { getTableData, processTableData, updateTableCell } from '../data-api.js';
 import {
     calculateTodayRelation,
-    parseDateText,
+    parseLeadingDateFromText,
     parseRelationDateFromTimeSpan,
 } from '../date-relation.js';
 import { subscribeTableUpdate } from '../callbacks.js';
 
 const logger = Logger.withScope({ scope: 'phone-core/derived-fields/chronicle-today-relation', feature: 'derived-fields' });
 
-const CALENDAR_TABLE_NAME = '小日历表';
+const GLOBAL_TABLE_NAME = '全局数据表';
 const CHRONICLE_TABLE_NAME = '纪要表';
-const HEADER_CALENDAR_DATE = '日期';
+const HEADER_CURRENT_TIME = '当前时间';
 const HEADER_TIME_SPAN = '时间跨度';
 const HEADER_TODAY_RELATION = '与今天的关系';
-const HEADER_MONTH_DAYS = '月份几天';
-const TODAY_RELATION_VALUE = '今天';
 
 const runtime = {
     unsubscribe: null,
@@ -41,10 +39,10 @@ function readCell(row, index) {
 function resolveTables(rawData) {
     const tables = processTableData(rawData);
     if (!tables || typeof tables !== 'object') return null;
-    const calendarTable = tables[CALENDAR_TABLE_NAME];
+    const globalTable = tables[GLOBAL_TABLE_NAME];
     const chronicleTable = tables[CHRONICLE_TABLE_NAME];
-    if (!calendarTable || !chronicleTable) return null;
-    return { calendarTable, chronicleTable };
+    if (!globalTable || !chronicleTable) return null;
+    return { globalTable, chronicleTable };
 }
 
 function resolveRequiredIndexes(table, names) {
@@ -81,18 +79,20 @@ function buildChronicleInputSignature(chronicleTable, chronicleIndexes) {
         .join('\u001e');
 }
 
-function findTodayDate(calendarTable, calendarIndexes) {
-    const rows = Array.isArray(calendarTable?.rows) ? calendarTable.rows : [];
-    for (const row of rows) {
-        const relation = normalizeText(readCell(row, calendarIndexes.todayRelation));
-        if (relation !== TODAY_RELATION_VALUE) continue;
+function buildDateSignature(date) {
+    if (!date) return '';
+    const daySerial = typeof date.daySerial === 'bigint' ? date.daySerial.toString() : '';
+    return `${date.kind || ''}\u001f${date.key || ''}\u001f${daySerial}`;
+}
 
-        const dateText = normalizeText(readCell(row, calendarIndexes.date));
-        const monthDays = normalizeText(calendarIndexes.monthDays >= 0 ? readCell(row, calendarIndexes.monthDays) : '');
-        const parsedDate = parseDateText(dateText, monthDays);
-        if (parsedDate) return parsedDate;
-    }
-    return null;
+function resolveGlobalCurrentTime(globalTable, globalIndexes) {
+    const rows = Array.isArray(globalTable?.rows) ? globalTable.rows : [];
+    const currentTimeText = normalizeText(readCell(rows[0], globalIndexes.currentTime));
+    return parseLeadingDateFromText(currentTimeText);
+}
+
+function buildDerivedInputSignature(todayDate, chronicleSignature) {
+    return `${buildDateSignature(todayDate)}\u001d${chronicleSignature}`;
 }
 
 function collectChronicleUpdates(chronicleTable, chronicleIndexes, todayDate) {
@@ -162,35 +162,40 @@ async function runChronicleTodayRelationInjection() {
             const resolved = resolveTables(rawData);
             if (!resolved) return;
 
-            const calendarIndexes = resolveRequiredIndexes(resolved.calendarTable, {
-                date: HEADER_CALENDAR_DATE,
-                todayRelation: HEADER_TODAY_RELATION,
+            const globalIndexes = resolveRequiredIndexes(resolved.globalTable, {
+                currentTime: HEADER_CURRENT_TIME,
             });
-            const monthDaysIndex = findHeaderIndex(resolved.calendarTable?.headers, HEADER_MONTH_DAYS);
-            if (!calendarIndexes) return;
-            calendarIndexes.monthDays = monthDaysIndex;
+            if (!globalIndexes) return;
+
+            const todayDate = resolveGlobalCurrentTime(resolved.globalTable, globalIndexes);
+            if (!todayDate) return;
 
             const chronicleIndexes = resolveChronicleIndexes(resolved.chronicleTable);
             if (!chronicleIndexes) return;
 
-            const inputSignature = buildChronicleInputSignature(resolved.chronicleTable, chronicleIndexes);
+            const chronicleSignature = buildChronicleInputSignature(resolved.chronicleTable, chronicleIndexes);
+            const inputSignature = buildDerivedInputSignature(todayDate, chronicleSignature);
             if (inputSignature === runtime.lastInputSignature) return;
             runtime.lastInputSignature = inputSignature;
-
-            const todayDate = findTodayDate(resolved.calendarTable, calendarIndexes);
-            if (!todayDate) return;
 
             const updates = collectChronicleUpdates(resolved.chronicleTable, chronicleIndexes, todayDate);
             if (updates.length <= 0) return;
 
             const latestRawData = getTableData();
             const latestResolved = resolveTables(latestRawData);
+            const latestGlobalIndexes = latestResolved
+                ? resolveRequiredIndexes(latestResolved.globalTable, { currentTime: HEADER_CURRENT_TIME })
+                : null;
             const latestChronicleIndexes = latestResolved
                 ? resolveChronicleIndexes(latestResolved.chronicleTable)
                 : null;
-            if (!latestChronicleIndexes) return;
+            if (!latestGlobalIndexes || !latestChronicleIndexes) return;
 
-            const latestInputSignature = buildChronicleInputSignature(latestResolved.chronicleTable, latestChronicleIndexes);
+            const latestTodayDate = resolveGlobalCurrentTime(latestResolved.globalTable, latestGlobalIndexes);
+            if (!latestTodayDate) return;
+
+            const latestChronicleSignature = buildChronicleInputSignature(latestResolved.chronicleTable, latestChronicleIndexes);
+            const latestInputSignature = buildDerivedInputSignature(latestTodayDate, latestChronicleSignature);
             if (latestInputSignature !== inputSignature) {
                 runtime.lastInputSignature = null;
                 runtime.pending = true;

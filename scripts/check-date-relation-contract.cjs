@@ -26,6 +26,7 @@ async function main() {
         'parseFirstDateFromTimeSpan',
         'extractRelationDateFromTimeSpan',
         'parseRelationDateFromTimeSpan',
+        'parseLeadingDateFromText',
         'parseDateText',
         'calculateTodayRelation',
     ];
@@ -81,13 +82,33 @@ async function main() {
     );
     assertParsedDate(
         mod.parseRelationDateFromTimeSpan('2024-04-30 18:00 ~ 2024-04-32 20:00'),
-        '2024-04-30',
-        '结束日期文本存在但语义非法时必须回退到有效起始日期',
+        '2024-05-02',
+        '结束日期只要是三段式就必须按宽松现实日期自然溢出计算，不得回退起始日期',
+    );
+    assertParsedDate(
+        mod.parseRelationDateFromTimeSpan('2024-04-31 18:00 ~ 2024-04-32 20:00'),
+        '2024-05-02',
+        '起始日期和结束日期超出真实月天数时仍必须接受三段式并优先使用结束日期',
+    );
+    assertParsedDate(
+        mod.parseLeadingDateFromText('2026-02-31 09:00'),
+        '2026-03-03',
+        '全局当前时间开头的非法现实日期三段式必须自然溢出参与计算',
+    );
+    assertParsedDate(
+        mod.parseLeadingDateFromText('二零二六-二-三十一 09:00'),
+        '2026-03-03',
+        '全局当前时间开头的中文数字现实日期必须解析为同一日序号',
+    );
+    assertParsedDate(
+        mod.parseLeadingDateFromText('丰收纪-丰收月-九 17:25'),
+        '2029-03-09',
+        '全局当前时间开头的抽象三段式中文数字日必须参与计算',
     );
     assertEqual(
-        mod.parseRelationDateFromTimeSpan('2024-04-31 18:00 ~ 2024-04-32 20:00'),
+        mod.parseLeadingDateFromText('丰收月-09 17:25'),
         null,
-        '起始日期和结束日期都非法时不得被 parseRelationDateFromTimeSpan 接受',
+        '两段式日期仍缺少年/纪元事实，不得被当前时间解析层恢复支持',
     );
 
     const today = mod.parseDateText('2024-04-03');
@@ -98,7 +119,7 @@ async function main() {
         '用户截图场景：今天为 2024-04-03 且时间跨度结束于 2024-04-03 时必须输出今天',
     );
 
-    console.log('[通过] 日期关系合同：纪要时间跨度结束日期优先、单点回退、旧 first-date 语义保持');
+    console.log('[通过] 日期关系合同：结束日期优先、单点回退、宽松三段式与中文数字解析、旧 first-date 语义保持');
 }
 
 main().catch((error) => {

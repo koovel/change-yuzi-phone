@@ -3,8 +3,8 @@ const ABSTRACT_YEAR_BUCKETS = 7;
 const ABSTRACT_MONTHS_PER_YEAR = 12;
 const ABSTRACT_DAYS_PER_MONTH = 30;
 const ABSTRACT_DAYS_PER_YEAR = ABSTRACT_MONTHS_PER_YEAR * ABSTRACT_DAYS_PER_MONTH;
-
-const REAL_DATE_TEXT_PATTERN = /^[+-]?\d{1,}-\d{1,2}-\d{1,2}$/;
+const REAL_MONTHS_PER_YEAR = 12;
+const DATE_NUMBER_TOKEN_PATTERN = '[+-]?[0-9零〇一二两三四五六七八九十百千万]+';
 
 function normalizeDateText(value) {
     return String(value ?? '').trim();
@@ -53,45 +53,153 @@ export function formatDateLabel(year, monthIndex, day) {
     return formatDateKey(year, monthIndex, day);
 }
 
+function isChineseNumericText(text) {
+    return /^[零〇一二两三四五六七八九十百千万]+$/.test(normalizeDateText(text));
+}
+
+function parseChineseDigit(char) {
+    const digits = {
+        零: 0,
+        〇: 0,
+        一: 1,
+        二: 2,
+        两: 2,
+        三: 3,
+        四: 4,
+        五: 5,
+        六: 6,
+        七: 7,
+        八: 8,
+        九: 9,
+    };
+    return Object.prototype.hasOwnProperty.call(digits, char) ? digits[char] : null;
+}
+
+function parseChinesePositionalNumber(text) {
+    const value = normalizeDateText(text);
+    if (!value || !isChineseNumericText(value)) return null;
+
+    const units = { 十: 10, 百: 100, 千: 1000, 万: 10000 };
+    let total = 0;
+    let section = 0;
+    let currentNumber = 0;
+    let hasUnit = false;
+
+    for (const char of value) {
+        const digit = parseChineseDigit(char);
+        if (digit !== null) {
+            currentNumber = digit;
+            continue;
+        }
+
+        const unit = units[char];
+        if (!unit) return null;
+        hasUnit = true;
+        if (unit === 10000) {
+            section = (section + (currentNumber || 0)) || 1;
+            total += section * unit;
+            section = 0;
+        } else {
+            section += (currentNumber || 1) * unit;
+        }
+        currentNumber = 0;
+    }
+
+    const positionalValue = total + section + currentNumber;
+    if (hasUnit) return positionalValue;
+
+    const digitText = [...value].map(parseChineseDigit);
+    if (digitText.some(digit => digit === null)) return null;
+    return Number(digitText.join(''));
+}
+
+function parseDateNumberToken(token, options = {}) {
+    const text = normalizeDateText(token);
+    if (!text) return null;
+
+    const sign = text.startsWith('-') ? -1 : 1;
+    const unsigned = text.replace(/^[+-]/, '');
+    if (/^\d+$/.test(unsigned)) {
+        const number = Number(unsigned);
+        return Number.isSafeInteger(number) ? sign * number : null;
+    }
+
+    if (!options.allowSignedChinese && sign < 0) return null;
+    const parsed = parseChinesePositionalNumber(unsigned);
+    return Number.isSafeInteger(parsed) ? sign * parsed : null;
+}
+
+function floorDivBigInt(value, divisor) {
+    const quotient = value / divisor;
+    const remainder = value % divisor;
+    return remainder < 0n ? quotient - 1n : quotient;
+}
+
+function normalizeLooseRealDateParts(year, month, day) {
+    if (!Number.isSafeInteger(year) || !Number.isSafeInteger(month) || !Number.isSafeInteger(day)) return null;
+    if (month === 0 || day === 0) return null;
+
+    const monthOffset = BigInt(month - 1);
+    const normalizedYearOffset = floorDivBigInt(monthOffset, BigInt(REAL_MONTHS_PER_YEAR));
+    const normalizedMonthIndexBig = monthOffset - normalizedYearOffset * BigInt(REAL_MONTHS_PER_YEAR);
+    const normalizedYearBig = BigInt(year) + normalizedYearOffset;
+    const normalizedMonth = Number(normalizedMonthIndexBig) + 1;
+    const normalizedDaySerial = computeRealDateSerialBigInt(normalizedYearBig, normalizedMonth, 1) + BigInt(day - 1);
+    const normalizedParts = resolveRealDatePartsFromSerial(normalizedDaySerial);
+    if (!normalizedParts) return null;
+
+    return {
+        inputYear: year,
+        inputMonth: month,
+        inputDay: day,
+        normalizedYear: normalizedParts.year,
+        normalizedMonth: normalizedParts.month,
+        normalizedDay: normalizedParts.day,
+        normalizedMonthIndex: normalizedParts.month - 1,
+        daySerial: normalizedDaySerial,
+    };
+}
+
 function parseRealDateText(text) {
-    const match = normalizeDateText(text).match(/^([+-]?\d{1,})-(\d{1,2})-(\d{1,2})$/);
+    const value = normalizeDateText(text);
+    const numberPattern = DATE_NUMBER_TOKEN_PATTERN;
+    const match = value.match(new RegExp(`^(${numberPattern})-(${numberPattern})-(${numberPattern})$`));
     if (!match) return null;
 
-    const year = Number(match[1]);
-    const month = Number(match[2]);
-    const day = Number(match[3]);
-    if (!Number.isSafeInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
-    if (month < 1 || month > 12) return null;
-
-    const monthIndex = month - 1;
-    const maxDay = getRealMonthDays(year, monthIndex);
-    if (day < 1 || day > maxDay) return null;
+    const year = parseDateNumberToken(match[1], { allowSignedChinese: false });
+    const month = parseDateNumberToken(match[2]);
+    const day = parseDateNumberToken(match[3]);
+    const normalized = normalizeLooseRealDateParts(year, month, day);
+    if (!normalized) return null;
 
     return {
         kind: 'real',
-        raw: normalizeDateText(text),
-        year,
-        monthIndex,
-        day,
-        key: formatDateKey(year, monthIndex, day),
-        label: formatDateLabel(year, monthIndex, day),
-        monthDays: maxDay,
-        daySerial: computeRealDateSerial(year, month, day),
+        raw: value,
+        year: normalized.normalizedYear,
+        monthIndex: normalized.normalizedMonthIndex,
+        day: normalized.normalizedDay,
+        inputYear: normalized.inputYear,
+        inputMonth: normalized.inputMonth,
+        inputDay: normalized.inputDay,
+        key: formatDateKey(normalized.normalizedYear, normalized.normalizedMonthIndex, normalized.normalizedDay),
+        label: formatDateLabel(normalized.normalizedYear, normalized.normalizedMonthIndex, normalized.normalizedDay),
+        monthDays: getRealMonthDays(normalized.normalizedYear, normalized.normalizedMonthIndex),
+        daySerial: normalized.daySerial,
     };
 }
 
 function parseAbstractDateText(text, monthDaysValue = '') {
     const value = normalizeDateText(text);
-    const match = value.match(/^(.+?)-(.+?)-(\d{1,2})$/);
+    const match = value.match(new RegExp(`^(.+?)-(.+?)-(${DATE_NUMBER_TOKEN_PATTERN})$`));
     if (!match) return null;
 
     const yearLabel = normalizeDateText(match[1]);
     const monthLabel = normalizeDateText(match[2]);
-    const numericDay = Number(match[3]);
-    if (!yearLabel || !monthLabel || !Number.isInteger(numericDay)) return null;
+    const numericDay = parseDateNumberToken(match[3]);
+    if (!yearLabel || !monthLabel || !Number.isSafeInteger(numericDay) || numericDay === 0) return null;
 
     const monthDays = normalizeAbstractMonthDays(monthDaysValue);
-    const day = clampDay(numericDay, monthDays);
+    const day = numericDay;
     const anchorYearOffset = resolveAbstractYearIndex(yearLabel);
     const monthIndex = hashStringToIndex(monthLabel, ABSTRACT_MONTHS_PER_YEAR);
     const year = FALLBACK_ANCHOR.year + Number(anchorYearOffset % BigInt(ABSTRACT_YEAR_BUCKETS));
@@ -148,19 +256,23 @@ export function getDateWithOffset(anchor, offset) {
         };
     }
 
-    const year = Number(anchor?.year);
-    const monthIndex = Number(anchor?.monthIndex);
-    const day = Number(anchor?.day);
-    if (!Number.isInteger(year) || !Number.isInteger(monthIndex) || !Number.isInteger(day)) return null;
+    const anchorDaySerial = typeof anchor?.daySerial === 'bigint'
+        ? anchor.daySerial
+        : computeRealDateSerial(anchor?.year, Number(anchor?.monthIndex) + 1, anchor?.day);
+    if (typeof anchorDaySerial !== 'bigint') return null;
 
-    const date = new Date(year, monthIndex, day + safeOffset);
+    const daySerial = anchorDaySerial + BigInt(safeOffset);
+    const resolved = resolveRealDatePartsFromSerial(daySerial, typeof anchor?.year === 'number' ? BigInt(anchor.year) : null);
+    if (!resolved) return null;
+
     return {
-        year: date.getFullYear(),
-        monthIndex: date.getMonth(),
-        day: date.getDate(),
-        key: formatDateKey(date.getFullYear(), date.getMonth(), date.getDate()),
-        label: formatDateLabel(date.getFullYear(), date.getMonth(), date.getDate()),
+        year: resolved.year,
+        monthIndex: resolved.month - 1,
+        day: resolved.day,
+        key: formatDateKey(resolved.year, resolved.month - 1, resolved.day),
+        label: formatDateLabel(resolved.year, resolved.month - 1, resolved.day),
         kind: 'real-derived',
+        daySerial,
     };
 }
 
@@ -168,11 +280,17 @@ function extractLeadingDateFromText(text) {
     const value = normalizeDateText(text);
     if (!value) return '';
 
-    const realMatch = value.match(/^[+-]?\d{1,}-\d{1,2}-\d{1,2}(?=\s|$|~)/);
+    const numberPattern = DATE_NUMBER_TOKEN_PATTERN;
+    const realMatch = value.match(new RegExp(`^${numberPattern}-${numberPattern}-${numberPattern}(?=\\s|$|~)`));
     if (realMatch) return realMatch[0];
 
-    const abstractMatch = value.match(/^(.+?-.+?-\d{1,2})(?=\s|$|~)/);
+    const abstractMatch = value.match(new RegExp(`^(.+?-.+?-${numberPattern})(?=\\s|$|~)`));
     return abstractMatch ? abstractMatch[1].trim() : '';
+}
+
+export function parseLeadingDateFromText(text, monthDaysValue = '') {
+    const firstDate = extractLeadingDateFromText(text);
+    return firstDate ? parseDateText(firstDate, monthDaysValue) : null;
 }
 
 export function extractFirstDateFromTimeSpan(timeSpan) {
@@ -207,12 +325,7 @@ function extractTimeSpanRelationDateCandidates(timeSpan) {
 
 function parseRelationDateCandidate(dateText, monthDaysValue = '') {
     const text = normalizeDateText(dateText);
-    if (!text) return null;
-
-    const parsed = parseDateText(text, monthDaysValue);
-    if (!REAL_DATE_TEXT_PATTERN.test(text)) return parsed;
-
-    return parsed?.kind === 'real' && parsed.raw === text ? parsed : null;
+    return text ? parseDateText(text, monthDaysValue) : null;
 }
 
 export function extractRelationDateFromTimeSpan(timeSpan) {
@@ -237,9 +350,7 @@ function resolveAbstractYearIndex(yearLabel) {
 }
 
 function floorDiv(value, divisor) {
-    const quotient = value / divisor;
-    const remainder = value % divisor;
-    return remainder < 0n ? quotient - 1n : quotient;
+    return floorDivBigInt(value, divisor);
 }
 
 function isLeapYearBigInt(year) {
@@ -251,13 +362,81 @@ function daysBeforeYear(year) {
     return y * 365n + floorDiv(y, 4n) - floorDiv(y, 100n) + floorDiv(y, 400n);
 }
 
-function computeRealDateSerial(year, month, day) {
-    const monthDays = [31n, isLeapYearBigInt(BigInt(year)) ? 29n : 28n, 31n, 30n, 31n, 30n, 31n, 31n, 30n, 31n, 30n, 31n];
-    let days = daysBeforeYear(BigInt(year));
-    for (let index = 0; index < month - 1; index += 1) {
+function getRealMonthDayCountsBigInt(year) {
+    return [31n, isLeapYearBigInt(year) ? 29n : 28n, 31n, 30n, 31n, 30n, 31n, 31n, 30n, 31n, 30n, 31n];
+}
+
+function computeRealDateSerialBigInt(year, month, day) {
+    const safeMonth = Number(month);
+    const safeDay = Number(day);
+    if (!Number.isInteger(safeMonth) || safeMonth < 1 || safeMonth > 12 || !Number.isSafeInteger(safeDay)) return null;
+
+    const yearBigInt = typeof year === 'bigint' ? year : BigInt(year);
+    const monthDays = getRealMonthDayCountsBigInt(yearBigInt);
+    let days = daysBeforeYear(yearBigInt);
+    for (let index = 0; index < safeMonth - 1; index += 1) {
         days += monthDays[index];
     }
-    return days + BigInt(day - 1);
+    return days + BigInt(safeDay - 1);
+}
+
+function resolveRealDateSearchRange(daySerial, yearHint) {
+    let lower = typeof yearHint === 'bigint' ? yearHint : floorDivBigInt(daySerial, 366n) + 1n;
+    let upper = lower;
+    let step = 1n;
+
+    while (daysBeforeYear(lower) > daySerial) {
+        upper = lower;
+        lower -= step;
+        step *= 2n;
+    }
+
+    step = 1n;
+    while (daysBeforeYear(upper + 1n) <= daySerial) {
+        lower = upper + 1n;
+        upper += step;
+        step *= 2n;
+    }
+
+    return { lower, upper };
+}
+
+function resolveRealDatePartsFromSerial(daySerial, yearHint = null) {
+    if (typeof daySerial !== 'bigint') return null;
+
+    const { lower, upper } = resolveRealDateSearchRange(daySerial, yearHint);
+    let low = lower;
+    let high = upper;
+    while (low < high) {
+        const middle = floorDivBigInt(low + high + 1n, 2n);
+        if (daysBeforeYear(middle) <= daySerial) {
+            low = middle;
+        } else {
+            high = middle - 1n;
+        }
+    }
+
+    const yearBigInt = low;
+    if (yearBigInt < BigInt(Number.MIN_SAFE_INTEGER) || yearBigInt > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+
+    let dayOfYear = daySerial - daysBeforeYear(yearBigInt);
+    const monthDays = getRealMonthDayCountsBigInt(yearBigInt);
+    let monthIndex = 0;
+    while (monthIndex < monthDays.length && dayOfYear >= monthDays[monthIndex]) {
+        dayOfYear -= monthDays[monthIndex];
+        monthIndex += 1;
+    }
+    if (monthIndex < 0 || monthIndex > 11) return null;
+
+    return {
+        year: Number(yearBigInt),
+        month: monthIndex + 1,
+        day: Number(dayOfYear + 1n),
+    };
+}
+
+function computeRealDateSerial(year, month, day) {
+    return computeRealDateSerialBigInt(year, month, day);
 }
 
 function getComparableDateKind(parsedDate) {
