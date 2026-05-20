@@ -74,19 +74,18 @@ const SCENES = [
         id: 'forum',
         exportName: 'forumScene',
         appKey: '__theater_forum',
-        tables: ['论坛主贴表', '论坛精选回应表', '论坛小组侧栏表'],
-        roles: ['threads', 'featuredReplies', 'sidebar'],
-        deleteRoles: ['thread', 'sidebar'],
+        tables: ['论坛主贴表', '论坛精选回应表'],
+        roles: ['threads', 'featuredReplies'],
+        deleteRoles: ['thread'],
         requiredClasses: [
             'phone-theater-forum-home',
             'phone-theater-forum-channel-bar',
-            'phone-theater-forum-hot-panel',
             'phone-theater-forum-note-card',
             'phone-theater-forum-cover',
             'phone-theater-forum-floor-reply',
             'phone-theater-forum-floor-index',
         ],
-        requiredDeletionFields: ['帖子标题', '关联帖子标题', '分区/版面名', '栏目类型', '栏目标题'],
+        requiredDeletionFields: ['帖子标题', '关联帖子标题'],
     },
     {
         key: 'liveScene',
@@ -329,7 +328,7 @@ function main() {
     pushCheck(results, 'theaterCoreCss', 'core CSS 包含 theater 编辑按钮与菜单样式', has(contents.theaterCoreCss, '.phone-theater-edit-toggle') && has(contents.theaterCoreCss, '.phone-theater-edit-menu') && has(contents.theaterCoreCss, '.phone-theater-nav-actions'));
     pushCheck(results, 'theaterCoreCss', 'core CSS 包含 theater 选择按钮与选中态样式', has(contents.theaterCoreCss, '.phone-theater-select-toggle') && has(contents.theaterCoreCss, '.is-delete-selected'));
     pushCheck(results, 'theaterCoreCss', 'core CSS 删除态定位使用通用 delete-key 协议', has(contents.theaterCoreCss, '[data-theater-delete-key]:not(.phone-theater-select-toggle)'));
-    pushCheck(results, 'theaterCoreCss', 'core CSS 不引用内置 scene 容器 class', !hasAny(contents.theaterCoreCss, ['phone-theater-square-post', 'phone-theater-forum-hot-panel', 'phone-theater-forum-note-card', 'phone-theater-live-room']));
+    pushCheck(results, 'theaterCoreCss', 'core CSS 不引用内置 scene 容器 class', !hasAny(contents.theaterCoreCss, ['phone-theater-square-post', 'phone-theater-forum-note-card', 'phone-theater-live-room']));
     pushCheck(results, 'squareCss', 'square CSS 覆盖 body 浅色背景与 nav 深色文字', has(contents.squareCss, '[data-theater-scene="square"] .phone-theater-body') && has(contents.squareCss, '[data-theater-scene="square"] .phone-theater-nav .phone-nav-title'));
     pushCheck(results, 'forumCss', 'forum CSS 覆盖 body 浅色背景与 nav 深色文字', has(contents.forumCss, '[data-theater-scene="forum"] .phone-theater-body') && has(contents.forumCss, '[data-theater-scene="forum"] .phone-theater-nav .phone-nav-title'));
     pushCheck(results, 'forumCss', 'forum CSS 4 色封面齐全', has(contents.forumCss, 'phone-theater-cover-mist') && has(contents.forumCss, 'phone-theater-cover-cream') && has(contents.forumCss, 'phone-theater-cover-sage') && has(contents.forumCss, 'phone-theater-cover-rose'));

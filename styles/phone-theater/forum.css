@@ -52,51 +52,6 @@
     line-height: 1.4;
 }
 
-.phone-theater-page[data-theater-scene="forum"] .phone-theater-forum-hot-panel {
-    position: relative;
-    background: #eef2f7;
-    border-radius: 14px;
-    padding: 12px;
-}
-
-.phone-theater-page[data-theater-scene="forum"] .phone-theater-forum-hot-head {
-    margin-bottom: 8px;
-}
-
-.phone-theater-page[data-theater-scene="forum"] .phone-theater-forum-hot-kicker {
-    font-size: 11px;
-    color: rgba(0, 0, 0, 0.45);
-    line-height: 1.4;
-}
-
-.phone-theater-page[data-theater-scene="forum"] .phone-theater-forum-hot-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1d1d1f;
-    margin: 2px 0 0;
-    line-height: 1.4;
-}
-
-.phone-theater-page[data-theater-scene="forum"] .phone-theater-forum-hot-topic-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.phone-theater-page[data-theater-scene="forum"] .phone-theater-forum-hot-topic {
-    padding: 3px 9px;
-    background: #ffffff;
-    border-radius: 999px;
-    font-size: 12px;
-    color: #4b6584;
-    line-height: 1.45;
-}
-
-.phone-theater-page[data-theater-scene="forum"] .phone-theater-forum-hot-topic.is-empty {
-    color: rgba(0, 0, 0, 0.35);
-    background: rgba(255, 255, 255, 0.6);
-}
-
 .phone-theater-page[data-theater-scene="forum"] .phone-theater-forum-thread-list {
     display: flex;
     flex-direction: column;
@@ -146,14 +101,6 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
-.phone-theater-page[data-theater-scene="forum"] .phone-theater-forum-cover-status {
-    background: rgba(0, 0, 0, 0.28);
-    color: #ffffff;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 11px;
-}
-
 .phone-theater-page[data-theater-scene="forum"] .phone-theater-forum-thread-head {
     display: flex;
     align-items: center;
@@ -166,14 +113,6 @@
     font-size: 11.5px;
     color: rgba(0, 0, 0, 0.55);
     background: rgba(0, 0, 0, 0.04);
-    padding: 2px 8px;
-    border-radius: 999px;
-}
-
-.phone-theater-page[data-theater-scene="forum"] .phone-theater-forum-thread-type {
-    font-size: 11.5px;
-    color: #4b6584;
-    background: #eef2f7;
     padding: 2px 8px;
     border-radius: 999px;
 }

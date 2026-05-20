@@ -37,10 +37,8 @@ function buildViewModel(resolved, helpers) {
             author: normalizeText(getCellByHeader(featuredCommentsTable, row, '评论账号名', '匿名')) || '匿名',
             tag: normalizeText(getCellByHeader(featuredCommentsTable, row, '账号标签')),
             body: normalizeText(getCellByHeader(featuredCommentsTable, row, '评论正文')),
-            stance: normalizeText(getCellByHeader(featuredCommentsTable, row, '评论立场')),
             interaction: normalizeText(getCellByHeader(featuredCommentsTable, row, '点赞/回复数据')),
             time: normalizeText(getCellByHeader(featuredCommentsTable, row, '时间文本')),
-            status: normalizeText(getCellByHeader(featuredCommentsTable, row, '状态标签')),
         };
         if (!featuredByPost.has(postRef)) featuredByPost.set(postRef, []);
         featuredByPost.get(postRef).push(item);
@@ -56,7 +54,6 @@ function buildViewModel(resolved, helpers) {
             passerby: splitSemicolonText(getCellByHeader(commentBandsTable, row, '路人评论串')),
             noise: splitSemicolonText(getCellByHeader(commentBandsTable, row, '杂音/拱火评论串')),
             time: normalizeText(getCellByHeader(commentBandsTable, row, '时间文本')),
-            status: normalizeText(getCellByHeader(commentBandsTable, row, '状态标签')),
         };
         if (!bandsByPost.has(postRef)) bandsByPost.set(postRef, []);
         bandsByPost.get(postRef).push(item);
@@ -102,11 +99,15 @@ function renderSquarePost(post, uiState = {}, renderKit) {
 
     const featuredHtml = post.featuredComments.length > 0 ? `
         <section class="phone-theater-square-featured" aria-label="精选评论">
+            <div class="phone-theater-square-section-title">
+                <span class="phone-theater-square-section-mark" aria-hidden="true">✤</span>
+                <span>精选评论</span>
+            </div>
             ${post.featuredComments.map(comment => `
-                <div class="phone-theater-square-featured-item ${comment.status === '封神评论' ? 'is-godlike' : ''}">
+                <div class="phone-theater-square-featured-item">
                     <div class="phone-theater-square-featured-author">${escapeHtml(comment.author)}</div>
                     <div class="phone-theater-square-featured-body">${escapeHtml(comment.body || '（空评论）')}</div>
-                    ${renderMetaLine([comment.stance, comment.interaction, comment.status, comment.time])}
+                    ${renderMetaLine([comment.interaction, comment.time])}
                 </div>
             `).join('')}
         </section>
@@ -127,6 +128,7 @@ function renderSquarePost(post, uiState = {}, renderKit) {
 
     const noiseHtml = noiseLines.length > 0 ? `
         <section class="phone-theater-square-noise" aria-label="杂音">
+            <div class="phone-theater-square-noise-label">杂音 ${noiseLines.length} 条</div>
             ${noiseLines.map(text => `<div class="phone-theater-square-comment-line is-noise">${escapeHtml(text)}</div>`).join('')}
         </section>
     ` : '';
@@ -138,10 +140,13 @@ function renderSquarePost(post, uiState = {}, renderKit) {
             <header class="phone-theater-square-card-head">
                 <div class="phone-theater-avatar" aria-hidden="true">${escapeHtml(initial)}</div>
                 <div class="phone-theater-square-author-block">
-                    <div class="phone-theater-author">${escapeHtml(post.author)}</div>
-                    ${renderMetaLine([post.tag, post.time])}
+                    <div class="phone-theater-square-author-row">
+                        <div class="phone-theater-author">${escapeHtml(post.author)}</div>
+                        ${post.tag ? `<span class="phone-theater-square-author-tag">${escapeHtml(post.tag)}</span>` : ''}
+                    </div>
+                    ${post.time ? `<div class="phone-theater-square-time">${escapeHtml(post.time)}</div>` : ''}
                 </div>
-                <div class="phone-theater-square-heat">
+                <div class="phone-theater-square-heat phone-theater-square-status-stack">
                     ${showHeat ? renderTag(post.heat, 'is-heat') : ''}
                     ${showStatus ? renderTag(post.status, 'is-status') : ''}
                 </div>
@@ -157,7 +162,15 @@ function renderSquarePost(post, uiState = {}, renderKit) {
             ${featuredHtml}
             ${commentsHtml}
             ${noiseHtml}
-            ${post.interaction ? `<footer class="phone-theater-square-footer">${escapeHtml(post.interaction)}</footer>` : ''}
+            ${post.interaction ? `
+                <footer class="phone-theater-square-footer">
+                    <div class="phone-theater-square-action-row">
+                        <span class="phone-theater-square-action">♡ 点赞</span>
+                        <span class="phone-theater-square-action">○ 评论</span>
+                        <span class="phone-theater-square-interaction-text">${escapeHtml(post.interaction)}</span>
+                    </div>
+                </footer>
+            ` : ''}
         </article>
     `;
 }

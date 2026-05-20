@@ -15,7 +15,6 @@ import {
     buildTheaterDeleteKey,
     parseTheaterDeleteKey,
 } from './core/delete-key.js';
-import { resolveForumSidebarIdentity } from './scenes/forum.js';
 
 export {
     buildTheaterTableIndex,
@@ -30,8 +29,6 @@ export {
     buildTheaterDeleteKey,
     parseTheaterDeleteKey,
 } from './core/delete-key.js';
-
-export { resolveForumSidebarIdentity } from './scenes/forum.js';
 
 export function resolveTheaterSceneTables(rawData, sceneDefinition) {
     const index = buildTheaterTableIndex(rawData);
@@ -156,7 +153,6 @@ export function buildTheaterSceneViewModel(rawData, sceneId) {
         mapTheaterRows,
         normalizeText,
         parseTheaterDeleteKey,
-        resolveForumSidebarIdentity,
         resolveRowIdentity,
         splitSemicolonText,
     });

@@ -129,7 +129,7 @@ editableTables: Object.freeze([
 
 1. 主表实体必须使用 typed delete key：`role:rowIndex:encodedIdentity`。
 2. 主表删除必须同时匹配 `role`、`rowIndex`、`identity`。
-3. 禁止使用裸自然键，例如只用 `帖子标题`、`直播间名` 或 `sidebar:${xxx}`。
+3. 禁止使用裸自然键，例如只用 `帖子标题`、`直播间名` 或自造前缀字符串。
 4. 附表级联可以按数据模型已有外键字段删除，例如 `关联帖子ID`、`关联帖子标题`、`所属直播间名`。
 5. 如果附表外键不是唯一字段，必须在 `fieldSchema` 或本文档中记录限制。
 
@@ -160,7 +160,6 @@ function deleteEntities(context) {
 
 ### 4.1 当前内置 scene 的特殊限制
 
-- [`modules/phone-theater/scenes/forum.js`](../../modules/phone-theater/scenes/forum.js) 的侧栏没有外键，使用 `分区/版面名|栏目类型|栏目标题|时间文本|状态标签` 组合 identity，并仍叠加 `rowIndex` 精确匹配。
 - [`modules/phone-theater/scenes/live.js`](../../modules/phone-theater/scenes/live.js) 的弹幕附表只有 `所属直播间名` 外键。主表删除仍按 typed delete key 精确匹配；附表级联只能按直播间名清理。这是当前表结构限制，不要把它误写成“全链路唯一”。
 
 ## 5. 渲染规则
@@ -233,7 +232,7 @@ npm run build --silent
 - `editableTables` role 必须属于 scene `tables`，且编辑入口统一走 `table-generic:<sheetKey>`。
 - 核心 data/templates/delete-service/render/interactions 不出现 `sceneId === 'square'` 这类分支。
 - typed delete key 没有回退。
-- 禁止裸 `startsWith('sidebar:')`。
+- 禁止用裸字符串前缀模拟 typed delete key。
 - 本文档存在并包含删除规则。
 
 ## 9. 新增 scene 最短清单

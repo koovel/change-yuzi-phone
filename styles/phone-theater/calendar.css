@@ -290,14 +290,31 @@
     font-size: 11px;
 }
 
-.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-status {
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-badges {
     flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+    max-width: 48%;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-status,
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-weather {
     padding: 3px 8px;
     border-radius: 999px;
-    background: rgba(255, 149, 0, 0.13);
-    color: #b05a00;
     font-size: 11px;
     line-height: 1.4;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-status {
+    background: rgba(255, 149, 0, 0.13);
+    color: #b05a00;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-weather {
+    background: rgba(0, 122, 255, 0.12);
+    color: #0b63c7;
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-festival {

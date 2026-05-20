@@ -689,7 +689,7 @@ scene registry 位于 [`modules/phone-theater/scenes/index.js`](../modules/phone
 | scene | appKey | primaryTableRole | tables |
 |---|---|---|---|
 | square | `__theater_square` | `posts` | `广场主贴表`、`广场精选评论表`、`广场普通评论分栏表` |
-| forum | `__theater_forum` | `threads` | `论坛主贴表`、`论坛精选回应表`、`论坛小组侧栏表` |
+| forum | `__theater_forum` | `threads` | `论坛主贴表`、`论坛精选回应表` |
 | live | `__theater_live` | `rooms` | `直播间主表`、`直播间弹幕分栏表` |
 
 维护规则：
@@ -779,7 +779,7 @@ sequenceDiagram
 内置 scene 删除关系：
 
 - square：删除 `posts` 主贴时，按 `关联帖子ID` 级联删除精选评论和普通评论分栏。主贴身份字段兼容 `帖子ID` 与 `帖子唯一标识`，事实源在 [`SQUARE_POST_ID_HEADERS`](../modules/phone-theater/scenes/square.js:11) 和 [`fieldSchema.posts.identityAliases`](../modules/phone-theater/scenes/square.js:219)；删除服务通过 [`getIdentityAliases()`](../modules/phone-theater/delete-service.js:119) 读取同一协议。修改广场主表 ID 表头时必须同步这里，不允许只改渲染读取点。
-- forum：删除 `threads` 主贴时，按 `关联帖子标题` 级联删除精选回应；`sidebar` 侧栏作为独立可删除实体。
+- forum：删除 `threads` 主贴时，按 `关联帖子标题` 级联删除精选回应。
 - live：删除 `rooms` 直播间时，按 `所属直播间名` 级联删除弹幕分栏。
 
 维护规则：

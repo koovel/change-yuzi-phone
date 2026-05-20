@@ -79,6 +79,7 @@ function normalizeCalendarRow(daysTable, row, rowIndex) {
         festivalText: normalizeText(getCellByHeader(daysTable, row, '节日')),
         majorEvent: normalizeText(getCellByHeader(daysTable, row, '大事件')),
         dayStatus: normalizeText(getCellByHeader(daysTable, row, '状态')),
+        weatherText: normalizeText(getCellByHeader(daysTable, row, '天气')),
         todayRelation: relation,
         dayContent: normalizeText(getCellByHeader(daysTable, row, '内容')),
         monthDays,
@@ -161,8 +162,10 @@ function renderDayCell(day) {
     ].filter(Boolean).join(' ');
     const entry = day.entry;
     const label = entry?.festivalText || entry?.majorEvent || day.label;
+    const weatherSuffix = entry?.weatherText ? ` · ${entry.weatherText}` : '';
+    const title = `${label}${weatherSuffix}`;
     return `
-        <button type="button" class="${classes}" data-calendar-date-key="${escapeHtmlAttr(day.key)}" title="${escapeHtmlAttr(label)}">
+        <button type="button" class="${classes}" data-calendar-date-key="${escapeHtmlAttr(day.key)}" title="${escapeHtmlAttr(title)}">
             <span class="phone-theater-calendar-day-number">${escapeHtml(day.day)}</span>
             ${day.hasContent ? '<span class="phone-theater-calendar-dot" aria-hidden="true"></span>' : ''}
         </button>
@@ -185,7 +188,12 @@ function renderSelectedEntry(entry) {
                     <div class="phone-theater-calendar-detail-date">${escapeHtml(entry.displayDate || entry.dateText)}</div>
                     <div class="phone-theater-calendar-detail-relation">${escapeHtml(entry.todayRelation || '')}</div>
                 </div>
-                ${entry.dayStatus ? `<span class="phone-theater-calendar-status">${escapeHtml(entry.dayStatus)}</span>` : ''}
+                ${entry.dayStatus || entry.weatherText ? `
+                    <div class="phone-theater-calendar-badges">
+                        ${entry.dayStatus ? `<span class="phone-theater-calendar-status">${escapeHtml(entry.dayStatus)}</span>` : ''}
+                        ${entry.weatherText ? `<span class="phone-theater-calendar-weather">${escapeHtml(entry.weatherText)}</span>` : ''}
+                    </div>
+                ` : ''}
             </div>
             ${entry.festivalText ? `<div class="phone-theater-calendar-festival">${escapeHtml(entry.festivalText)}</div>` : ''}
             ${entry.majorEvent ? `<div class="phone-theater-calendar-event">${escapeHtml(entry.majorEvent)}</div>` : ''}

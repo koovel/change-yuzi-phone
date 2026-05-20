@@ -129,7 +129,7 @@ const compositeBody = extractFunctionBody(
 );
 assert(compositeBody.includes("identitySpec.split('|')"), '组合 identity 必须按 | 拆分字段');
 assert(compositeBody.includes('getCellByHeader(table, row, header)'), '组合 identity 必须逐字段读取当前行');
-assert(compositeBody.includes(".join('|')"), '组合 identity 必须按现有 sidebar 协议重新拼接');
+assert(compositeBody.includes(".join('|')"), '组合 identity 必须按字段 schema 重新拼接');
 
 const identityBody = extractFunctionBody(
     deleteService,
@@ -145,12 +145,9 @@ assertOrdered(identityBody, [
 assert(sources.squareScene.includes("buildTheaterDeleteKey('post'"), 'square scene 必须继续使用 post deleteRole');
 assert(sources.squareScene.includes("primaryTableRole: 'posts'"), 'square scene 表 role 必须仍为 posts');
 assert(sources.forumScene.includes("buildTheaterDeleteKey('thread'"), 'forum scene 必须继续使用 thread deleteRole');
-assert(sources.forumScene.includes("buildTheaterDeleteKey('sidebar'"), 'forum scene 必须继续使用 sidebar deleteRole');
+assert(!sources.forumScene.includes("buildTheaterDeleteKey('sidebar'"), 'forum scene 不得继续使用 sidebar deleteRole');
 assert(sources.forumScene.includes("primaryTableRole: 'threads'"), 'forum scene 主表 role 必须仍为 threads');
-assert(
-    sources.forumScene.includes("sidebar: Object.freeze({ identity: '分区/版面名|栏目类型|栏目标题|时间文本|状态标签' })"),
-    'forum sidebar 必须保留组合 identity schema，专项校验必须覆盖它',
-);
+assert(!sources.forumScene.includes('sidebar: Object.freeze'), 'forum scene 不得继续保留 sidebar fieldSchema');
 assert(sources.liveScene.includes("buildTheaterDeleteKey('room'"), 'live scene 必须继续使用 room deleteRole');
 assert(sources.liveScene.includes("primaryTableRole: 'rooms'"), 'live scene 表 role 必须仍为 rooms');
 
