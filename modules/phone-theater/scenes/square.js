@@ -72,10 +72,8 @@ function buildViewModel(resolved, helpers) {
             body: normalizeText(getCellByHeader(postsTable, row, '帖子正文')),
             topic: normalizeText(getCellByHeader(postsTable, row, '话题/附加信息')),
             media: normalizeText(getCellByHeader(postsTable, row, '媒体信息')),
-            heat: normalizeText(getCellByHeader(postsTable, row, '热度标签')),
             interaction: normalizeText(getCellByHeader(postsTable, row, '互动数据')),
             time: normalizeText(getCellByHeader(postsTable, row, '时间文本')),
-            status: normalizeText(getCellByHeader(postsTable, row, '状态标签')),
             featuredComments: featuredByPost.get(postId) || [],
             commentBands: bandsByPost.get(postId) || [],
         };
@@ -90,11 +88,9 @@ function collectDeletableKeys(viewModel) {
 }
 
 function renderSquarePost(post, uiState = {}, renderKit) {
-    const { getInitial, renderMetaLine, renderTag, splitTopicTokens } = renderKit;
+    const { getInitial, renderMetaLine, splitTopicTokens } = renderKit;
     const initial = getInitial(post.author);
     const topics = splitTopicTokens(post.topic);
-    const showHeat = post.heat && post.heat !== '普通';
-    const showStatus = post.status && post.status !== '正常';
     const showMedia = post.media && post.media !== '无图';
 
     const featuredHtml = post.featuredComments.length > 0 ? `
@@ -145,10 +141,6 @@ function renderSquarePost(post, uiState = {}, renderKit) {
                         ${post.tag ? `<span class="phone-theater-square-author-tag">${escapeHtml(post.tag)}</span>` : ''}
                     </div>
                     ${post.time ? `<div class="phone-theater-square-time">${escapeHtml(post.time)}</div>` : ''}
-                </div>
-                <div class="phone-theater-square-heat phone-theater-square-status-stack">
-                    ${showHeat ? renderTag(post.heat, 'is-heat') : ''}
-                    ${showStatus ? renderTag(post.status, 'is-status') : ''}
                 </div>
             </header>
             ${post.title ? `<h3 class="phone-theater-title">${escapeHtml(post.title)}</h3>` : ''}

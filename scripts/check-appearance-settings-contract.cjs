@@ -40,6 +40,10 @@ function main() {
 
     const results = [];
 
+    const exactMatchIndex = contents.resourcePack.indexOf("'name-exact'");
+    const scoreMatchIndex = contents.resourcePack.indexOf("'name-score'");
+    const sequentialFillIndex = contents.resourcePack.indexOf("'sequential-fill'");
+
     check(results, 'facade', '继续暴露 setupBgUpload()', has(contents.facade, 'export function setupBgUpload('));
     check(results, 'facade', '继续暴露 renderIconUploadList()', has(contents.facade, 'export function renderIconUploadList('));
     check(results, 'facade', '继续暴露 setupAppearanceToggles()', has(contents.facade, 'export function setupAppearanceToggles('));
@@ -76,7 +80,7 @@ function main() {
     check(results, 'resourcePack', '旧资源清理兼容函数会清空 legacy appearanceResourcePool', has(contents.resourcePack, 'export function clearAppearanceResourcePoolIcons()')
         && has(contents.resourcePack, 'removedPoolIcons')
         && has(contents.resourcePack, 'createEmptyAppearanceResourcePool()'));
-    check(results, 'resourcePack', 'normalizeImageResource 保留 slotKey 以支持精确图标位导入', has(contents.resourcePack, 'slotKey: safeString(raw.slotKey, 160)'));
+    check(results, 'resourcePack', 'normalizeImageResource 保留 slotKey 字段兼容旧包但导入分配不使用它', has(contents.resourcePack, 'slotKey: safeString(raw.slotKey, 160)'));
     check(results, 'resourcePack', '导出只包含当前背景与当前 appIcons，不拼接 legacy 资源池', !has(contents.resourcePack, 'wallpapers.push(...pool.wallpapers)')
         && !has(contents.resourcePack, 'icons.push(...pool.icons)')
         && has(contents.resourcePack, 'slotKey: key')
@@ -92,6 +96,30 @@ function main() {
         && !has(contents.resourcePack, 'shuffleStable')
         && !has(contents.resourcePack, 'buildIconAssignment')
         && !has(contents.resourcePack, 'mergeResourcePool'));
+    check(results, 'resourcePack', '导入图标匹配支持全局 exact、名称打分、顺序补位', has(contents.resourcePack, 'function normalizeIconMatchName(')
+        && has(contents.resourcePack, 'function normalizeIconScoreName(')
+        && has(contents.resourcePack, 'function tokenizeIconName(')
+        && has(contents.resourcePack, 'function countCommonCharacters(')
+        && has(contents.resourcePack, 'function scoreIconNameMatch(')
+        && has(contents.resourcePack, 'function buildSlotNameIndex(')
+        && has(contents.resourcePack, 'const slotNameIndex = buildSlotNameIndex(slots);')
+        && has(contents.resourcePack, 'usedIconIndexes')
+        && has(contents.resourcePack, 'scoreMatchedIcons')
+        && has(contents.resourcePack, 'sequentialFilledIcons')
+        && has(contents.resourcePack, 'const iconName = normalizeIconMatchName(icon?.name);')
+        && has(contents.resourcePack, "assignIconToSlot(icon, iconIndex, nameSlot, 'name-exact', 100)")
+        && has(contents.resourcePack, "assignIconToSlot(candidate.icon, candidate.iconIndex, candidate.slot, 'name-score', candidate.score)")
+        && has(contents.resourcePack, "assignIconToSlot(icon, iconIndex, slot, 'sequential-fill', 0)")
+        && has(contents.resourcePack, 'unmatchedNameIcons'));
+    check(results, 'resourcePack', '导入图标匹配顺序为 exact → score → sequential-fill',
+        exactMatchIndex >= 0 && scoreMatchIndex >= 0 && sequentialFillIndex >= 0
+        && exactMatchIndex < scoreMatchIndex && scoreMatchIndex < sequentialFillIndex);
+    check(results, 'resourcePack', '导入不再使用 slotKey 参与图标分配', !has(contents.resourcePack, "assignIconToSlot(icon, slotMap.get(slotKey), 'slotKey')")
+        && !has(contents.resourcePack, 'unmatchedSlotKeyIcons.length')
+        && !has(contents.resourcePack, 'slotKey 不存在，已按顺序分配或丢弃'));
+    check(results, 'resourcePack', '导入 unmatchedIcons 统计最终 discarded 图标', has(contents.resourcePack, 'unmatchedIcons: assignment.discarded.length')
+        && has(contents.resourcePack, '有 ${assignment.scoreMatchedIcons.length} 个图标通过名称相似度匹配')
+        && has(contents.resourcePack, '有 ${assignment.sequentialFilledIcons.length} 个图标未找到名称相似项，已按剩余图标位顺序补位'));
     check(results, 'resourcePack', '资源池图标清理会扫描并删除隐藏旧 appIcons', has(contents.resourcePack, "import { getTableData } from '../../../phone-core/data-api.js';")
         && has(contents.resourcePack, 'function collectActiveIconKeys()')
         && has(contents.resourcePack, 'collectAppearanceIconSlots(rawData)')

@@ -31,6 +31,65 @@ function safeString(value, maxLength = 256) {
     return String(value ?? '').trim().slice(0, maxLength);
 }
 
+function normalizeIconMatchName(value) {
+    return safeString(value, 160);
+}
+
+function normalizeIconScoreName(value) {
+    return safeString(value, 160)
+        .replace(/[\s\u3000]+/g, '')
+        .replace(/[（）()【】\[\]{}「」『』]/g, '')
+        .replace(/表$/u, '');
+}
+
+function tokenizeIconName(value) {
+    const normalized = normalizeIconScoreName(value);
+    if (!normalized) return [];
+    return Array.from(new Set([
+        normalized,
+        ...normalized.split(/[与和及、,，/\\|]+/u).filter(Boolean),
+    ]));
+}
+
+function countCommonCharacters(left, right) {
+    const rightChars = new Map();
+    Array.from(right).forEach((char) => {
+        rightChars.set(char, (rightChars.get(char) || 0) + 1);
+    });
+
+    let count = 0;
+    Array.from(left).forEach((char) => {
+        const rest = rightChars.get(char) || 0;
+        if (rest <= 0) return;
+        count += 1;
+        rightChars.set(char, rest - 1);
+    });
+    return count;
+}
+
+function scoreIconNameMatch(iconName, slotName) {
+    const icon = normalizeIconScoreName(iconName);
+    const slot = normalizeIconScoreName(slotName);
+    if (!icon || !slot) return 0;
+
+    if (icon === slot) return 100;
+
+    const iconTokens = tokenizeIconName(iconName);
+    const slotTokens = tokenizeIconName(slotName);
+    if (iconTokens.includes(slot) || slotTokens.includes(icon)) return 92;
+
+    if (icon.includes(slot) || slot.includes(icon)) {
+        const shortLength = Math.min(icon.length, slot.length);
+        const longLength = Math.max(icon.length, slot.length);
+        return Math.round(80 + (shortLength / longLength) * 10);
+    }
+
+    const overlap = countCommonCharacters(icon, slot);
+    const denominator = Math.max(icon.length, slot.length);
+    const ratio = denominator > 0 ? overlap / denominator : 0;
+    return Math.round(ratio * 70);
+}
+
 function parsePackInput(input) {
     if (typeof input === 'string') {
         return JSON.parse(input);
@@ -132,61 +191,112 @@ function createEmptyAppearanceResourcePool() {
     };
 }
 
+function buildSlotNameIndex(slots) {
+    const nameIndex = new Map();
+    slots.forEach((slot) => {
+        const name = normalizeIconMatchName(slot?.name);
+        if (!name) return;
+        if (!nameIndex.has(name)) {
+            nameIndex.set(name, []);
+        }
+        nameIndex.get(name).push(slot);
+    });
+    return nameIndex;
+}
+
 function buildReplacingIconAssignment({ iconSlots, packIcons }) {
     const slots = Array.isArray(iconSlots) ? iconSlots.filter(slot => slot?.key) : [];
-    const slotMap = new Map(slots.map(slot => [slot.key, slot]));
+    const slotNameIndex = buildSlotNameIndex(slots);
     const usedSlotKeys = new Set();
+    const usedIconIndexes = new Set();
     const nextIcons = {};
     const assigned = [];
-    const sequentialCandidates = [];
     const discarded = [];
-    const unmatchedSlotKeyIcons = [];
+    const unmatchedNameIcons = [];
+    const scoreMatchedIcons = [];
+    const sequentialFilledIcons = [];
 
-    packIcons.forEach((icon) => {
-        const slotKey = safeString(icon?.slotKey, 160);
-        if (slotKey && slotMap.has(slotKey) && !usedSlotKeys.has(slotKey)) {
-            const slot = slotMap.get(slotKey);
-            nextIcons[slotKey] = icon.dataUrl;
-            usedSlotKeys.add(slotKey);
-            assigned.push({
-                slotKey,
-                slotName: slot.name,
-                resourceId: icon.id,
-            });
-            return;
-        }
-
-        if (slotKey && !slotMap.has(slotKey)) {
-            unmatchedSlotKeyIcons.push(icon);
-        }
-        sequentialCandidates.push(icon);
-    });
-
-    let slotIndex = 0;
-    sequentialCandidates.forEach((icon) => {
-        while (slotIndex < slots.length && usedSlotKeys.has(slots[slotIndex].key)) {
-            slotIndex += 1;
-        }
-        const slot = slots[slotIndex];
-        if (!slot) {
-            discarded.push(icon);
-            return;
-        }
+    function assignIconToSlot(icon, iconIndex, slot, strategy, score = 0) {
         nextIcons[slot.key] = icon.dataUrl;
         usedSlotKeys.add(slot.key);
+        usedIconIndexes.add(iconIndex);
         assigned.push({
             slotKey: slot.key,
             slotName: slot.name,
             resourceId: icon.id,
+            strategy,
+            score,
         });
-        slotIndex += 1;
-    });
-
-    if (slots.length === 0 && sequentialCandidates.length === 0 && packIcons.length > 0) {
-        discarded.push(...packIcons);
     }
 
-    return { nextIcons, assigned, discarded, unmatchedSlotKeyIcons };
+    function findFirstUnusedSlotByName(name) {
+        const candidates = slotNameIndex.get(name) || [];
+        return candidates.find(slot => !usedSlotKeys.has(slot.key)) || null;
+    }
+
+    packIcons.forEach((icon, iconIndex) => {
+        const iconName = normalizeIconMatchName(icon?.name);
+        if (!iconName) {
+            unmatchedNameIcons.push(icon);
+            return;
+        }
+
+        const nameSlot = findFirstUnusedSlotByName(iconName);
+        if (!nameSlot) {
+            unmatchedNameIcons.push(icon);
+            return;
+        }
+        assignIconToSlot(icon, iconIndex, nameSlot, 'name-exact', 100);
+    });
+
+    const scoreCandidates = [];
+    packIcons.forEach((icon, iconIndex) => {
+        if (usedIconIndexes.has(iconIndex)) return;
+        slots.forEach((slot, slotIndex) => {
+            if (usedSlotKeys.has(slot.key)) return;
+            const score = scoreIconNameMatch(icon?.name, slot?.name);
+            if (score <= 0) return;
+            scoreCandidates.push({ icon, iconIndex, slot, slotIndex, score });
+        });
+    });
+
+    scoreCandidates
+        .sort((left, right) => {
+            if (right.score !== left.score) return right.score - left.score;
+            if (left.iconIndex !== right.iconIndex) return left.iconIndex - right.iconIndex;
+            return left.slotIndex - right.slotIndex;
+        })
+        .forEach((candidate) => {
+            if (usedIconIndexes.has(candidate.iconIndex)) return;
+            if (usedSlotKeys.has(candidate.slot.key)) return;
+            assignIconToSlot(candidate.icon, candidate.iconIndex, candidate.slot, 'name-score', candidate.score);
+            scoreMatchedIcons.push(candidate.icon);
+        });
+
+    let remainingSlotIndex = 0;
+    packIcons.forEach((icon, iconIndex) => {
+        if (usedIconIndexes.has(iconIndex)) return;
+        while (remainingSlotIndex < slots.length && usedSlotKeys.has(slots[remainingSlotIndex].key)) {
+            remainingSlotIndex += 1;
+        }
+        const slot = slots[remainingSlotIndex];
+        if (!slot) {
+            discarded.push(icon);
+            return;
+        }
+        assignIconToSlot(icon, iconIndex, slot, 'sequential-fill', 0);
+        sequentialFilledIcons.push(icon);
+        remainingSlotIndex += 1;
+    });
+
+    return {
+        nextIcons,
+        assigned,
+        discarded,
+        unmatchedNameIcons,
+        scoreMatchedIcons,
+        sequentialFilledIcons,
+    };
 }
 
 function createExportResource({ id, name, dataUrl, source = 'settings', slotKey = '' }) {
@@ -383,7 +493,7 @@ export function importAppearanceResourcePackFromData(input) {
                 assignedIcons: 0,
                 poolIcons: 0,
                 discardedIcons: assignment.discarded.length,
-                unmatchedIcons: assignment.unmatchedSlotKeyIcons.length,
+                unmatchedIcons: assignment.discarded.length,
                 warnings,
                 errors: ['导入后图标总容量超过上限，未导入'],
                 message: '导入失败：图标总容量超限',
@@ -395,8 +505,11 @@ export function importAppearanceResourcePackFromData(input) {
         } else if (assignment.discarded.length > 0) {
             warnings.push(`有 ${assignment.discarded.length} 个图标超过当前图标位数量，已丢弃`);
         }
-        if (assignment.unmatchedSlotKeyIcons.length > 0) {
-            warnings.push(`有 ${assignment.unmatchedSlotKeyIcons.length} 个图标的 slotKey 不存在，已按顺序分配或丢弃`);
+        if (assignment.scoreMatchedIcons.length > 0) {
+            warnings.push(`有 ${assignment.scoreMatchedIcons.length} 个图标通过名称相似度匹配`);
+        }
+        if (assignment.sequentialFilledIcons.length > 0) {
+            warnings.push(`有 ${assignment.sequentialFilledIcons.length} 个图标未找到名称相似项，已按剩余图标位顺序补位`);
         }
 
         const backup = {
@@ -420,7 +533,7 @@ export function importAppearanceResourcePackFromData(input) {
                 assignedIcons: 0,
                 poolIcons: 0,
                 discardedIcons: assignment.discarded.length,
-                unmatchedIcons: assignment.unmatchedSlotKeyIcons.length,
+                unmatchedIcons: assignment.discarded.length,
                 warnings,
                 errors: ['设置保存失败，已回滚'],
                 message: '导入失败：设置保存失败',
@@ -434,7 +547,7 @@ export function importAppearanceResourcePackFromData(input) {
             assignedIcons: assignment.assigned.length,
             poolIcons: 0,
             discardedIcons: assignment.discarded.length,
-            unmatchedIcons: assignment.unmatchedSlotKeyIcons.length,
+            unmatchedIcons: assignment.discarded.length,
             warnings,
             errors: [],
             message: `导入完成：背景 ${wallpaper ? 1 : 0}，分配图标 ${assignment.assigned.length}，丢弃多余图标 ${assignment.discarded.length}`,

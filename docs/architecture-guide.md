@@ -517,8 +517,8 @@ Appearance 页面服务统一由 [`appearance-settings.js`](../modules/settings-
 1. UI 入口由 [`buildAppearancePageHtml()`](../modules/settings-app/layout/page-builders/appearance-builders.js:9) 输出，事件绑定在 [`bindAppearanceResourcePackActions()`](../modules/settings-app/pages/appearance.js:77)。
 2. 导入导出实现位于 [`resource-pack-service.js`](../modules/settings-app/services/appearance-settings/resource-pack-service.js:1)，格式常量为 `yuzi-phone-appearance-pack`；导出只包含当前 [`backgroundImage`](../modules/settings/schema.js:1) 与当前 [`appIcons`](../modules/settings/schema.js:1)，`iconPool` 仅保留为空数组兼容旧格式。
 3. 图标位枚举必须复用 [`collectAppearanceIconSlots()`](../modules/settings-app/services/appearance-settings/icon-slots.js:1)，不要在资源包服务和图标上传 UI 中各写一套 key 枚举。
-4. 图标资源项可携带 `slotKey`，导入时优先按当前图标位精确匹配；旧包没有 `slotKey` 时按当前图标位顺序兼容分配。
-5. 导入使用替换语义写入 [`appIcons`](../modules/settings/schema.js:1)：包内多余图标直接丢弃，包内图标不足的位置不保留旧图标，首页自然回退默认文字图标。
+4. 图标导入先全局按资源项 `name` 与当前图标位 `name` 精准匹配并锁定所有完全同名图标位；剩余图标再按名称相似度打分，从高到低匹配剩余图标位；仍未命中的图标按剩余图标位顺序补位，直到当前图标位填满或美化包图标耗尽。`slotKey` 只作为历史字段保留，不参与导入分配。
+5. 导入使用替换语义写入 [`appIcons`](../modules/settings/schema.js:1)：分配成功的图标写入当前 slot 的真实 key，包内多余图标直接丢弃，包内图标不足的位置不保留旧图标，首页自然回退默认文字图标。
 6. 导入保存使用 [`savePhoneSettingsPatch()`](../modules/settings/persistence.js:161) 的布尔返回值判断是否成功；失败时必须回滚旧 [`backgroundImage`](../modules/settings/schema.js:1)、[`appIcons`](../modules/settings/schema.js:1) 与 legacy [`appearanceResourcePool`](../modules/settings/schema.js:1)。
 
 图片上传与裁剪链路：
