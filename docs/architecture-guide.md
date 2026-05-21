@@ -521,6 +521,15 @@ Appearance 页面服务统一由 [`appearance-settings.js`](../modules/settings-
 5. 导入使用替换语义写入 [`appIcons`](../modules/settings/schema.js:1)：包内多余图标直接丢弃，包内图标不足的位置不保留旧图标，首页自然回退默认文字图标。
 6. 导入保存使用 [`savePhoneSettingsPatch()`](../modules/settings/persistence.js:161) 的布尔返回值判断是否成功；失败时必须回滚旧 [`backgroundImage`](../modules/settings/schema.js:1)、[`appIcons`](../modules/settings/schema.js:1) 与 legacy [`appearanceResourcePool`](../modules/settings/schema.js:1)。
 
+图片上传与裁剪链路：
+
+1. 背景图、自定义 App 图标、悬浮按钮封面等图片上传入口必须统一走 [`media-upload.js`](../modules/settings-app/services/media-upload.js:1) façade；页面和业务服务不得绕过 façade 直接拼接 FileReader、canvas 或裁剪 DOM。
+2. 裁剪弹窗实现位于 [`crop.js`](../modules/settings-app/services/media-upload/crop.js:1)，由 [`picker.js`](../modules/settings-app/services/media-upload/picker.js:1) 在读取图片后调用；弹窗挂载到 `document.body`，是全局 modal，不是小手机内部弹窗。
+3. 裁剪 overlay 层级必须高于小手机容器 `9991` 与悬浮按钮 `10000`；当前样式在 [`08-image-crop.css`](../styles/phone-base/08-image-crop.css:1) 固定为 `z-index: 10020`。这里如果降回普通设置页层级，手机端会再次被小手机和 toggle 遮住，漏洞明显得像是故意写给事故看的。
+4. [`openImageCropDialog()`](../modules/settings-app/services/media-upload/crop.js:207) 支持 `showCropFullImageButton?: boolean` 与 `cropFullImageButtonText?: string`；`showCropFullImageButton` 默认启用，点击 `全图` 将裁剪框设置为整张图片归一化区域 `{ x: 0, y: 0, w: 1, h: 1 }`。
+5. 上传链路的异步节点必须检查生命周期：FileReader 读取后、裁剪弹窗返回后、压缩 canvas 返回后，都要通过 `runtime/pageRuntime.isDisposed()` 短路；页面销毁后继续压缩、弹窗或触发保存回调，都是状态污染。
+
+
 字体库链路：
 
 1. 字体视图模型、导入、选择、删除和运行时应用集中在 [`font-library-service.js`](../modules/settings-app/services/appearance-settings/font-library-service.js:1)。

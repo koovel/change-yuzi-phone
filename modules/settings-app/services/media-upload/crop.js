@@ -196,6 +196,9 @@ function createCropRuntimeAdapter(runtime) {
             cleanups.push(cleanup);
             return () => {};
         },
+        isDisposed() {
+            return !!safeRuntime?.isDisposed?.();
+        },
         cleanupAll() {
             cleanups.splice(0).forEach((cleanup) => {
                 try { cleanup(); } catch {}
@@ -206,11 +209,15 @@ function createCropRuntimeAdapter(runtime) {
 
 export async function openImageCropDialog(rawDataUrl, options = {}) {
     const sourceImage = await loadImage(rawDataUrl);
+    const runtime = createCropRuntimeAdapter(options.runtime || options.pageRuntime);
+    if (runtime.isDisposed()) return null;
+
     const title = String(options.cropTitle || '裁剪图片').trim() || '裁剪图片';
     const description = String(options.cropDescription || '拖动裁剪框与边缘圆点，确认后再保存。').trim();
     const preset = String(options.cropPreset || '').trim();
     const initialCoverage = normalizeCoverage(options.cropInitialCoverage);
-    const runtime = createCropRuntimeAdapter(options.runtime || options.pageRuntime);
+    const showFullImageButton = options.showCropFullImageButton !== false;
+    const fullImageButtonText = String(options.cropFullImageButtonText || '全图').trim() || '全图';
 
     const overlay = document.createElement('div');
     overlay.className = 'phone-image-crop-overlay';
@@ -243,7 +250,10 @@ export async function openImageCropDialog(rawDataUrl, options = {}) {
             </div>
             <div class="phone-image-crop-meta"></div>
             <div class="phone-image-crop-actions">
-                <button type="button" class="phone-settings-btn phone-image-crop-reset">重置</button>
+                <div class="phone-image-crop-actions-secondary">
+                    <button type="button" class="phone-settings-btn phone-image-crop-reset">重置</button>
+                    ${showFullImageButton ? '<button type="button" class="phone-settings-btn phone-image-crop-full"></button>' : ''}
+                </div>
                 <div class="phone-image-crop-actions-main">
                     <button type="button" class="phone-settings-btn phone-image-crop-cancel">取消</button>
                     <button type="button" class="phone-settings-btn phone-settings-btn-primary phone-image-crop-confirm">确认裁剪</button>
@@ -259,12 +269,14 @@ export async function openImageCropDialog(rawDataUrl, options = {}) {
     const boxEl = overlay.querySelector('.phone-image-crop-box');
     const metaEl = overlay.querySelector('.phone-image-crop-meta');
     const resetBtn = overlay.querySelector('.phone-image-crop-reset');
+    const fullBtn = overlay.querySelector('.phone-image-crop-full');
     const cancelBtn = overlay.querySelector('.phone-image-crop-cancel');
     const confirmBtn = overlay.querySelector('.phone-image-crop-confirm');
     const handleEls = Array.from(overlay.querySelectorAll('.phone-image-crop-handle'));
 
     if (titleEl) titleEl.textContent = title;
     if (descEl) descEl.textContent = description;
+    if (fullBtn) fullBtn.textContent = fullImageButtonText;
     if (imageEl instanceof HTMLImageElement) imageEl.src = rawDataUrl;
 
     const naturalWidth = Number(sourceImage.naturalWidth || sourceImage.width || 0);
@@ -372,6 +384,13 @@ export async function openImageCropDialog(rawDataUrl, options = {}) {
         renderCropBox();
     });
 
+    if (fullBtn) {
+        runtime.addEventListener(fullBtn, 'click', () => {
+            cropRect = normalizeCropRect({ x: 0, y: 0, w: 1, h: 1 }, constraints);
+            renderCropBox();
+        });
+    }
+
     runtime.addEventListener(cancelBtn, 'click', () => closeDialog(null));
     runtime.addEventListener(overlay, 'click', (event) => {
         if (event.target === overlay) {
@@ -391,6 +410,8 @@ export async function openImageCropDialog(rawDataUrl, options = {}) {
     const resultPromise = new Promise((resolve) => {
         resolvePromise = resolve;
     });
+
+    if (runtime.isDisposed()) return null;
 
     document.body.appendChild(overlay);
     runtime.addEventListener(window, 'pointermove', handlePointerMove);

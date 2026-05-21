@@ -1,7 +1,7 @@
 .phone-image-crop-overlay {
     position: fixed;
     inset: 0;
-    z-index: 4000;
+    z-index: 10020;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -212,17 +212,24 @@
 }
 
 .phone-image-crop-actions,
-.phone-image-crop-actions-main {
+.phone-image-crop-actions-main,
+.phone-image-crop-actions-secondary {
     display: flex;
     gap: 8px;
     align-items: center;
 }
 
 .phone-image-crop-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding-top: 8px;
     justify-content: space-between;
+    background: rgba(22, 24, 30, 0.98);
 }
 
-.phone-image-crop-actions-main {
+.phone-image-crop-actions-main,
+.phone-image-crop-actions-secondary {
     justify-content: flex-end;
 }
 
@@ -254,6 +261,7 @@
     }
 
     .phone-image-crop-overlay {
+        align-items: flex-start;
         padding:
             max(10px, env(safe-area-inset-top))
             max(10px, env(safe-area-inset-right))
@@ -272,6 +280,11 @@
         min-height: 220px;
     }
 
+    .phone-image-crop-handle {
+        width: 18px;
+        height: 18px;
+    }
+
     .phone-image-crop-actions {
         flex-direction: column;
         align-items: stretch;
@@ -281,8 +294,13 @@
         width: 100%;
     }
 
+    .phone-image-crop-actions-secondary {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
     .phone-image-crop-actions-main .phone-settings-btn,
-    .phone-image-crop-actions > .phone-settings-btn {
+    .phone-image-crop-actions-secondary .phone-settings-btn {
         flex: 1;
     }
 }

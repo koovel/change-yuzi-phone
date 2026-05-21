@@ -16,6 +16,7 @@ export function pickImageFile(callback, options = {}) {
     const maxHeight = clampNumber(options.maxHeight, 128, 4096, 1440);
     const quality = clampNumber(options.quality, 0.5, 0.92, 0.82);
     const runtime = options.runtime || options.pageRuntime || null;
+    const isDisposed = () => !!runtime?.isDisposed?.();
 
     const input = document.createElement('input');
     input.type = 'file';
@@ -59,6 +60,7 @@ export function pickImageFile(callback, options = {}) {
 
         try {
             const rawDataUrl = await fileToDataUrl(file);
+            if (isDisposed()) return;
             if (!rawDataUrl) {
                 onError?.('图片读取失败');
                 cleanup();
@@ -66,6 +68,7 @@ export function pickImageFile(callback, options = {}) {
             }
 
             const croppedDataUrl = await openImageCropDialog(rawDataUrl, options);
+            if (isDisposed()) return;
             if (!croppedDataUrl) {
                 cleanup();
                 return;
@@ -78,12 +81,14 @@ export function pickImageFile(callback, options = {}) {
                         maxHeight,
                         quality,
                     });
+                    if (isDisposed()) return null;
                     return estimateBase64Bytes(compressed) <= estimateBase64Bytes(croppedDataUrl)
                         ? compressed
                         : croppedDataUrl;
                 })()
                 : croppedDataUrl;
 
+            if (isDisposed()) return;
             if (estimateBase64Bytes(best) > maxBytes) {
                 onError?.(compress
                     ? `图片裁剪压缩后仍超过 ${maxSizeMB}MB，请缩小裁剪范围或换更小图片`
