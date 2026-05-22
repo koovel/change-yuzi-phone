@@ -54,15 +54,9 @@
     display: flex;
     flex-direction: column;
     position: relative;
+    background: linear-gradient(180deg, #f4efe6 0%, #dfe8df 52%, #c9d8d0 100%);
     background-size: cover;
     background-position: center;
-}
-.phone-home-overlay {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.15);
-    pointer-events: none;
-    z-index: 0;
 }
 
 .phone-app-grid {
@@ -144,13 +138,13 @@
 .phone-app-label {
     font-size: calc(11px * var(--yuzi-phone-readable-text-scale, 1));
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.95);
+    color: rgba(255, 255, 255, 0.96);
     text-align: center;
     max-width: 66px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    text-shadow: none;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.32);
 }
 
 /* --- Dock --- */

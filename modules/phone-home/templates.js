@@ -20,7 +20,6 @@ export function buildHomeShellStyleText({ bgStyle, appIconSize, appIconRadius, a
 export function buildHomeShellHtml(styleText) {
     return `
         <div class="phone-home" data-home-shell="root" style="${escapeHtmlAttr(String(styleText || ''))}">
-            <div class="phone-home-overlay"></div>
             ${buildShellRegionHtml({
                 region: 'home-grid',
                 className: 'phone-app-grid',

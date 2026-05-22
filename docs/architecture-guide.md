@@ -270,6 +270,9 @@ sequenceDiagram
 
 - 新增系统 App 应进入 view-model，并提供 route。
 - home 渲染应继续使用 view-model 与 patch 模式，不要退回整页重建。
+- 主页不得使用固定整屏黑色遮罩压暗用户上传的壁纸；用户提供的背景图应由 `.phone-home` 原样显示。
+- 无背景图时由 `.phone-home` 自身提供默认背景，不得依赖 `.phone-shell` 深色底透出形成“默认黑幕”。
+- App 名称等前景可读性应使用局部 `text-shadow` 或局部 UI 背板处理，不得恢复整屏黑幕作为可读性兜底。
 
 ### 6.2 Table Viewer 表格查看器
 

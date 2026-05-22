@@ -15,6 +15,7 @@ const FILES = {
     actions: 'modules/phone-home/actions.js',
     data: 'modules/phone-home/home-data.js',
     routeRenderer: 'modules/phone-core/route-renderer.js',
+    homeCss: 'styles/phone-base/02-page-home.css',
 };
 
 const FACADE_RELATIVE_PATH = 'modules/phone-home.js';
@@ -73,6 +74,7 @@ function main() {
     check(results, 'templates', '存在 buildHomeShellHtml()', has(contents.templates, 'export function buildHomeShellHtml('));
     check(results, 'templates', '存在 buildHomeAppItemHtml()', has(contents.templates, 'export function buildHomeAppItemHtml('));
     check(results, 'templates', '存在 buildDockItemHtml()', has(contents.templates, 'export function buildDockItemHtml('));
+    check(results, 'templates', '主页模板不再渲染黑色遮罩层', !has(contents.templates, 'phone-home-overlay'));
 
     check(results, 'actions', '存在 showHomeToast()', has(contents.actions, 'export function showHomeToast('));
     check(results, 'actions', '存在 handleDockAction()', has(contents.actions, 'export async function handleDockAction('));
@@ -81,6 +83,12 @@ function main() {
     check(results, 'data', '存在 normalizeHiddenTableApps()', has(contents.data, 'export function normalizeHiddenTableApps('));
     check(results, 'data', '存在 formatTableCountBadge()', has(contents.data, 'export function formatTableCountBadge('));
     check(results, 'data', '存在 getSheetRowCount()', has(contents.data, 'export function getSheetRowCount('));
+
+    // 主页背景视觉合同：用户壁纸不得被固定整屏黑幕压暗
+    check(results, 'homeCss', '主页 CSS 不再定义黑幕 overlay', !has(contents.homeCss, '.phone-home-overlay'));
+    check(results, 'homeCss', '主页 CSS 不再硬编码 15% 黑色遮罩', !has(contents.homeCss, 'rgba(0, 0, 0, 0.15)'));
+    check(results, 'homeCss', '主页无壁纸时存在浅暖玉默认背景', has(contents.homeCss, 'linear-gradient(180deg, #f4efe6'));
+    check(results, 'homeCss', '主页 App 名称通过文字阴影保障可读性', has(contents.homeCss, '.phone-app-label') && has(contents.homeCss, 'text-shadow: 0 1px 3px rgba(0, 0, 0, 0.32)'));
 
     // route-renderer.js 直接动态 import 新路径
     check(results, 'routeRenderer', "route-renderer 'home' 路由动态 import phone-home/render.js", has(contents.routeRenderer, "await import('../phone-home/render.js')"));
