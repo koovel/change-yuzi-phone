@@ -139,7 +139,7 @@ function computeResourceHash(dataUrl) {
     return `djb2:${hash.toString(16).padStart(8, '0')}:${source.length}`;
 }
 
-function dedupeResources(resources) {
+function dedupeResourcesByContent(resources) {
     const used = new Set();
     const normalized = [];
     resources.forEach((resource) => {
@@ -151,9 +151,32 @@ function dedupeResources(resources) {
     return normalized;
 }
 
+function dedupeIconSlotResources(resources) {
+    const used = new Set();
+    const normalized = [];
+    resources.forEach((resource, index) => {
+        if (!resource) return;
+        const slotKey = safeString(resource.slotKey, 160);
+        const key = slotKey
+            ? `slot:${slotKey}`
+            : `legacy:${resource.id || resource.hash || resource.dataUrl || index}`;
+        if (used.has(key)) return;
+        used.add(key);
+        normalized.push(resource);
+    });
+    return normalized;
+}
+
 function normalizeResourceList(list, kind) {
     if (!Array.isArray(list)) return [];
-    return dedupeResources(
+    return dedupeResourcesByContent(
+        list.map((item, index) => normalizeImageResource(item, index, kind)).filter(Boolean),
+    );
+}
+
+function normalizeIconSlotResourceList(list, kind) {
+    if (!Array.isArray(list)) return [];
+    return dedupeIconSlotResources(
         list.map((item, index) => normalizeImageResource(item, index, kind)).filter(Boolean),
     );
 }
@@ -178,7 +201,7 @@ function validatePack(pack) {
         ...pack,
         schemaVersion,
         wallpapers: normalizeResourceList(pack.wallpapers, 'wallpaper'),
-        icons: normalizeResourceList(pack.icons, 'icon'),
+        icons: normalizeIconSlotResourceList(pack.icons, 'icon'),
         iconPool: normalizeResourceList(pack.iconPool, 'icon'),
         preferences: isPlainObject(pack.preferences) ? pack.preferences : {},
     };
@@ -428,8 +451,8 @@ export function exportAppearanceResourcePack(options = {}) {
                 exportedAt: new Date().toISOString(),
                 exporter: 'YuziPhone',
             },
-            wallpapers: dedupeResources(wallpapers),
-            icons: dedupeResources(icons),
+            wallpapers: dedupeResourcesByContent(wallpapers),
+            icons: dedupeIconSlotResources(icons),
             iconPool: [],
             preferences: {
                 wallpaperStrategy: 'replace-current',
@@ -448,7 +471,10 @@ export function importAppearanceResourcePackFromData(input) {
         const pack = validatePack(parsePackInput(input));
         const currentSettings = getPhoneSettings();
         const iconSlots = collectAppearanceIconSlots();
-        const packIcons = dedupeResources([...pack.icons, ...pack.iconPool]);
+        const packIcons = [
+            ...pack.icons,
+            ...dedupeResourcesByContent(pack.iconPool),
+        ];
         const wallpaper = pack.wallpapers[0] || null;
 
         if (wallpaper && wallpaper.bytes > STORAGE_BUDGETS.backgroundImageBytes) {

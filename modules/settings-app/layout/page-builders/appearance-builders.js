@@ -85,7 +85,7 @@ export function buildAppearancePageHtml({
                 </div>
             `,
             bodyHtml: `
-                <div class="phone-settings-note">导入会替换当前自定义图标：带 slotKey 的图标优先回到对应 App，旧包图标按当前顺序分配；多余图标直接丢弃，不足位置回退默认文字图标。</div>
+                <div class="phone-settings-note">导入会替换当前自定义图标：图标会优先按名称匹配当前 App，剩余图标按当前图标位顺序补位；多余图标直接丢弃，不足位置回退默认文字图标。</div>
             `,
         })}
 

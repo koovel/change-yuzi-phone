@@ -101,6 +101,15 @@ function main() {
         && has(contents.resourcePack, "iconAssignStrategy: 'slot-key-overwrite'")
         && has(contents.resourcePack, 'discardExtraIcons: true')
         && has(contents.resourcePack, 'clearMissingIconSlots: true'));
+    check(results, 'resourcePack', '外观包区分内容资源去重与槽位图标去重语义', has(contents.resourcePack, 'function dedupeResourcesByContent(')
+        && has(contents.resourcePack, 'function dedupeIconSlotResources(')
+        && has(contents.resourcePack, 'function normalizeIconSlotResourceList(')
+        && has(contents.resourcePack, 'const slotKey = safeString(resource.slotKey, 160);')
+        && has(contents.resourcePack, '? `slot:${slotKey}`')
+        && has(contents.resourcePack, ': `legacy:${resource.id || resource.hash || resource.dataUrl || index}`'));
+    check(results, 'resourcePack', '导出 icons 使用槽位图标去重而不是内容去重', has(contents.resourcePack, 'wallpapers: dedupeResourcesByContent(wallpapers)')
+        && has(contents.resourcePack, 'icons: dedupeIconSlotResources(icons)')
+        && !has(contents.resourcePack, 'icons: dedupeResourcesByContent(icons)'));
     check(results, 'resourcePack', '导入使用替换式 appIcons 并丢弃多余图标', has(contents.resourcePack, 'function buildReplacingIconAssignment(')
         && has(contents.resourcePack, 'appIcons: assignment.nextIcons')
         && has(contents.resourcePack, 'appearanceResourcePool: createEmptyAppearanceResourcePool()')
@@ -130,6 +139,13 @@ function main() {
     check(results, 'resourcePack', '导入不再使用 slotKey 参与图标分配', !has(contents.resourcePack, "assignIconToSlot(icon, slotMap.get(slotKey), 'slotKey')")
         && !has(contents.resourcePack, 'unmatchedSlotKeyIcons.length')
         && !has(contents.resourcePack, 'slotKey 不存在，已按顺序分配或丢弃'));
+    check(results, 'resourcePack', '导入 pack.icons 归一化与 packIcons 构造不按图片内容丢槽位', has(contents.resourcePack, "icons: normalizeIconSlotResourceList(pack.icons, 'icon')")
+        && has(contents.resourcePack, "iconPool: normalizeResourceList(pack.iconPool, 'icon')")
+        && has(contents.resourcePack, 'const packIcons = [')
+        && has(contents.resourcePack, '...pack.icons,')
+        && has(contents.resourcePack, '...dedupeResourcesByContent(pack.iconPool),')
+        && !has(contents.resourcePack, 'const packIcons = dedupeResources([...pack.icons, ...pack.iconPool]);')
+        && !has(contents.resourcePack, 'const packIcons = dedupeResourcesByContent([...pack.icons, ...pack.iconPool]);'));
     check(results, 'resourcePack', '导入 unmatchedIcons 统计最终 discarded 图标', has(contents.resourcePack, 'unmatchedIcons: assignment.discarded.length')
         && has(contents.resourcePack, '有 ${assignment.scoreMatchedIcons.length} 个图标通过名称相似度匹配')
         && has(contents.resourcePack, '有 ${assignment.sequentialFilledIcons.length} 个图标未找到名称相似项，已按剩余图标位顺序补位'));
@@ -260,7 +276,9 @@ function main() {
         && has(contents.appearanceBuilder, 'id="phone-import-appearance-pack"')
         && has(contents.appearanceBuilder, 'id="phone-export-appearance-pack"')
         && has(contents.appearanceBuilder, 'id="phone-appearance-pack-file"')
-        && has(contents.appearanceBuilder, '多余图标直接丢弃'));
+        && has(contents.appearanceBuilder, '图标会优先按名称匹配当前 App')
+        && has(contents.appearanceBuilder, '多余图标直接丢弃')
+        && !has(contents.appearanceBuilder, '带 slotKey 的图标优先回到对应 App'));
     check(results, 'appearanceBuilder', '外观页不再暴露资源池图标清理按钮或旧资源池文案', has(contents.appearanceBuilder, '自定义图标')
         && !has(contents.appearanceBuilder, 'id="phone-clear-icon-resource-pool"')
         && !has(contents.appearanceBuilder, '清空资源池图标')
