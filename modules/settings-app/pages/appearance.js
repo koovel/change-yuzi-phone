@@ -17,6 +17,10 @@ function bindAppearanceFontLibraryActions(ctx, runtime) {
     const importBtn = container.querySelector('#phone-import-font-btn');
     const deleteBtn = container.querySelector('#phone-delete-font-btn');
     const fileInput = container.querySelector('#phone-font-file');
+    const importUrlBtn = container.querySelector('#phone-import-font-url-btn');
+    const urlNameInput = container.querySelector('#phone-font-url-name');
+    const cssUrlInput = container.querySelector('#phone-font-css-url');
+    const urlFamilyInput = container.querySelector('#phone-font-url-family');
     const showToast = typeof ctx.showToast === 'function'
         ? ctx.showToast
         : () => {};
@@ -52,6 +56,33 @@ function bindAppearanceFontLibraryActions(ctx, runtime) {
             if (result.success) {
                 rerenderKeepScroll();
             }
+        }));
+    }
+
+    if (importUrlBtn && urlNameInput && cssUrlInput && urlFamilyInput) {
+        cleanupFns.push(bindEvent(importUrlBtn, 'click', () => {
+            const name = urlNameInput.value || '';
+            const cssUrl = cssUrlInput.value || '';
+            const family = urlFamilyInput.value || '';
+
+            if (!name.trim() || !cssUrl.trim() || !family.trim()) {
+                showToast(container, '请填写显示名称、字体 CSS URL 和字体族名', true);
+                return;
+            }
+
+            const result = appearancePageService.importAppearanceFontCssUrl({ name, cssUrl, family });
+            if (isDisposed()) return;
+            showToast(container, result.message || (result.success ? 'URL 字体已保存' : 'URL 字体保存失败'), !result.success);
+
+            if (!result.success) {
+                return;
+            }
+
+            appearancePageService.applyAppearanceFontLibrary();
+            urlNameInput.value = '';
+            cssUrlInput.value = '';
+            urlFamilyInput.value = '';
+            rerenderKeepScroll();
         }));
     }
 

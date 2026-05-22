@@ -780,6 +780,7 @@ export interface SettingsAppearancePageService {
     clearAppearanceResourcePoolIcons: () => AppearanceResourcePoolOperationResult;
     getAppearanceFontLibraryViewModel: () => AppearanceFontLibraryViewModel;
     importAppearanceFontFile: (file: File) => Promise<AppearanceFontOperationResult>;
+    importAppearanceFontCssUrl: (input: { name?: string; cssUrl?: string; family?: string }) => AppearanceFontOperationResult;
     selectAppearanceFont: (fontId: string) => AppearanceFontOperationResult;
     deleteAppearanceFont: (fontId: string) => AppearanceFontOperationResult;
     applyAppearanceFontLibrary: (root?: Element | null) => boolean;

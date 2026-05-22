@@ -83,13 +83,14 @@ const APPEARANCE_RESOURCE_POOL_LIMITS = Object.freeze({
 });
 export const APPEARANCE_FONT_LIBRARY_LIMITS = Object.freeze({
     userFonts: 12,
-    singleFontBytes: 6 * 1024 * 1024,
-    totalFontBytes: 24 * 1024 * 1024,
+    singleFontBytes: 15 * 1024 * 1024,
+    totalFontBytes: 30 * 1024 * 1024,
     idLength: 96,
     nameLength: 120,
     familyLength: 120,
     hashLength: 160,
     mimeLength: 64,
+    urlLength: 2048,
     formatLength: 16,
     sourceLength: 48,
 });
@@ -317,6 +318,19 @@ function normalizeAppearanceFontFormat(rawFormat, rawMime = '') {
     return entry?.[0] || '';
 }
 
+function normalizeAppearanceFontCssUrl(value) {
+    const source = normalizeString(value).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.urlLength).trim();
+    if (!source) return '';
+
+    try {
+        const url = new URL(source);
+        if (url.protocol !== 'https:') return '';
+        return url.href.slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.urlLength);
+    } catch {
+        return '';
+    }
+}
+
 export function normalizeAppearanceFontFamilyName(value, fallback = '') {
     const source = normalizeString(value, fallback)
         .replace(/[\u0000-\u001f\u007f"'\\;]/g, ' ')
@@ -325,8 +339,15 @@ export function normalizeAppearanceFontFamilyName(value, fallback = '') {
     return source.slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.familyLength) || fallback;
 }
 
-function normalizeAppearanceFontItem(item, index = 0) {
-    const src = isPlainObject(item) ? item : {};
+function normalizeAppearanceFontSourceType(value, { hasDataUrl = false, hasCssUrl = false } = {}) {
+    const sourceType = normalizeString(value).trim().toLowerCase();
+    if (sourceType === 'data-url' || sourceType === 'css-url') return sourceType;
+    if (hasDataUrl) return 'data-url';
+    if (hasCssUrl) return 'css-url';
+    return '';
+}
+
+function normalizeAppearanceDataUrlFontItem(src, index = 0) {
     const rawDataUrl = typeof src.dataUrl === 'string' ? src.dataUrl.trim() : '';
     const format = normalizeAppearanceFontFormat(src.format, src.mime || extractDataUrlMime(rawDataUrl));
     const mime = normalizeAppearanceFontMime(src.mime || extractDataUrlMime(rawDataUrl), format);
@@ -357,18 +378,40 @@ function normalizeAppearanceFontItem(item, index = 0) {
     const source = normalizeString(src.source || 'user').slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.sourceLength) || 'user';
     const createdAt = Number.isFinite(Number(src.createdAt)) ? Math.round(Number(src.createdAt)) : Date.now();
 
-    return {
-        id,
-        name,
-        family,
-        mime,
-        format,
-        dataUrl: normalizedDataUrl,
-        hash,
-        bytes,
-        source,
-        createdAt,
-    };
+    return { id, name, family, mime, format, dataUrl: normalizedDataUrl, hash, bytes, source, sourceType: 'data-url', createdAt };
+}
+
+function normalizeAppearanceCssUrlFontItem(src, index = 0) {
+    const cssUrl = normalizeAppearanceFontCssUrl(src.cssUrl);
+    const family = normalizeAppearanceFontFamilyName(src.family);
+    if (!cssUrl || !family) {
+        return null;
+    }
+
+    const hash = normalizeString(src.hash).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.hashLength)
+        || computeAppearanceFontHash(`${cssUrl}#${family}`);
+    const fallbackId = `user_font_${index + 1}`;
+    const id = normalizeString(src.id, fallbackId).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.idLength) || fallbackId;
+    const name = normalizeString(src.name, family).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.nameLength) || family;
+    const source = normalizeString(src.source || 'user').slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.sourceLength) || 'user';
+    const createdAt = Number.isFinite(Number(src.createdAt)) ? Math.round(Number(src.createdAt)) : Date.now();
+
+    return { id, name, family, format: 'css', cssUrl, hash, bytes: 0, source, sourceType: 'css-url', createdAt };
+}
+
+function normalizeAppearanceFontItem(item, index = 0) {
+    const src = isPlainObject(item) ? item : {};
+    const hasDataUrl = typeof src.dataUrl === 'string' && src.dataUrl.trim().startsWith('data:');
+    const hasCssUrl = typeof src.cssUrl === 'string' && src.cssUrl.trim().length > 0;
+    const sourceType = normalizeAppearanceFontSourceType(src.sourceType, { hasDataUrl, hasCssUrl });
+
+    if (sourceType === 'css-url') {
+        return normalizeAppearanceCssUrlFontItem(src, index);
+    }
+    if (sourceType === 'data-url') {
+        return normalizeAppearanceDataUrlFontItem(src, index);
+    }
+    return null;
 }
 
 function normalizeAppearanceFontList(rawList) {
@@ -383,7 +426,7 @@ function normalizeAppearanceFontList(rawList) {
         const normalizedItem = normalizeAppearanceFontItem(item, index);
         if (!normalizedItem) return;
 
-        const dedupeKey = normalizedItem.hash || normalizedItem.dataUrl;
+        const dedupeKey = normalizedItem.hash || normalizedItem.cssUrl || normalizedItem.dataUrl;
         if (dedupeKey && usedHashes.has(dedupeKey)) return;
         if (totalBytes + normalizedItem.bytes > APPEARANCE_FONT_LIBRARY_LIMITS.totalFontBytes) return;
         if (usedIds.has(normalizedItem.id)) {

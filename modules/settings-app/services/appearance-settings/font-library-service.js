@@ -128,6 +128,17 @@ function cssString(value) {
     return String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n|\r|\f/g, ' ');
 }
 
+function normalizeCssFontUrlInput(value) {
+    const source = normalizeString(value);
+    if (!source) return '';
+    try {
+        const url = new URL(source);
+        return url.protocol === 'https:' ? url.href : '';
+    } catch {
+        return '';
+    }
+}
+
 function cssUrl(value) {
     return String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n|\r|\f/g, '');
 }
@@ -168,10 +179,22 @@ function resolveExtensionAssetUrl(assetPath) {
     return new URL(assetPath, getExtensionRootUrl()).href;
 }
 
+function buildFontImportCss(font) {
+    if (font?.sourceType !== 'css-url') return '';
+    const url = normalizeCssFontUrlInput(font.cssUrl);
+    if (!url || !font.family) return '';
+    return `@import url("${cssUrl(url)}");`;
+}
+
 function buildFontFaceCss(font) {
+    if (font?.sourceType === 'css-url') return '';
     const formatConfig = FONT_FORMATS[font.format];
     if (!formatConfig || !font.family || !font.dataUrl) return '';
     return `@font-face { font-family: "${cssString(font.family)}"; src: url("${cssUrl(font.dataUrl)}") format("${formatConfig.cssFormat}"); font-display: swap; }`;
+}
+
+function buildUserFontCssFamily(font) {
+    return `"${cssString(font?.family)}", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif`;
 }
 
 function buildBuiltinFontFaceCss(font) {
@@ -233,7 +256,7 @@ function resolveActiveFont(library = getNormalizedFontLibrary()) {
         return {
             ...userFont,
             builtin: false,
-            cssFamily: `"${cssString(userFont.family)}", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif`,
+            cssFamily: buildUserFontCssFamily(userFont),
             previewText: `玉子手机 · ${userFont.name}`,
         };
     }
@@ -274,6 +297,52 @@ export function getAppearanceFontLibraryViewModel() {
             totalBytes,
         },
     };
+}
+
+export function importAppearanceFontCssUrl({ name, cssUrl, family } = {}) {
+    const normalizedUrl = normalizeCssFontUrlInput(cssUrl);
+    if (!normalizedUrl) {
+        return createResult(false, '导入失败：字体 CSS URL 必须是 https:// 完整地址');
+    }
+
+    const normalizedFamily = normalizeAppearanceFontFamilyName(family);
+    if (!normalizedFamily) {
+        return createResult(false, '导入失败：字体族名不能为空');
+    }
+
+    const library = getNormalizedFontLibrary();
+    if (library.userFonts.length >= APPEARANCE_FONT_LIBRARY_LIMITS.userFonts) {
+        return createResult(false, `导入失败：最多只能保存 ${APPEARANCE_FONT_LIBRARY_LIMITS.userFonts} 个用户字体`);
+    }
+
+    const hash = computeAppearanceFontHash(`${normalizedUrl}#${normalizedFamily}`);
+    const duplicate = library.userFonts.find((font) => font.hash === hash);
+    if (duplicate) {
+        return createResult(false, `字体已存在：${duplicate.name}`, { duplicateId: duplicate.id });
+    }
+
+    const normalizedName = normalizeString(name, normalizedFamily).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.nameLength) || normalizedFamily;
+    const font = {
+        id: `user_font_css_url_${hash.replace(/[^a-zA-Z0-9_-]/g, '_')}`.slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.idLength),
+        name: normalizedName,
+        family: normalizedFamily,
+        format: 'css',
+        cssUrl: normalizedUrl,
+        hash,
+        bytes: 0,
+        source: 'user',
+        sourceType: 'css-url',
+        createdAt: Date.now(),
+    };
+
+    const nextLibrary = normalizeAppearanceFontLibrarySettings({
+        activeFontId: font.id,
+        userFonts: [...library.userFonts, font],
+    });
+    const saved = saveFontLibrary(nextLibrary);
+    return saved
+        ? createResult(true, `已导入并应用字体：${font.name}`, { font: nextLibrary.userFonts.find((item) => item.id === font.id) || font })
+        : createResult(false, '导入失败：设置保存失败');
 }
 
 export async function importAppearanceFontFile(file) {
@@ -335,6 +404,7 @@ export async function importAppearanceFontFile(file) {
         format,
         dataUrl,
         hash,
+        sourceType: 'data-url',
         bytes,
         source: 'user',
         createdAt: Date.now(),
@@ -393,8 +463,10 @@ export function applyAppearanceFontLibrary(root = null) {
     const activeFont = resolveActiveFont(library);
     const style = getStyleElement();
     if (style) {
+        const userFontImports = library.userFonts.map(buildFontImportCss).filter(Boolean);
         const userFontFaces = library.userFonts.map(buildFontFaceCss).filter(Boolean);
         style.textContent = [
+            ...userFontImports,
             buildBuiltinFontFaceCss(activeFont),
             ...userFontFaces,
             buildScopedFontOverrideCss(activeFont),

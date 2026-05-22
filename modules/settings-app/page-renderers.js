@@ -65,6 +65,7 @@ function validateSettingsRendererDeps(deps = {}) {
         'clearAppearanceResourcePoolIcons',
         'getAppearanceFontLibraryViewModel',
         'importAppearanceFontFile',
+        'importAppearanceFontCssUrl',
         'selectAppearanceFont',
         'deleteAppearanceFont',
         'applyAppearanceFontLibrary',

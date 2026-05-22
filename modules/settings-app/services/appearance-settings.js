@@ -17,6 +17,7 @@ import {
     applyAppearanceFontLibrary as applyAppearanceFontLibraryImpl,
     deleteAppearanceFont as deleteAppearanceFontImpl,
     getAppearanceFontLibraryViewModel as getAppearanceFontLibraryViewModelImpl,
+    importAppearanceFontCssUrl as importAppearanceFontCssUrlImpl,
     importAppearanceFontFile as importAppearanceFontFileImpl,
     selectAppearanceFont as selectAppearanceFontImpl,
 } from './appearance-settings/font-library-service.js';
@@ -70,6 +71,10 @@ export function getAppearanceFontLibraryViewModel() {
 
 export function importAppearanceFontFile(file) {
     return importAppearanceFontFileImpl(file);
+}
+
+export function importAppearanceFontCssUrl(input) {
+    return importAppearanceFontCssUrlImpl(input);
 }
 
 export function selectAppearanceFont(fontId) {

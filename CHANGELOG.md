@@ -11,11 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 收敛 P0/P1/P2 工程结构边界：运行模式、宿主 context、数据库 API、设置 schema、生命周期资源、存储事实源、文档边界与发布链路均进入可验证规则。
 - 重做外观字体库的四个内置字体入口，移除 `宋体阅读`、`手写便签` 等书面型/手写型旧选项，新增内置 `寒蝉圆体`；保存旧内置字体 ID 的用户设置会按 schema 归一化回退到 `系统清晰`。
+- 调整本地用户字体容量上限：单字体从 6MB 提升到 15MB，总容量从 24MB 提升到 30MB；远程 `css-url` 字体仍计入用户字体数量上限，但不占用本地 `bytes` 容量。
 - 发布门禁补齐 `npm run check:ci`，当前普通 contract 检查与 CI contract 基线检查都要求全量通过，历史失败基线清零。
 - 文档入口和架构说明链接收敛到真实文件路径，稳定事实保留在 `docs/`，演进计划保留在 `plans/`。
 
 ### Added
 
+- 外观字体库新增远程字体 CSS URL 导入：用户可保存显示名称、HTTPS 字体 CSS URL 与字体族名 `family`；运行时通过动态 `@import` 引用远程字体 CSS，不下载、不缓存远程 CSS 或字体文件，也不支持任意 CSS 片段粘贴。
 - P2 文档与发布链路 contract 检查，覆盖文档入口、架构相对链接、manifest dist 入口、dist 提交规则和发布命令顺序。
 
 ## [1.4.2] - 2026-05-17

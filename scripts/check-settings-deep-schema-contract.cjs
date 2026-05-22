@@ -233,10 +233,12 @@ async function testAppearanceResourcePoolDeepNormalization() {
 async function testAppearanceFontLibraryDeepNormalization() {
     const { validateSetting, validateSettings, APPEARANCE_FONT_LIBRARY_LIMITS } = await loadSchema();
     const woff2DataUrl = `data:font/woff2;base64,${Buffer.from('font-a').toString('base64')}`;
+    const secondWoffDataUrl = `data:font/woff;base64,${Buffer.from('font-c').toString('base64')}`;
     const ttfDataUrl = `data:application/octet-stream;base64,${Buffer.from('font-b').toString('base64')}`;
+    const cssUrl = 'https://fontsapi.zeoseven.com/3/main/result.css';
 
     const result = validateSetting('appearanceFontLibrary', {
-        activeFontId: 'user-font-1',
+        activeFontId: 'css-font-1',
         userFonts: [
             {
                 id: ' user-font-1 ',
@@ -273,26 +275,120 @@ async function testAppearanceFontLibraryDeepNormalization() {
                 format: 'txt',
                 dataUrl: 'data:text/plain;base64,AAAA',
             },
+            {
+                id: ' css-font-1 ',
+                name: '  寒蝉全圆体  ',
+                family: ' 寒蝉全圆体 ',
+                cssUrl,
+                sourceType: 'css-url',
+                bytes: 999999,
+                source: ' remote ',
+                createdAt: '456.2',
+                extraKey: 'drop',
+            },
+            {
+                id: 'duplicate-css-font',
+                name: 'Duplicate Css Font',
+                family: '寒蝉全圆体',
+                cssUrl,
+                sourceType: 'css-url',
+            },
+            {
+                id: 'second-css-font',
+                name: 'Second Css Font',
+                family: '第二字体',
+                cssUrl,
+                sourceType: 'css-url',
+            },
+            {
+                id: 'bad-css-font',
+                family: 'Bad Font',
+                cssUrl: 'http://fontsapi.zeoseven.com/3/main/result.css',
+                sourceType: 'css-url',
+            },
+            {
+                id: 'missing-family-css-font',
+                cssUrl: 'https://fontsapi.zeoseven.com/3/main/missing-family.css',
+                sourceType: 'css-url',
+            },
         ],
         unknownRootKey: 'drop',
     });
 
+    assert.equal(APPEARANCE_FONT_LIBRARY_LIMITS.singleFontBytes, 15 * 1024 * 1024);
+    assert.equal(APPEARANCE_FONT_LIBRARY_LIMITS.totalFontBytes, 30 * 1024 * 1024);
+    assert.equal(APPEARANCE_FONT_LIBRARY_LIMITS.urlLength, 2048);
     assert.equal(result.valid, true);
     assert.deepEqual(Object.keys(result.value).sort(), ['activeFontId', 'userFonts']);
-    assert.equal(result.value.activeFontId, 'user-font-1');
-    assert.equal(result.value.userFonts.length, 1);
+    assert.equal(result.value.activeFontId, 'css-font-1');
+    assert.equal(result.value.userFonts.length, 3);
     assert.equal(result.value.userFonts[0].id, 'user-font-1');
     assert.equal(result.value.userFonts[0].name, 'Font A');
     assert.equal(result.value.userFonts[0].mime, 'font/woff2');
     assert.equal(result.value.userFonts[0].format, 'woff2');
+    assert.equal(result.value.userFonts[0].sourceType, 'data-url');
     assert.equal(result.value.userFonts[0].family.includes(';'), false);
     assert.equal(Object.prototype.hasOwnProperty.call(result.value.userFonts[0], 'extraKey'), false);
+    assert.equal(result.value.userFonts[1].id, 'css-font-1');
+    assert.equal(result.value.userFonts[1].name, '寒蝉全圆体');
+    assert.equal(result.value.userFonts[1].family, '寒蝉全圆体');
+    assert.equal(result.value.userFonts[1].cssUrl, cssUrl);
+    assert.equal(result.value.userFonts[1].format, 'css');
+    assert.equal(result.value.userFonts[1].bytes, 0);
+    assert.equal(result.value.userFonts[1].sourceType, 'css-url');
+    assert.equal(Object.prototype.hasOwnProperty.call(result.value.userFonts[1], 'extraKey'), false);
+    assert.equal(result.value.userFonts[2].id, 'second-css-font');
+    assert.equal(result.value.userFonts[2].family, '第二字体');
+    assert.equal(result.value.userFonts[2].cssUrl, cssUrl);
+
+    const totalBytes = result.value.userFonts.reduce((sum, font) => sum + (Number(font.bytes) || 0), 0);
+    assert.equal(totalBytes, 1234);
+
+    const totalLimitResult = validateSetting('appearanceFontLibrary', {
+        activeFontId: 'builtin.system-ui',
+        userFonts: [
+            {
+                id: 'font-1',
+                family: 'Font One',
+                format: 'woff2',
+                dataUrl: woff2DataUrl,
+                bytes: APPEARANCE_FONT_LIBRARY_LIMITS.totalFontBytes,
+            },
+            {
+                id: 'font-2',
+                family: 'Font Two',
+                format: 'woff',
+                dataUrl: secondWoffDataUrl,
+                bytes: 1,
+            },
+        ],
+    });
+    assert.equal(totalLimitResult.value.userFonts.length, 1);
 
     const fallback = validateSetting('appearanceFontLibrary', {
         activeFontId: 'missing-font',
         userFonts: [],
     });
     assert.equal(fallback.value.activeFontId, 'builtin.system-ui');
+
+    const cssFallback = validateSetting('appearanceFontLibrary', {
+        activeFontId: 'missing-css-font',
+        userFonts: [{ id: 'css-fallback', family: '回退字体', cssUrl, sourceType: 'css-url' }],
+    });
+    assert.equal(cssFallback.value.activeFontId, 'builtin.system-ui');
+
+    const invalidProtocol = validateSetting('appearanceFontLibrary', {
+        activeFontId: 'builtin.system-ui',
+        userFonts: [{ id: 'js-font', family: '危险字体', cssUrl: 'javascript:alert(1)', sourceType: 'css-url' }],
+    });
+    assert.deepEqual(invalidProtocol.value.userFonts, []);
+
+    const inferredSourceType = validateSetting('appearanceFontLibrary', {
+        activeFontId: 'css-inferred-font',
+        userFonts: [{ id: 'css-inferred-font', family: '推断字体', cssUrl }],
+    });
+    assert.equal(inferredSourceType.value.userFonts[0].sourceType, 'css-url');
+    assert.equal(inferredSourceType.value.activeFontId, 'css-inferred-font');
 
     const settings = validateSettings({ appearanceFontLibrary: [] });
     assert.deepEqual(settings.appearanceFontLibrary, {

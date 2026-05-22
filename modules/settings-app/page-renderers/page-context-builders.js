@@ -91,6 +91,7 @@ function buildAppearancePageService(services) {
         clearAppearanceResourcePoolIcons: services.appearance.clearAppearanceResourcePoolIcons,
         getAppearanceFontLibraryViewModel: services.appearance.getAppearanceFontLibraryViewModel,
         importAppearanceFontFile: services.appearance.importAppearanceFontFile,
+        importAppearanceFontCssUrl: services.appearance.importAppearanceFontCssUrl,
         selectAppearanceFont: services.appearance.selectAppearanceFont,
         deleteAppearanceFont: services.appearance.deleteAppearanceFont,
         applyAppearanceFontLibrary: services.appearance.applyAppearanceFontLibrary,

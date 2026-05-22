@@ -98,6 +98,7 @@ function main() {
     pushCheck(results, 'appearancePage', 'appearance 页面接收 `pageRuntime`', has(contents.appearancePage, 'pageRuntime,'));
     pushCheck(results, 'appearancePage', 'appearance 页面通过 runtime.addEventListener() 绑定事件', has(contents.appearancePage, 'if (!runtime?.addEventListener) {'));
     pushCheck(results, 'appearancePage', 'appearance 页面直接消费 appearancePageService', has(contents.appearancePage, 'const getLayoutValue = appearancePageService.getLayoutValue;'));
+    pushCheck(results, 'appearancePage', 'appearance 页面通过 appearancePageService 消费 importAppearanceFontCssUrl', has(contents.appearancePage, 'appearancePageService.importAppearanceFontCssUrl({ name, cssUrl, family })'));
     pushCheck(results, 'appearancePage', 'appearance 页面不再回退到 ctx 顶层 appearance 方法', !has(contents.appearancePage, 'ctx.getLayoutValue'));
 
     pushCheck(results, 'databasePage', 'database 页面导出显式页面工厂', has(contents.databasePage, 'export function createDatabasePage(ctx) {'));

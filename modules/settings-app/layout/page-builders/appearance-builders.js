@@ -91,7 +91,7 @@ export function buildAppearancePageHtml({
 
         ${buildSettingsSectionHtml({
             title: '字体库',
-            desc: '选择内置字体，或导入 woff2 / woff / ttf / otf 字体并应用到小手机普通文本。',
+            desc: '选择内置字体，上传本地 woff2 / woff / ttf / otf 字体，或添加远程字体 CSS URL。',
             actionsHtml: `
                 <div class="phone-settings-action phone-settings-action-wrap">
                     <button type="button" class="phone-settings-btn" id="phone-import-font-btn">
@@ -113,6 +113,27 @@ export function buildAppearancePageHtml({
                     <div class="phone-settings-font-preview" id="phone-font-preview" style="font-family: var(--yuzi-phone-font-family);">
                         <span class="phone-settings-font-preview-title">${escapeHtml(activeFont.name || '系统默认')}</span>
                         <span class="phone-settings-font-preview-sample">${escapeHtml(activeFont.previewText || '玉子手机 · 字体预览 Aa 123')}</span>
+                    </div>
+                    <div class="phone-settings-font-panel">
+                        <label class="phone-settings-field-inline phone-settings-field-full">
+                            <span>显示名称</span>
+                            <input type="text" id="phone-font-url-name" class="phone-settings-input" placeholder="例如：寒蝉全圆体">
+                        </label>
+                        <label class="phone-settings-field-inline phone-settings-field-full">
+                            <span>字体 CSS URL</span>
+                            <input type="url" id="phone-font-css-url" class="phone-settings-input" placeholder="https://fontsapi.zeoseven.com/3/main/result.css" inputmode="url" spellcheck="false" autocapitalize="off" autocomplete="off">
+                        </label>
+                        <label class="phone-settings-field-inline phone-settings-field-full">
+                            <span>字体族名</span>
+                            <input type="text" id="phone-font-url-family" class="phone-settings-input" placeholder="例如：寒蝉全圆体">
+                        </label>
+                        <div class="phone-settings-action phone-settings-action-wrap">
+                            <button type="button" class="phone-settings-btn" id="phone-import-font-url-btn">
+                                ${PHONE_ICONS.add}
+                                <span>保存 URL 字体</span>
+                            </button>
+                        </div>
+                        <div class="phone-settings-note">远程字体只支持 HTTPS 字体 CSS URL，会在运行时通过 <code>@import</code> 引用；它依赖网络与目标站点的跨域配置，不会下载、缓存或注入任意 CSS 片段。</div>
                     </div>
                     <div class="phone-settings-note">已保存 ${escapeHtml(String(userFontCount))} / ${escapeHtml(String(maxFonts))} 个用户字体；字体库占用 ${escapeHtml(formatBytes(totalFontBytes))} / ${escapeHtml(formatBytes(maxTotalFontBytes))}；单个字体上限 ${escapeHtml(formatBytes(singleFontBytes))}。</div>
                 </div>

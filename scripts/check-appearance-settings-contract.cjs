@@ -66,12 +66,16 @@ function main() {
     check(results, 'facade', '保留旧资源清理兼容 alias', has(contents.facade, 'export function clearAppearanceResourcePoolIcons('));
     check(results, 'facade', '暴露字体库视图和操作服务', has(contents.facade, 'export function getAppearanceFontLibraryViewModel(')
         && has(contents.facade, 'export function importAppearanceFontFile(')
+        && has(contents.facade, 'export function importAppearanceFontCssUrl(')
         && has(contents.facade, 'export function selectAppearanceFont(')
         && has(contents.facade, 'export function deleteAppearanceFont(')
         && has(contents.facade, 'export function applyAppearanceFontLibrary('));
     check(results, 'facade', '暴露首页 App 名称颜色服务', has(contents.facade, 'export function getHomeAppLabelColorModeValue(')
         && has(contents.facade, 'export function setupHomeAppLabelColorSettings('));
 
+    const importArrayIndex = contents.fontLibrary.indexOf('const userFontImports = library.userFonts.map(buildFontImportCss).filter(Boolean);');
+    const builtinArrayIndex = contents.fontLibrary.indexOf('buildBuiltinFontFaceCss(activeFont),');
+    const fontFaceArrayIndex = contents.fontLibrary.indexOf('const userFontFaces = library.userFonts.map(buildFontFaceCss).filter(Boolean);');
     check(results, 'background', '存在 setupBgUpload()', has(contents.background, 'export function setupBgUpload('));
     check(results, 'iconUpload', '存在 createIconUploadService()', has(contents.iconUpload, 'export function createIconUploadService('));
     check(results, 'iconUpload', '图标上传复用共享图标位枚举', has(contents.iconUpload, "import { collectAppearanceIconSlots } from './icon-slots.js';")
@@ -158,9 +162,18 @@ function main() {
         && has(contents.resourcePack, 'removedOrphanAppIcons'));
     check(results, 'resourcePack', '导入服务包含保存失败回滚', has(contents.resourcePack, 'savePhoneSettingsPatch(backup)'));
     check(results, 'fontLibrary', '存在字体库导入、选择、删除和应用函数', has(contents.fontLibrary, 'export async function importAppearanceFontFile(')
+        && has(contents.fontLibrary, 'export function importAppearanceFontCssUrl(')
         && has(contents.fontLibrary, 'export function selectAppearanceFont(')
         && has(contents.fontLibrary, 'export function deleteAppearanceFont(')
         && has(contents.fontLibrary, 'export function applyAppearanceFontLibrary('));
+    check(results, 'fontLibrary', '字体库服务包含 CSS URL 归一化、导入与用户字体 fallback family', has(contents.fontLibrary, 'function normalizeCssFontUrlInput(')
+        && has(contents.fontLibrary, 'function buildFontImportCss(')
+        && has(contents.fontLibrary, 'function buildUserFontCssFamily(')
+        && has(contents.fontLibrary, "font?.sourceType === 'css-url'")
+        && has(contents.fontLibrary, 'cssUrl, family')
+        && has(contents.fontLibrary, "format: 'css'")
+        && has(contents.fontLibrary, "sourceType: 'css-url'")
+        && has(contents.fontLibrary, 'bytes: 0'));
     check(results, 'fontLibrary', '字体库服务内置 4 种 UI 字体并移除书面/手写旧入口', has(contents.fontLibrary, "id: 'builtin.system-ui'")
         && has(contents.fontLibrary, "id: 'builtin.modern-sans'")
         && has(contents.fontLibrary, "id: 'builtin.chill-round'")
@@ -200,6 +213,20 @@ function main() {
         && has(contents.fontLibrary, ':not(.fa-brands)')
         && has(contents.fontLibrary, ':not(code)')
         && has(contents.fontLibrary, ':not(textarea)'));
+    check(results, 'fontLibrary', '字体库服务只接受 HTTPS CSS URL 且不注入任意 body 样式', has(contents.fontLibrary, 'const url = new URL(source);')
+        && has(contents.fontLibrary, "return url.protocol === 'https:' ? url.href : '';")
+        && has(contents.fontLibrary, 'return `@import url("${cssUrl(url)}");`;')
+        && has(contents.fontLibrary, "if (font?.sourceType === 'css-url') return '';")
+        && has(contents.fontLibrary, "if (font?.sourceType !== 'css-url') return '';")
+        && !has(contents.fontLibrary, 'body { font-family')
+        && !has(contents.fontLibrary, 'style.textContent = cssUrl')
+        && !has(contents.fontLibrary, 'style.textContent += cssUrl'));
+    check(results, 'fontLibrary', '字体库动态样式将 CSS URL @import 放在任何 @font-face 之前', importArrayIndex >= 0
+        && builtinArrayIndex >= 0
+        && fontFaceArrayIndex >= 0
+        && importArrayIndex < fontFaceArrayIndex
+        && has(contents.fontLibrary, '...userFontImports,')
+        && has(contents.fontLibrary, '...userFontFaces,'));
     check(results, 'fontLibrary', '内置寒蝉圆体引用正式字体资源并保留许可证文件', has(contents.fontLibrary, 'YuziPhoneChillRoundF')
         && has(contents.fontLibrary, 'buildBuiltinFontFaceCss(activeFont)')
         && has(contents.fontLibrary, 'assets/fonts/chill-round-f/ChillRoundFRegular.otf')
@@ -228,6 +255,7 @@ function main() {
         && has(contents.settingsRender, 'clearAppearanceResourcePoolIcons,')
         && has(contents.settingsRender, 'getAppearanceFontLibraryViewModel,')
         && has(contents.settingsRender, 'importAppearanceFontFile,')
+        && has(contents.settingsRender, 'importAppearanceFontCssUrl,')
         && has(contents.settingsRender, 'selectAppearanceFont,')
         && has(contents.settingsRender, 'deleteAppearanceFont,')
         && has(contents.settingsRender, 'applyAppearanceFontLibrary,')
@@ -246,6 +274,7 @@ function main() {
         && has(contents.pageRenderers, "'clearAppearanceResourcePoolIcons',")
         && has(contents.pageRenderers, "'getAppearanceFontLibraryViewModel',")
         && has(contents.pageRenderers, "'importAppearanceFontFile',")
+        && has(contents.pageRenderers, "'importAppearanceFontCssUrl',")
         && has(contents.pageRenderers, "'selectAppearanceFont',")
         && has(contents.pageRenderers, "'deleteAppearanceFont',")
         && has(contents.pageRenderers, "'applyAppearanceFontLibrary',")
@@ -261,6 +290,7 @@ function main() {
         && has(contents.contextBuilders, 'clearAppearanceResourcePoolIcons: services.appearance.clearAppearanceResourcePoolIcons')
         && has(contents.contextBuilders, 'getAppearanceFontLibraryViewModel: services.appearance.getAppearanceFontLibraryViewModel')
         && has(contents.contextBuilders, 'importAppearanceFontFile: services.appearance.importAppearanceFontFile')
+        && has(contents.contextBuilders, 'importAppearanceFontCssUrl: services.appearance.importAppearanceFontCssUrl')
         && has(contents.contextBuilders, 'selectAppearanceFont: services.appearance.selectAppearanceFont')
         && has(contents.contextBuilders, 'deleteAppearanceFont: services.appearance.deleteAppearanceFont')
         && has(contents.contextBuilders, 'getReadableTextScalePercentValue: services.appearance.getReadableTextScalePercentValue')
@@ -290,6 +320,14 @@ function main() {
         && has(contents.appearanceBuilder, 'id="phone-delete-font-btn"')
         && has(contents.appearanceBuilder, 'id="phone-font-file"')
         && has(contents.appearanceBuilder, 'id="phone-font-preview"'));
+    check(results, 'appearanceBuilder', '外观页 HTML 包含 URL 字体导入表单与远程限制提示', has(contents.appearanceBuilder, 'id="phone-font-url-name"')
+        && has(contents.appearanceBuilder, 'id="phone-font-css-url"')
+        && has(contents.appearanceBuilder, 'id="phone-font-url-family"')
+        && has(contents.appearanceBuilder, 'id="phone-import-font-url-btn"')
+        && has(contents.appearanceBuilder, '保存 URL 字体')
+        && has(contents.appearanceBuilder, 'HTTPS 字体 CSS URL')
+        && has(contents.appearanceBuilder, '@import')
+        && has(contents.appearanceBuilder, '不会下载、缓存或注入任意 CSS 片段'));
     check(results, 'appearanceBuilder', '外观页 HTML 包含首页 App 名称颜色设置', has(contents.appearanceBuilder, '首页 App 名称颜色')
         && has(contents.appearanceBuilder, 'id="phone-home-app-label-color-mode"')
         && has(contents.appearanceBuilder, '白色文字（适合深色背景）')
@@ -324,12 +362,23 @@ function main() {
         && has(contents.appearancePage, "container.querySelector('#phone-delete-font-btn')")
         && has(contents.appearancePage, 'appearancePageService.selectAppearanceFont(selectEl.value)')
         && has(contents.appearancePage, 'appearancePageService.importAppearanceFontFile(file)')
+        && has(contents.appearancePage, 'appearancePageService.importAppearanceFontCssUrl({ name, cssUrl, family })')
         && has(contents.appearancePage, 'appearancePageService.deleteAppearanceFont(fontId)')
         && has(contents.appearancePage, 'runtime.registerCleanup(bindAppearanceFontLibraryActions(ctx, runtime));'));
     check(results, 'appearancePage', '字体库操作重渲染保留外观页滚动位置并处理异步生命周期', has(contents.appearancePage, 'ctx.rerenderAppearanceKeepScroll')
         && has(contents.appearancePage, 'rerenderKeepScroll();')
         && has(contents.appearancePage, 'runtime.isDisposed')
         && !has(contents.appearancePage, 'render();\n        }));\n    }\n\n    if (importBtn && fileInput)'));
+    check(results, 'appearancePage', '外观页绑定 URL 字体导入入口并在成功后应用字体库', has(contents.appearancePage, "container.querySelector('#phone-import-font-url-btn')")
+        && has(contents.appearancePage, "container.querySelector('#phone-font-url-name')")
+        && has(contents.appearancePage, "container.querySelector('#phone-font-css-url')")
+        && has(contents.appearancePage, "container.querySelector('#phone-font-url-family')")
+        && has(contents.appearancePage, '请填写显示名称、字体 CSS URL 和字体族名')
+        && has(contents.appearancePage, 'URL 字体已保存')
+        && has(contents.appearancePage, 'appearancePageService.applyAppearanceFontLibrary();')
+        && has(contents.appearancePage, "urlNameInput.value = '';")
+        && has(contents.appearancePage, "cssUrlInput.value = '';")
+        && has(contents.appearancePage, "urlFamilyInput.value = '';"));
     check(results, 'appearancePage', '外观页读取并绑定首页 App 名称颜色设置', has(contents.appearancePage, 'const getHomeAppLabelColorModeValue = appearancePageService.getHomeAppLabelColorModeValue;')
         && has(contents.appearancePage, 'const setupHomeAppLabelColorSettings = appearancePageService.setupHomeAppLabelColorSettings;')
         && has(contents.appearancePage, 'homeAppLabelColorMode: getHomeAppLabelColorModeValue(),')
@@ -351,6 +400,7 @@ function main() {
         && has(contents.types, 'appearanceFontLibrary: AppearanceFontLibrarySettings;')
         && has(contents.types, 'getAppearanceFontLibraryViewModel: () => AppearanceFontLibraryViewModel')
         && has(contents.types, 'importAppearanceFontFile: (file: File) => Promise<AppearanceFontOperationResult>')
+        && has(contents.types, 'importAppearanceFontCssUrl: (input: { name?: string; cssUrl?: string; family?: string }) => AppearanceFontOperationResult;')
         && has(contents.types, 'selectAppearanceFont: (fontId: string) => AppearanceFontOperationResult')
         && has(contents.types, 'deleteAppearanceFont: (fontId: string) => AppearanceFontOperationResult')
         && has(contents.types, 'applyAppearanceFontLibrary: (root?: Element | null) => boolean'));
