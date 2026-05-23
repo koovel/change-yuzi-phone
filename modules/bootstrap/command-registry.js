@@ -59,7 +59,7 @@ function formatTableListItem(entry, duplicateNameCounts = findDuplicateTableName
 function resolveTableEntry(rawQuery, entries = getAvailableTableEntries()) {
     const query = normalizeCommandText(rawQuery);
     if (!query) {
-        return { ok: false, code: 'empty_query', message: '请指定表格名称: /phone-table <表名或sheetKey>' };
+        return { ok: false, code: 'empty_query', message: '请指定表格名称: /yuziphone-table <表名或sheetKey>' };
     }
 
     if (entries.length === 0) {
@@ -99,7 +99,7 @@ function resolveTableEntry(rawQuery, entries = getAvailableTableEntries()) {
     return {
         ok: false,
         code: 'not_found',
-        message: `未找到表格「${query}」，可使用 /phone-tables 查看可用表格`,
+        message: `未找到表格「${query}」，可使用 /yuziphone-tables 查看可用表格`,
     };
 }
 

@@ -1061,13 +1061,13 @@ Slash 命令入口由 [`registerSlashCommands()`](../modules/slash-commands.js:2
 
 | 命令 | 入口动作 | 当前职责 |
 |---|---|---|
-| `/phone` | [`handlePhoneCommand()`](../modules/slash-commands/command-actions.js:6) | open、close、toggle、reset、status、help |
-| `/phone-open` | [`handlePhoneCommand()`](../modules/slash-commands/command-actions.js:6) | 打开手机 |
-| `/phone-close` | [`handlePhoneCommand()`](../modules/slash-commands/command-actions.js:6) | 关闭手机 |
-| `/phone-toggle` | [`handlePhoneCommand()`](../modules/slash-commands/command-actions.js:6) | 切换手机显示状态 |
-| `/phone-table` | [`handleTableCommand()`](../modules/slash-commands/command-actions.js:128) | 按表名触发表格打开事件 |
-| `/phone-tables` | [`handleListTablesCommand()`](../modules/slash-commands/command-actions.js:148) | 触发表格列表事件并展示结果 |
-| `/phone-settings` | [`handleSettingsCommand()`](../modules/slash-commands/command-actions.js:167) | reset、export、import 帮助入口 |
+| `/yuziphone` | [`handlePhoneCommand()`](../modules/slash-commands/command-actions.js:6) | open、close、toggle、reset、status、help |
+| `/yuziphone-open` | [`handlePhoneCommand()`](../modules/slash-commands/command-actions.js:6) | 打开手机 |
+| `/yuziphone-close` | [`handlePhoneCommand()`](../modules/slash-commands/command-actions.js:6) | 关闭手机 |
+| `/yuziphone-toggle` | [`handlePhoneCommand()`](../modules/slash-commands/command-actions.js:6) | 切换手机显示状态 |
+| `/yuziphone-table` | [`handleTableCommand()`](../modules/slash-commands/command-actions.js:166) | 按表名触发表格打开事件 |
+| `/yuziphone-tables` | [`handleListTablesCommand()`](../modules/slash-commands/command-actions.js:187) | 触发表格列表事件并展示结果 |
+| `/yuziphone-settings` | [`handleSettingsCommand()`](../modules/slash-commands/command-actions.js:206) | reset、export、import 帮助入口 |
 
 注册路径：
 

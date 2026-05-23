@@ -29,7 +29,7 @@ export function handlePhoneCommand(args) {
             executePhoneAction('toggle');
             break;
         default:
-            showNotification(`未知命令: ${action}，使用 /phone help 查看帮助`, 'warning');
+            showNotification(`未知命令: ${action}，使用 /yuziphone help 查看帮助`, 'warning');
     }
 }
 
@@ -121,7 +121,7 @@ function showPhoneStatus() {
 }
 
 function showPhoneHelp() {
-    Logger.info('[玉子手机] Slash 命令帮助:\n/phone\n/phone open\n/phone close\n/phone toggle\n/phone reset\n/phone status\n/phone help\n/phone-table <表名>\n/phone-tables\n/phone-settings reset\n/phone-settings export\n/phone-settings import <JSON>');
+    Logger.info('[玉子手机] Slash 命令帮助:\n/yuziphone\n/yuziphone open\n/yuziphone close\n/yuziphone toggle\n/yuziphone reset\n/yuziphone status\n/yuziphone help\n/yuziphone-table <表名>\n/yuziphone-tables\n/yuziphone-settings reset\n/yuziphone-settings export\n/yuziphone-settings import <JSON>');
     showNotification('Slash 命令帮助已输出到控制台', 'info');
 }
 
@@ -167,7 +167,7 @@ export function handleTableCommand(args) {
     const tableName = String(args ?? '').trim();
 
     if (!tableName) {
-        showNotification('请指定表格名称: /phone-table <表名或sheetKey>', 'warning');
+        showNotification('请指定表格名称: /yuziphone-table <表名或sheetKey>', 'warning');
         return;
     }
 
@@ -219,12 +219,12 @@ export async function handleSettingsCommand(args) {
         case '':
         case 'help':
             showNotification(
-                '设置命令:\n/phone-settings reset - 重置设置\n/phone-settings export - 导出设置\n/phone-settings import <JSON> - 导入设置',
+                '设置命令:\n/yuziphone-settings reset - 重置设置\n/yuziphone-settings export - 导出设置\n/yuziphone-settings import <JSON> - 导入设置',
                 'info'
             );
             break;
         default:
-            showNotification(`未知设置命令: ${action}`, 'warning');
+            showNotification(`未知设置命令: ${action}，使用 /yuziphone-settings help 查看帮助`, 'warning');
     }
 }
 
@@ -261,7 +261,7 @@ function exportPhoneSettings() {
 function importPhoneSettings(rawPayload = '') {
     const payload = String(rawPayload ?? '').trim();
     if (!payload) {
-        showNotification('请使用 /phone-settings import <JSON> 导入设置', 'warning');
+        showNotification('请使用 /yuziphone-settings import <JSON> 导入设置', 'warning');
         return;
     }
 
@@ -301,12 +301,12 @@ function copyToClipboard(text) {
 
 export function createFallbackSlashCommands() {
     return {
-        phone: handlePhoneCommand,
-        'phone-open': () => executePhoneAction('open'),
-        'phone-close': () => executePhoneAction('close'),
-        'phone-toggle': () => executePhoneAction('toggle'),
-        'phone-table': handleTableCommand,
-        'phone-tables': handleListTablesCommand,
-        'phone-settings': handleSettingsCommand,
+        yuziphone: handlePhoneCommand,
+        'yuziphone-open': () => executePhoneAction('open'),
+        'yuziphone-close': () => executePhoneAction('close'),
+        'yuziphone-toggle': () => executePhoneAction('toggle'),
+        'yuziphone-table': handleTableCommand,
+        'yuziphone-tables': handleListTablesCommand,
+        'yuziphone-settings': handleSettingsCommand,
     };
 }

@@ -5,39 +5,39 @@ import { addRegisteredCommand, getRegisteredCommandsSnapshot } from './state.js'
 
 const SLASH_COMMAND_DEFINITIONS = Object.freeze([
     {
-        name: 'phone',
+        name: 'yuziphone',
         handler: handlePhoneCommand,
-        description: '玉子手机控制命令：/phone [open|close|toggle|reset|status|help]',
+        description: '玉子手机控制命令：/yuziphone [open|close|toggle|reset|status|help]',
     },
     {
-        name: 'phone-open',
+        name: 'yuziphone-open',
         handler: () => handlePhoneCommand('open'),
         description: '打开玉子手机',
     },
     {
-        name: 'phone-close',
+        name: 'yuziphone-close',
         handler: () => handlePhoneCommand('close'),
         description: '关闭玉子手机',
     },
     {
-        name: 'phone-toggle',
+        name: 'yuziphone-toggle',
         handler: () => handlePhoneCommand('toggle'),
         description: '切换玉子手机状态',
     },
     {
-        name: 'phone-table',
+        name: 'yuziphone-table',
         handler: handleTableCommand,
-        description: '在手机中打开指定表格：/phone-table <表名>',
+        description: '在手机中打开指定表格：/yuziphone-table <表名>',
     },
     {
-        name: 'phone-tables',
+        name: 'yuziphone-tables',
         handler: handleListTablesCommand,
         description: '列出所有可用表格',
     },
     {
-        name: 'phone-settings',
+        name: 'yuziphone-settings',
         handler: handleSettingsCommand,
-        description: '手机设置命令：/phone-settings [reset|export|import]',
+        description: '手机设置命令：/yuziphone-settings [reset|export|import]',
     },
 ]);
 
