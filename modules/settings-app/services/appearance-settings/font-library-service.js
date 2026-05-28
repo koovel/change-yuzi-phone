@@ -170,7 +170,13 @@ function createResult(success, message, extra = {}) {
 
 function getExtensionRootUrl() {
     const moduleUrl = String(import.meta.url || '');
-    return moduleUrl.includes('/dist/')
+    const normalizedModuleUrl = moduleUrl.replace(/\\/g, '/');
+
+    if (/\/dist\/assistant\/yuzi-phone\.assistant\.js(?:[?#].*)?$/.test(normalizedModuleUrl)) {
+        return new URL('../../', moduleUrl);
+    }
+
+    return normalizedModuleUrl.includes('/dist/')
         ? new URL('../', moduleUrl)
         : new URL('../../../../', moduleUrl);
 }
