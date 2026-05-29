@@ -89,6 +89,23 @@ function main() {
     pushCheck(results, 'toggleCss', '封面模式去白边',
         has(contents.toggleCss, '.yuzi-phone-root .yuzi-phone-toggle.yuzi-phone-toggle-has-cover {')
         && has(contents.toggleCss, 'border: 0;'));
+    pushCheck(results, 'toggleButton', '真实按钮封面直接写入 inline backgroundImage',
+        has(contents.toggleButton, 'btn.style.backgroundImage = `url(\"${escapeCssUrl(coverRaw)}\")`;')
+        && has(contents.toggleButton, "btn.style.backgroundImage = '';"));
+    pushCheck(results, 'toggleButton', 'toggle-button 不再写入封面 CSS 变量',
+        !has(contents.toggleButton, "setProperty('--yuzi-phone-toggle-cover-image'")
+        && !has(contents.toggleButton, '--yuzi-phone-toggle-cover-image'));
+    pushCheck(results, 'toggleCss', '真实按钮封面 CSS 不再依赖变量中转',
+        !has(contents.toggleCss, '--yuzi-phone-toggle-cover-image')
+        && !has(contents.toggleCss, 'var(--yuzi-phone-toggle-cover-image)'));
+    pushCheck(results, 'toggleCss', '封面模式保留 cover 裁剪属性',
+        has(contents.toggleCss, 'background-size: cover;')
+        && has(contents.toggleCss, 'background-position: center;')
+        && has(contents.toggleCss, 'background-repeat: no-repeat;'));
+    pushCheck(results, 'toggleCss', '封面模式继续隐藏默认图标和文字',
+        has(contents.toggleCss, '.yuzi-phone-root .yuzi-phone-toggle.yuzi-phone-toggle-cover-only .yuzi-phone-toggle-icon,')
+        && has(contents.toggleCss, '.yuzi-phone-root .yuzi-phone-toggle.yuzi-phone-toggle-cover-only .yuzi-phone-toggle-text {')
+        && has(contents.toggleCss, 'display: none;'));
     pushCheck(results, 'toggleCss', '长方形宽度按 2.6 比例变量计算',
         has(contents.toggleCss, '--yuzi-phone-toggle-rounded-width: calc(var(--yuzi-phone-toggle-size) * 2.6);'));
     pushCheck(results, 'toggleButton', 'toggle-button rounded metrics 与 CSS 比例一致',

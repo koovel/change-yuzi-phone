@@ -41,7 +41,11 @@ export function applyPhoneToggleVisualStyle(btn, settings = getPhoneSettings()) 
         : '';
 
     btn.style.setProperty('--yuzi-phone-toggle-size', `${size}px`);
-    btn.style.setProperty('--yuzi-phone-toggle-cover-image', coverRaw ? `url("${escapeCssUrl(coverRaw)}")` : 'none');
+    if (coverRaw) {
+        btn.style.backgroundImage = `url("${escapeCssUrl(coverRaw)}")`;
+    } else {
+        btn.style.backgroundImage = '';
+    }
 
     btn.classList.toggle('yuzi-phone-toggle-shape-circle', shape === 'circle');
     btn.classList.toggle('yuzi-phone-toggle-shape-rounded', shape !== 'circle');
