@@ -1,0 +1,17 @@
+{
+  "type": "script",
+  "enabled": false,
+  "name": "玉子手机（自动更新）",
+  "id": "7fb91b8a-1826-4839-a2fb-659094d8dc22",
+  "content": "const root = window.parent ?? window;\n\nasync function getLatestVersion() {\n  try {\n    const res = await fetch('https://api.github.com/repos/yuzi83/st-yuzi-phone/tags');\n    const tags = await res.json();\n    return tags[0]?.name || 'v1.4.2';\n  } catch {\n    return 'v1.4.2';\n  }\n}\n\nconst version = await getLatestVersion();\nconst base = `https://gcore.jsdelivr.net/gh/yuzi83/st-yuzi-phone@${version}`;\n\nif (!root.document.querySelector('#yuzi-phone-css')) {\n  const link = root.document.createElement('link');\n  link.id = 'yuzi-phone-css';\n  link.rel = 'stylesheet';\n  link.href = `${base}/dist/yuzi-phone.bundle.css`;\n  root.document.head.appendChild(link);\n}\n\nif (!root.document.querySelector('#yuzi-phone-js')) {\n  const script = root.document.createElement('script');\n  script.id = 'yuzi-phone-js';\n  script.type = 'module';\n  script.src = `${base}/dist/yuzi-phone.bundle.js`;\n  root.document.head.appendChild(script);\n}\n",
+  "info": "点点赞家人们\ndc地址：https://discord.com/channels/1134557553011998840/1480461076838482004",
+  "button": {
+    "enabled": true,
+    "buttons": []
+  },
+  "data": {},
+  "export_with": {
+    "data": true,
+    "button": true
+  }
+}
