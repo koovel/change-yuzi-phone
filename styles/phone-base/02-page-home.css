@@ -293,3 +293,107 @@
         font-size: calc(9.5px * var(--yuzi-phone-readable-text-scale, 1));
     }
 }
+
+
+/* ─── 主页最右侧滚动条隐藏 ─── */
+.phone-app-grid::-webkit-scrollbar {
+    display: none !important;
+}
+.phone-app-grid {
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE 10+ */
+}
+
+/* ─── 状态栏/时间栏高级磨砂毛玻璃 ─── */
+.phone-home-status-bar {
+    display: flex;
+    gap: 12px;
+    margin: 44px 16px 4px; /* 顶部 44px 完美避开灵动岛与系统栏 */
+    padding: 0;
+    min-height: 76px;
+    background: transparent;
+    z-index: 10;
+}
+
+/* 自适应避让布局调整 */
+.phone-home.has-status-bar .phone-app-grid {
+    padding-top: 12px !important;
+}
+
+/* 磨砂卡片基类 */
+.phone-home-status-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 18px;
+    text-align: center;
+    min-width: 0; /* 防止子元素溢出撑大 */
+    
+    /* 苹果级磨砂毛玻璃质感 */
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px) saturate(1.6);
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    
+    color: var(--phone-home-app-label-color, rgba(255, 255, 255, 0.96));
+    text-shadow: var(--phone-home-app-label-shadow, 0 1px 3px rgba(0, 0, 0, 0.32));
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* 悬浮微动效，增强拟物手机质感 */
+.phone-home-status-card:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    transform: translateY(-1px);
+}
+
+/* 单卡片降级展示：当只有一侧有数据时，撑满宽度 */
+.phone-home-status-bar > .phone-home-status-card:only-child {
+    flex: 0 0 100%;
+}
+
+/* 左卡片：时间大字号美化 */
+.status-card-left .phone-home-status-time {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    margin-bottom: 3px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* 只有日期时的中大字号自适应 */
+.status-card-left .phone-home-status-time + .phone-home-status-date {
+    font-size: 11px;
+    opacity: 0.8;
+    font-weight: 500;
+}
+
+.status-card-left:not(:has(.phone-home-status-time)) .phone-home-status-date {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+/* 右卡片：天气与状态 */
+.status-card-right .phone-home-status-weather-row {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    letter-spacing: 0.2px;
+}
+
+.status-card-right .phone-home-status-event {
+    font-size: 11px;
+    opacity: 0.8;
+    line-height: 1.4;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

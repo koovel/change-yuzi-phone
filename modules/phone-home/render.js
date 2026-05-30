@@ -28,8 +28,9 @@ import { escapeHtmlAttr } from '../utils/dom-escape.js';
 import { clampNumber } from '../utils/object.js';
 import { buildHomeScreenViewModel } from './view-model.js';
 import { bindHomeDockInteractions, bindHomeGridInteractions } from './interactions.js';
-import { buildHomeShellStyleText, buildHomeShellHtml, buildHomeAppItemHtml, buildDockItemHtml } from './templates.js';
+import { buildHomeShellStyleText, buildHomeShellHtml, buildHomeAppItemHtml, buildDockItemHtml, buildStatusBarHtml } from './templates.js';
 import { ensureHomeInteractionRuntime } from './runtime.js';
+import { resolveStatusBarData } from './status-bar-data.js';
 
 function resolveHomeAppLabelColorTokens(mode) {
     if (mode === 'black') {
@@ -55,6 +56,7 @@ export function ensureHomeShell(container, homeShellStyle) {
     const currentRoot = container.querySelector('[data-home-shell="root"]') || container.querySelector('.phone-home');
     const currentGrid = container.querySelector('[data-shell-region="home-grid"]') || container.querySelector('.phone-app-grid');
     const currentDock = container.querySelector('[data-shell-region="home-dock"]') || container.querySelector('.phone-dock');
+    const currentStatusBar = container.querySelector('[data-shell-region="home-status-bar"]');
 
     if (currentRoot instanceof HTMLElement && currentGrid instanceof HTMLElement && currentDock instanceof HTMLElement) {
         currentRoot.setAttribute('style', String(homeShellStyle || ''));
@@ -62,6 +64,7 @@ export function ensureHomeShell(container, homeShellStyle) {
             root: currentRoot,
             grid: currentGrid,
             dock: currentDock,
+            statusBar: currentStatusBar,
             bootstrapped: false,
         };
     }
@@ -72,6 +75,7 @@ export function ensureHomeShell(container, homeShellStyle) {
         root: container.querySelector('[data-home-shell="root"]') || container.querySelector('.phone-home'),
         grid: container.querySelector('[data-shell-region="home-grid"]') || container.querySelector('.phone-app-grid'),
         dock: container.querySelector('[data-shell-region="home-dock"]') || container.querySelector('.phone-dock'),
+        statusBar: container.querySelector('[data-shell-region="home-status-bar"]'),
         bootstrapped: true,
     };
 }
@@ -166,6 +170,9 @@ export function renderHomeScreen(container) {
     const dock = shell.dock;
     const viewModel = buildHomeScreenViewModel(rawData, phoneSettings, { getSheetKeys });
 
+    const statusBarData = resolveStatusBarData(rawData);
+    patchStatusBar(shell.statusBar, statusBarData, shell.root);
+
     patchHomeGrid(grid, viewModel.apps);
     bindHomeGridInteractions(grid, { navigateTo, runtime: interactionRuntime });
 
@@ -176,4 +183,28 @@ export function renderHomeScreen(container) {
         openDatabaseSettingsWithStatus,
         runtime: interactionRuntime,
     });
+}
+
+
+/**
+ * 局部更新主屏时间栏内容。
+ * @param {HTMLElement | null | undefined} statusBarEl
+ * @param {object} data
+ * @param {HTMLElement | null | undefined} rootEl
+ */
+export function patchStatusBar(statusBarEl, data, rootEl) {
+    if (!(statusBarEl instanceof HTMLElement)) return;
+
+    const hasData = data && (data.currentTime || data.weekday || data.dayStatus || data.weather || data.majorEvent);
+
+    if (!hasData) {
+        statusBarEl.style.display = 'none';
+        statusBarEl.innerHTML = '';
+        if (rootEl instanceof HTMLElement) rootEl.classList.remove('has-status-bar');
+        return;
+    }
+
+    if (rootEl instanceof HTMLElement) rootEl.classList.add('has-status-bar');
+    statusBarEl.style.display = '';
+    statusBarEl.innerHTML = buildStatusBarHtml(data);
 }

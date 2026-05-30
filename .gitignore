@@ -17,3 +17,8 @@ Thumbs.db
 # 临时分析缓存
 .analysis-cache
 .analysis-cache.md
+
+# 排除非项目目录
+.limcode/
+.analysis-archive/
+奶龙工具箱/
