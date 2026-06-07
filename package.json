@@ -13,7 +13,7 @@
     "lint": "eslint modules/ index.js build.mjs",
     "tables:split": "node scripts/table-source.cjs split docs/reference/小剧场2.1.json tables/sources/小剧场2.1",
     "tables:check": "node scripts/table-source.cjs check tables/sources/小剧场2.1 && node scripts/table-source.cjs check tables/sources/纪要",
-    "tables:build": "node scripts/table-source.cjs build tables/sources/小剧场2.1 tables/generated/小剧场2.1.json && node scripts/table-source.cjs build tables/sources/纪要 tables/generated/纪要.json"
+    "tables:build": "node scripts/table-source.cjs build tables/sources/小剧场2.1 tables/generated/小剧场2.1.json && node scripts/table-source.cjs build tables/sources/纪要 tables/generated/纪要.json && node scripts/build-builtin-theater-template.cjs"
   },
   "devDependencies": {
     "esbuild": "^0.21.0",

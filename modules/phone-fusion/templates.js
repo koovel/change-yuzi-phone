@@ -10,25 +10,45 @@ export function buildFusionPageHtml() {
             </div>
             <div class="phone-app-body phone-fusion-body">
                 <div class="phone-fusion-desc">
-                    从两个模板中选择需要的表格区块，自动合并为新模板
+                    从内置模板、本地 JSON 或当前数据库表格中选择区块，自动合并为新模板
                 </div>
                 <div class="phone-fusion-import-row">
-                    <div class="phone-fusion-import-card" id="phone-import-a">
+                    <div class="phone-fusion-import-card" id="phone-source-a">
                         ${PHONE_ICONS.upload}
-                        <span>导入模板 A</span>
+                        <span>模板 A 来源</span>
+                        <button type="button" class="phone-fusion-source-action" id="phone-use-builtin-a">使用内置小剧场模板</button>
+                        <button type="button" class="phone-fusion-source-action" id="phone-import-a">导入本地 JSON</button>
                         <span class="phone-fusion-file-name" id="phone-fname-a"></span>
                     </div>
-                    <div class="phone-fusion-import-card" id="phone-import-b">
+                    <div class="phone-fusion-import-card" id="phone-source-b">
                         ${PHONE_ICONS.upload}
-                        <span>导入模板 B</span>
+                        <span>模板 B 来源</span>
+                        <button type="button" class="phone-fusion-source-action" id="phone-use-current-db-b">选择当前表格</button>
+                        <button type="button" class="phone-fusion-source-action" id="phone-import-b">导入本地 JSON</button>
                         <span class="phone-fusion-file-name" id="phone-fname-b"></span>
                     </div>
                 </div>
                 <div id="phone-fusion-compare" class="phone-fusion-compare"></div>
                 <div id="phone-fusion-actions" class="phone-fusion-actions" style="display:none;">
+                    <div class="phone-fusion-template-options" aria-label="导入为模板/预设选项">
+                        <label class="phone-fusion-template-option" for="phone-fusion-template-scope">
+                            <span>导入范围</span>
+                            <select id="phone-fusion-template-scope">
+                                <option value="chat" selected>当前聊天</option>
+                                <option value="global">全局</option>
+                            </select>
+                        </label>
+                        <label class="phone-fusion-template-option" for="phone-fusion-template-preset-name">
+                            <span>预设名称</span>
+                            <input id="phone-fusion-template-preset-name" type="text" maxlength="64" placeholder="可选，留空使用默认名称">
+                        </label>
+                    </div>
                     <button type="button" class="phone-fusion-merge-btn" id="phone-fusion-merge">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
                         <span>合并选中的表格</span>
+                    </button>
+                    <button type="button" class="phone-fusion-secondary-btn" id="phone-fusion-import-template" title="将合并结果导入为数据库模板/预设">
+                        <span>导入为模板/预设</span>
                     </button>
                 </div>
                 <div id="phone-fusion-result" class="phone-fusion-result"></div>
@@ -37,18 +57,21 @@ export function buildFusionPageHtml() {
     `;
 }
 
-export function buildFusionCompareRowHtml({ key, name, cols, source, sourceClass, conflict }) {
+export function buildFusionCompareRowHtml({ id, key, name, cols, source, sourceClass, conflict, selected = true, sourceOptions = [] }) {
+    const rowAttrs = `data-id="${escapeHtmlAttr(id || key)}" data-key="${escapeHtmlAttr(key)}"`;
+    const checkedAttr = selected ? ' checked' : '';
     if (conflict) {
+        const optionsHtml = sourceOptions.map((option) => `
+                            <option value="${escapeHtmlAttr(option.id)}"${option.selected ? ' selected' : ''}>${escapeHtml(option.label)}</option>`).join('');
         return `
-            <div class="phone-fusion-table-row phone-fusion-conflict" data-key="${escapeHtmlAttr(key)}">
+            <div class="phone-fusion-table-row phone-fusion-conflict" ${rowAttrs}>
                 <span class="phone-fusion-col-check">
-                    <input type="checkbox" class="phone-fusion-check" checked>
+                    <input type="checkbox" class="phone-fusion-check"${checkedAttr}>
                 </span>
                 <span class="phone-fusion-col-name">${escapeHtml(name)}</span>
                 <span class="phone-fusion-col-source ${sourceClass}">
                     <select class="phone-fusion-source-select" data-key="${escapeHtmlAttr(key)}">
-                        <option value="A">模板 A</option>
-                        <option value="B">模板 B</option>
+                        ${optionsHtml}
                     </select>
                 </span>
                 <span class="phone-fusion-col-cols">${cols}</span>
@@ -57,9 +80,9 @@ export function buildFusionCompareRowHtml({ key, name, cols, source, sourceClass
     }
 
     return `
-        <div class="phone-fusion-table-row" data-key="${escapeHtmlAttr(key)}">
+        <div class="phone-fusion-table-row" ${rowAttrs}>
             <span class="phone-fusion-col-check">
-                <input type="checkbox" class="phone-fusion-check" checked>
+                <input type="checkbox" class="phone-fusion-check"${checkedAttr}>
             </span>
             <span class="phone-fusion-col-name">${escapeHtml(name)}</span>
             <span class="phone-fusion-col-source ${sourceClass}">${source}</span>

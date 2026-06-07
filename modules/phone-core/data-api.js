@@ -48,4 +48,10 @@ export {
     loadApiPreset,
 } from './data-api/preset-repository.js';
 
+export {
+    exportDatabaseSnapshotViaApi,
+    importTemplateFromDataViaApi,
+    refreshDatabaseProjectionViaApi,
+} from './data-api/import-export-repository.js';
+
 export { debugCheckAPI } from './data-api/debug-tools.js';

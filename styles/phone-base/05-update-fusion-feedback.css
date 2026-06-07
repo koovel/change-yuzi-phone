@@ -69,7 +69,7 @@
     border-radius: 4px;
     background: var(--yuzi-settings-surface-soft, rgba(245, 243, 239, 0.6));
     box-shadow: var(--yuzi-settings-shadow-soft, 0 4px 12px rgba(58, 55, 49, 0.04));
-    cursor: pointer;
+    cursor: default;
     transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
     font-size: 13px;
     font-weight: 500;
@@ -89,6 +89,25 @@
 .phone-fusion-page .phone-fusion-imported {
     border-color: var(--yuzi-settings-accent, #5B7A6A) !important;
     background: var(--yuzi-settings-accent-soft, rgba(91, 122, 106, 0.1)) !important;
+    color: var(--yuzi-settings-accent, #5B7A6A);
+}
+.phone-fusion-page .phone-fusion-source-action {
+    width: 100%;
+    border: 1px solid var(--yuzi-settings-border-strong, rgba(58, 55, 49, 0.12));
+    border-radius: 4px;
+    background: var(--yuzi-settings-surface, rgba(245, 243, 239, 0.96));
+    color: var(--yuzi-settings-text-primary, #3A3731);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    padding: 7px 8px;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.phone-fusion-page .phone-fusion-source-action:hover,
+.phone-fusion-page .phone-fusion-source-action:active {
+    border-color: var(--yuzi-settings-accent-ring, rgba(91, 122, 106, 0.18));
+    background: var(--yuzi-settings-accent-soft, rgba(91, 122, 106, 0.1));
     color: var(--yuzi-settings-accent, #5B7A6A);
 }
 .phone-fusion-page .phone-fusion-file-name {
@@ -147,10 +166,11 @@
 .phone-fusion-page .phone-source-conflict { color: var(--yuzi-settings-danger, #8B5E5E); }
 .phone-fusion-page .phone-fusion-source-select {
     max-width: 100%;
-    background: var(--yuzi-settings-surface-soft, rgba(245, 243, 239, 0.6));
+    background: var(--yuzi-settings-surface, #F5F3EF) !important;
     border: 1px solid var(--yuzi-settings-border-strong, rgba(58, 55, 49, 0.12));
     border-radius: 4px;
-    color: var(--yuzi-settings-danger, #8B5E5E);
+    color: var(--yuzi-settings-danger, #8B5E5E) !important;
+    -webkit-text-fill-color: var(--yuzi-settings-danger, #8B5E5E);
     font-size: 12px;
     font-weight: 500;
     padding: 4px 6px;
@@ -161,16 +181,68 @@
     box-shadow: 0 0 0 2px var(--yuzi-settings-danger-soft, rgba(139, 94, 94, 0.1));
 }
 .phone-fusion-page .phone-fusion-source-select option {
-    background: var(--yuzi-settings-surface, #F5F3EF);
-    color: var(--yuzi-settings-text-primary, #3A3731);
+    background-color: var(--yuzi-settings-surface, #F5F3EF) !important;
+    color: var(--yuzi-settings-text-primary, #3A3731) !important;
+    -webkit-text-fill-color: var(--yuzi-settings-text-primary, #3A3731);
 }
 
 .phone-fusion-page .phone-fusion-actions {
     display: flex;
     justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-top: 4px;
 }
-.phone-fusion-page .phone-fusion-merge-btn {
+.phone-fusion-page .phone-fusion-template-options {
+    flex: 1 1 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--yuzi-settings-border, rgba(58, 55, 49, 0.08));
+    border-radius: 4px;
+    background: var(--yuzi-settings-surface-soft, rgba(245, 243, 239, 0.6));
+}
+.phone-fusion-page .phone-fusion-template-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    color: var(--yuzi-settings-text-secondary, #7A7772);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+.phone-fusion-page .phone-fusion-template-option select,
+.phone-fusion-page .phone-fusion-template-option input {
+    min-width: 0;
+    border: 1px solid var(--yuzi-settings-border-strong, rgba(58, 55, 49, 0.12));
+    border-radius: 4px;
+    background-color: var(--yuzi-settings-surface, #F5F3EF) !important;
+    color: var(--yuzi-settings-text-primary, #3A3731) !important;
+    -webkit-text-fill-color: var(--yuzi-settings-text-primary, #3A3731);
+    font-size: 12px;
+    line-height: 1.35;
+    padding: 6px 8px;
+    outline: none;
+}
+.phone-fusion-page .phone-fusion-template-option select:focus,
+.phone-fusion-page .phone-fusion-template-option input:focus {
+    border-color: var(--yuzi-settings-accent, #5B7A6A);
+    box-shadow: 0 0 0 2px var(--yuzi-settings-accent-soft, rgba(91, 122, 106, 0.1));
+}
+.phone-fusion-page .phone-fusion-template-option input {
+    width: min(220px, 52vw);
+    caret-color: var(--yuzi-settings-text-primary, #3A3731);
+}
+.phone-fusion-page .phone-fusion-template-option select option {
+    background-color: var(--yuzi-settings-surface, #F5F3EF) !important;
+    color: var(--yuzi-settings-text-primary, #3A3731) !important;
+    -webkit-text-fill-color: var(--yuzi-settings-text-primary, #3A3731);
+}
+.phone-fusion-page .phone-fusion-merge-btn,
+.phone-fusion-page .phone-fusion-secondary-btn {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -182,8 +254,19 @@
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
+    text-decoration: none;
     box-shadow: var(--yuzi-settings-shadow-medium, 0 6px 18px rgba(58, 55, 49, 0.06));
     transition: background 0.18s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+.phone-fusion-page .phone-fusion-secondary-btn {
+    background: var(--yuzi-settings-surface, rgba(245, 243, 239, 0.96));
+    color: var(--yuzi-settings-text-secondary, #7A7772);
+    border: 1px solid var(--yuzi-settings-border, rgba(58, 55, 49, 0.08));
+}
+.phone-fusion-page .phone-fusion-secondary-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+    box-shadow: none;
 }
 .phone-fusion-page .phone-fusion-merge-btn:hover,
 .phone-fusion-page .phone-fusion-merge-btn:active {
