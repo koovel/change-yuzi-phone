@@ -10,6 +10,11 @@ const ALLOWED_STORAGE_FILES = new Set([
     'modules/phone-core/chat-support/ai-instruction-store.js',
 ]);
 
+const ALLOWED_INDEXED_DB_FILES = new Set([
+    'modules/cache-manager.js',
+    'modules/settings-app/services/appearance-settings/appearance-pack-repository.js',
+]);
+
 const REQUIRED_SETTING_FILES = {
     settingsFacade: 'modules/settings.js',
     settingsPersistence: 'modules/settings/persistence.js',
@@ -29,6 +34,8 @@ const REQUIRED_STORAGE_MANAGER_FILES = {
     core: 'modules/storage-manager/core.js',
     manager: 'modules/storage-manager/manager.js',
 };
+
+const REQUIRED_APPEARANCE_PACK_REPOSITORY = 'modules/settings-app/services/appearance-settings/appearance-pack-repository.js';
 
 function read(relativePath) {
     return fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
@@ -67,6 +74,17 @@ function collectStorageReferences() {
         .filter(item => item.matches.length > 0);
 }
 
+function collectIndexedDbOpenReferences() {
+    return listJsFiles(MODULES_DIR)
+        .map((filePath) => {
+            const relativePath = toRelative(filePath);
+            const content = fs.readFileSync(filePath, 'utf8');
+            const matches = [...content.matchAll(/\bindexedDB\.open\s*\(/g)];
+            return { relativePath, matches };
+        })
+        .filter(item => item.matches.length > 0);
+}
+
 function extractSection(content, startMarker, endMarker) {
     const start = content.indexOf(startMarker);
     if (start < 0) return '';
@@ -91,6 +109,17 @@ function main() {
             item.relativePath,
             '裸 localStorage/sessionStorage 只能出现在 storage-manager 或明确 legacy migration 读路径',
             ALLOWED_STORAGE_FILES.has(item.relativePath),
+            `${item.matches.length} references`
+        );
+    }
+
+    const indexedDbReferences = collectIndexedDbOpenReferences();
+    for (const item of indexedDbReferences) {
+        check(
+            results,
+            item.relativePath,
+            '裸 indexedDB.open() 只能出现在 cache-manager 或专用外观包 repository',
+            ALLOWED_INDEXED_DB_FILES.has(item.relativePath),
             `${item.matches.length} references`
         );
     }
@@ -146,6 +175,12 @@ function main() {
     const iconUploadService = read(REQUIRED_CACHE_FILES.iconUploadService);
     check(results, REQUIRED_CACHE_FILES.cacheManager, 'cache-manager 使用 IndexedDB 而非 localStorage', has(cacheManager, 'indexedDB.open(DB_NAME, DB_VERSION)') && !has(cacheManager, 'localStorage'));
     check(results, REQUIRED_CACHE_FILES.cacheManager, 'cache-manager 定义 templates/images/settings 三类可再生缓存 store', has(cacheManager, 'templates: STORE_TEMPLATES') && has(cacheManager, 'images: STORE_IMAGES') && has(cacheManager, 'settings: STORE_SETTINGS'));
+    const appearancePackRepository = read(REQUIRED_APPEARANCE_PACK_REPOSITORY);
+    check(results, REQUIRED_APPEARANCE_PACK_REPOSITORY, '外观包仓库使用独立 IndexedDB 且不写 settings', has(appearancePackRepository, "DB_NAME = 'yuzi-phone-appearance-packs'")
+        && has(appearancePackRepository, 'indexedDB.open(DB_NAME, DB_VERSION)')
+        && !has(appearancePackRepository, 'savePhoneSetting(')
+        && !has(appearancePackRepository, 'savePhoneSettingsPatch('));
+    check(results, REQUIRED_APPEARANCE_PACK_REPOSITORY, '外观包仓库定义数量、单包和总容量限制', has(appearancePackRepository, 'MAX_PACK_COUNT = 20') && has(appearancePackRepository, 'MAX_SINGLE_PACK_BYTES = 20 * 1024 * 1024') && has(appearancePackRepository, 'MAX_TOTAL_PACK_BYTES = 100 * 1024 * 1024'));
     check(results, REQUIRED_CACHE_FILES.backgroundService, '背景图片原始设置走 settings', has(backgroundService, "savePhoneSetting('backgroundImage', dataUrl);"));
     check(results, REQUIRED_CACHE_FILES.backgroundService, '背景图片大对象预览走 cache-manager', has(backgroundService, 'cacheSet(CACHE_STORES.images, cachedKey, dataUrl'));
     check(results, REQUIRED_CACHE_FILES.iconUploadService, '应用图标原始设置走 settings', has(iconUploadService, "savePhoneSetting('appIcons', nextIcons);"));

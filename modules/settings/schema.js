@@ -120,6 +120,7 @@ export const defaultSettings = {
     dockIconSize: 48,
     phoneToggleStyleSize: 44,
     phoneToggleStyleShape: 'rounded',
+    appearanceActivePackId: '',
     phoneToggleCoverImage: null,
     appearanceResourcePool: {
         wallpapers: [],
@@ -171,6 +172,7 @@ const validationRules = {
     phoneThemeMode: { type: 'string', enum: ['light', 'dark'] },
     backgroundImage: { type: 'string', nullable: true },
     phoneToggleCoverImage: { type: 'string', nullable: true },
+    appearanceActivePackId: { type: 'string', maxLength: 160 },
     appIcons: { type: 'object' },
     hiddenTableApps: { type: 'object' },
     beautifyActiveTemplateIdsSpecial: { type: 'object' },
@@ -623,6 +625,10 @@ export function validateSetting(key, value) {
                     value: defaultSettings[key],
                     error: `${key} 必须是 ${rule.enum.join(' | ')} 之一`,
                 };
+            }
+            const maxLength = Number.isFinite(Number(rule.maxLength)) ? Math.max(0, Math.floor(Number(rule.maxLength))) : 0;
+            if (maxLength > 0 && str.length > maxLength) {
+                return { valid: true, value: str.slice(0, maxLength) };
             }
             return { valid: true, value: str };
         }

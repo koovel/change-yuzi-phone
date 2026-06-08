@@ -397,7 +397,9 @@ export interface AppearanceFontOperationResult {
 
 export interface AppearanceResourcePackResult {
     success: boolean;
-    pack?: Record<string, any>;
+    pack?: Record<string, any> | null;
+    meta?: AppearancePackMeta | null;
+    stats?: AppearancePackRepositoryStats;
     imported?: number;
     assignedIcons?: number;
     poolIcons?: number;
@@ -406,6 +408,51 @@ export interface AppearanceResourcePackResult {
     warnings?: string[];
     errors?: string[];
     message?: string;
+}
+
+export interface AppearancePackMeta {
+    id: string;
+    name: string;
+    createdAt: number;
+    updatedAt: number;
+    sourceFileName?: string;
+    format: string;
+    schemaVersion: number;
+    wallpaperCount: number;
+    iconCount: number;
+    totalBytes: number;
+    previewWallpaperDataUrl?: string;
+}
+
+export interface AppearancePackRepositoryStats {
+    count: number;
+    totalBytes: number;
+    maxPackCount: number;
+    maxSinglePackBytes: number;
+    maxTotalPackBytes: number;
+}
+
+export interface AppearancePackListResult {
+    success: boolean;
+    message?: string;
+    packs: AppearancePackMeta[];
+    stats: AppearancePackRepositoryStats;
+    errorType?: string;
+    errorMessage?: string;
+}
+
+export interface AppearancePackGetResult extends AppearanceResourcePackResult {
+    meta?: AppearancePackMeta | null;
+}
+
+export interface AppearancePackDeleteResult {
+    success: boolean;
+    message?: string;
+    deletedId?: string;
+    stats?: AppearancePackRepositoryStats;
+    activeCleared?: boolean;
+    errorType?: string;
+    errorMessage?: string;
 }
 
 export interface AppearanceResourcePoolOperationResult {
@@ -428,6 +475,7 @@ export interface PhoneSettings {
     backgroundImage: string | null;
     appIcons: Record<string, string>;
     appearanceResourcePool: AppearanceResourcePoolSettings;
+    appearanceActivePackId: string;
     appearanceFontLibrary: AppearanceFontLibrarySettings;
     homeAppLabelColorMode: 'white' | 'black';
     phoneReadableTextScalePercent: number;
@@ -471,6 +519,7 @@ export interface ValidationRule {
     type: 'number' | 'string' | 'boolean' | 'object';
     min?: number;
     max?: number;
+    maxLength?: number;
     enum?: string[];
     nullable?: boolean;
 }
@@ -647,7 +696,7 @@ export interface SettingsModule {
     savePhoneSetting(key: string, value: any): boolean;
     savePhoneSettingsPatch(patch: Partial<PhoneSettings>): boolean;
     migrateLegacyPhoneSettings(): void;
-    flushPhoneSettingsSave(): void;
+    flushPhoneSettingsSave(): boolean;
     resetPhoneSettingsToDefault(): boolean;
     isMobileDevice(): boolean;
     getDefaultPhoneTogglePosition(): { x: number; y: number };
@@ -776,6 +825,13 @@ export interface SettingsAppearancePageService {
     renderHiddenTableAppsList: (listEl: Element | null) => (() => void) | void;
     renderIconUploadList: (listEl: Element | null, options?: Record<string, any>) => (() => void) | void;
     importAppearanceResourcePackFromData: (input: string | object, options?: Record<string, any>) => AppearanceResourcePackResult;
+    validateAppearanceResourcePack: (input: string | object) => AppearanceResourcePackResult;
+    applyAppearanceResourcePack: (packInput: string | object, options?: Record<string, any>) => AppearanceResourcePackResult;
+    listAppearancePacks: () => Promise<AppearancePackListResult>;
+    getAppearancePackRepositoryStats: () => Promise<{ success: boolean; message?: string; stats: AppearancePackRepositoryStats; errorType?: string; errorMessage?: string }>;
+    importAppearancePackToRepository: (fileText: string, meta?: Record<string, any>) => Promise<AppearanceResourcePackResult>;
+    applyAppearancePackFromRepository: (id: string) => Promise<AppearanceResourcePackResult | AppearancePackGetResult>;
+    deleteAppearancePackFromRepository: (id: string) => Promise<AppearancePackDeleteResult>;
     exportAppearanceResourcePack: (options?: Record<string, any>) => AppearanceResourcePackResult;
     clearAppearanceResourcePoolIcons: () => AppearanceResourcePoolOperationResult;
     getAppearanceFontLibraryViewModel: () => AppearanceFontLibraryViewModel;

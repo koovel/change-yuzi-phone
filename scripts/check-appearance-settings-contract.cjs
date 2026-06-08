@@ -63,6 +63,16 @@ function main() {
     check(results, 'facade', '继续暴露 getLayoutValue()', has(contents.facade, 'export function getLayoutValue('));
     check(results, 'facade', '暴露外观资源包导入服务', has(contents.facade, 'export function importAppearanceResourcePackFromData('));
     check(results, 'facade', '暴露外观资源包导出服务', has(contents.facade, 'export function exportAppearanceResourcePack('));
+    check(results, 'facade', '暴露美化包仓库 facade 服务', has(contents.facade, 'export async function listAppearancePacks(')
+        && has(contents.facade, 'export async function getAppearancePack(')
+        && has(contents.facade, 'export async function saveAppearancePack(')
+        && has(contents.facade, 'export async function deleteAppearancePack(')
+        && has(contents.facade, 'export async function getAppearancePackRepositoryStats(')
+        && has(contents.facade, 'export async function importAppearancePackToRepository(')
+        && has(contents.facade, 'export async function applyAppearancePackFromRepository(')
+        && has(contents.facade, 'export async function deleteAppearancePackFromRepository('));
+    check(results, 'facade', '删除当前仓库激活包只清 appearanceActivePackId', has(contents.facade, "savePhoneSettingsPatch({ appearanceActivePackId: '' })")
+        && !has(contents.facade, "backgroundImage: ''") && !has(contents.facade, 'appIcons: {}'));
     check(results, 'facade', '保留旧资源清理兼容 alias', has(contents.facade, 'export function clearAppearanceResourcePoolIcons('));
     check(results, 'facade', '暴露字体库视图和操作服务', has(contents.facade, 'export function getAppearanceFontLibraryViewModel(')
         && has(contents.facade, 'export function importAppearanceFontFile(')
@@ -252,6 +262,11 @@ function main() {
         && has(contents.settingsRender, 'renderIconUploadList,')
         && has(contents.settingsRender, 'importAppearanceResourcePackFromData,')
         && has(contents.settingsRender, 'exportAppearanceResourcePack,')
+        && has(contents.settingsRender, 'listAppearancePacks,')
+        && has(contents.settingsRender, 'importAppearancePackToRepository,')
+        && has(contents.settingsRender, 'applyAppearancePackFromRepository,')
+        && has(contents.settingsRender, 'deleteAppearancePackFromRepository,')
+        && has(contents.settingsRender, 'getAppearancePackRepositoryStats,')
         && has(contents.settingsRender, 'clearAppearanceResourcePoolIcons,')
         && has(contents.settingsRender, 'getAppearanceFontLibraryViewModel,')
         && has(contents.settingsRender, 'importAppearanceFontFile,')
@@ -272,6 +287,11 @@ function main() {
         && has(contents.pageRenderers, "'importAppearanceResourcePackFromData',")
         && has(contents.pageRenderers, "'exportAppearanceResourcePack',")
         && has(contents.pageRenderers, "'clearAppearanceResourcePoolIcons',")
+        && has(contents.pageRenderers, "'listAppearancePacks',")
+        && has(contents.pageRenderers, "'importAppearancePackToRepository',")
+        && has(contents.pageRenderers, "'applyAppearancePackFromRepository',")
+        && has(contents.pageRenderers, "'deleteAppearancePackFromRepository',")
+        && has(contents.pageRenderers, "'getAppearancePackRepositoryStats',")
         && has(contents.pageRenderers, "'getAppearanceFontLibraryViewModel',")
         && has(contents.pageRenderers, "'importAppearanceFontFile',")
         && has(contents.pageRenderers, "'importAppearanceFontCssUrl',")
@@ -288,6 +308,11 @@ function main() {
         && has(contents.contextBuilders, 'importAppearanceResourcePackFromData: services.appearance.importAppearanceResourcePackFromData')
         && has(contents.contextBuilders, 'exportAppearanceResourcePack: services.appearance.exportAppearanceResourcePack')
         && has(contents.contextBuilders, 'clearAppearanceResourcePoolIcons: services.appearance.clearAppearanceResourcePoolIcons')
+        && has(contents.contextBuilders, 'listAppearancePacks: services.appearance.listAppearancePacks')
+        && has(contents.contextBuilders, 'importAppearancePackToRepository: services.appearance.importAppearancePackToRepository')
+        && has(contents.contextBuilders, 'applyAppearancePackFromRepository: services.appearance.applyAppearancePackFromRepository')
+        && has(contents.contextBuilders, 'deleteAppearancePackFromRepository: services.appearance.deleteAppearancePackFromRepository')
+        && has(contents.contextBuilders, 'getAppearancePackRepositoryStats: services.appearance.getAppearancePackRepositoryStats')
         && has(contents.contextBuilders, 'getAppearanceFontLibraryViewModel: services.appearance.getAppearanceFontLibraryViewModel')
         && has(contents.contextBuilders, 'importAppearanceFontFile: services.appearance.importAppearanceFontFile')
         && has(contents.contextBuilders, 'importAppearanceFontCssUrl: services.appearance.importAppearanceFontCssUrl')
@@ -306,8 +331,11 @@ function main() {
         && has(contents.appearanceBuilder, 'id="phone-import-appearance-pack"')
         && has(contents.appearanceBuilder, 'id="phone-export-appearance-pack"')
         && has(contents.appearanceBuilder, 'id="phone-appearance-pack-file"')
-        && has(contents.appearanceBuilder, '图标会优先按名称匹配当前 App')
-        && has(contents.appearanceBuilder, '多余图标直接丢弃')
+        && has(contents.appearanceBuilder, '导入到仓库')
+        && has(contents.appearanceBuilder, 'id="phone-appearance-pack-repository"')
+        && has(contents.appearanceBuilder, 'id="phone-appearance-pack-repository-list"')
+        && has(contents.appearanceBuilder, '导入会先保存到美化包仓库')
+        && has(contents.appearanceBuilder, '删除仓库条目不会清空当前已应用的背景和图标')
         && !has(contents.appearanceBuilder, '带 slotKey 的图标优先回到对应 App'));
     check(results, 'appearanceBuilder', '外观页不再暴露资源池图标清理按钮或旧资源池文案', has(contents.appearanceBuilder, '自定义图标')
         && !has(contents.appearanceBuilder, 'id="phone-clear-icon-resource-pool"')
@@ -344,10 +372,36 @@ function main() {
     check(results, 'appearancePage', '外观页绑定资源包导入导出并托管 cleanup', has(contents.appearancePage, 'function bindAppearanceResourcePackActions(')
         && has(contents.appearancePage, "container.querySelector('#phone-import-appearance-pack')")
         && has(contents.appearancePage, "container.querySelector('#phone-export-appearance-pack')")
-        && has(contents.appearancePage, 'appearancePageService.importAppearanceResourcePackFromData(content)')
+        && has(contents.appearancePage, 'renderAppearancePackRepositoryList')
+        && has(contents.appearancePage, 'appearancePageService.listAppearancePacks()')
+        && has(contents.appearancePage, 'appearancePageService.importAppearancePackToRepository')
+        && has(contents.appearancePage, 'appearancePageService.applyAppearancePackFromRepository')
+        && has(contents.appearancePage, 'appearancePageService.deleteAppearancePackFromRepository')
+        && has(contents.appearancePage, 'data-action="apply-appearance-pack"')
+        && has(contents.appearancePage, 'data-action="delete-appearance-pack"')
+        && has(contents.appearancePage, 'showConfirmDialog')
+        && has(contents.appearancePage, 'phone-appearance-pack-select')
+        && has(contents.appearancePage, 'phone-settings-select')
+        && has(contents.appearancePage, 'cachedRepositoryListResult')
+        && has(contents.appearancePage, 'appearanceActivePackId')
+        && !has(contents.appearancePage, 'appearancePageService.importAppearanceResourcePackFromData(content)')
+        && !has(contents.appearancePage, 'window.confirm')
+        && !has(contents.appearancePage, 'indexedDB')
         && has(contents.appearancePage, 'appearancePageService.exportAppearanceResourcePack({')
         && has(contents.appearancePage, 'downloadTextFile(')
         && has(contents.appearancePage, 'runtime.registerCleanup(bindAppearanceResourcePackActions(ctx, runtime));'));
+    check(results, 'appearancePage', '仓库下拉交互同步选中包、按钮目标和 active 禁用状态', has(contents.appearancePage, "event.target?.closest?.('#phone-appearance-pack-select')")
+        && has(contents.appearancePage, 'selectEl.value,')
+        && has(contents.appearancePage, 'data-pack-id="${escapeHtmlAttr(selectedPackIdValue)}"')
+        && has(contents.appearancePage, "${selectedIsActive ? 'disabled' : ''}")
+        && has(contents.appearancePage, "const label = `${title}${activeSuffix}`;")
+        && !has(contents.appearancePage, "const label = `${title}｜${getRepositoryPackMetaText(pack)}${activeSuffix}`;"));
+    check(results, 'appearancePage', '仓库缓存仅用于预渲染并在结构变化后失效', has(contents.appearancePage, 'if (cachedRepositoryListResult) {')
+        && has(contents.appearancePage, 'cachedRepositoryListResult = result;')
+        && has(contents.appearancePage, 'cachedRepositoryListResult = failureResult;')
+        && has(contents.appearancePage, 'const result = await appearancePageService.listAppearancePacks();')
+        && has(contents.appearancePage, 'cachedRepositoryListResult = null;')
+        && has(contents.appearancePage, 'Repository structure changes must invalidate it before refreshRepositoryList()'));
     check(results, 'appearancePage', '外观页不再绑定资源池清理按钮', !has(contents.appearancePage, "container.querySelector('#phone-clear-icon-resource-pool')")
         && !has(contents.appearancePage, 'appearancePageService.clearAppearanceResourcePoolIcons()'));
     check(results, 'appearancePage', '资源包导入重渲染保留外观页滚动位置并处理异步生命周期', has(contents.appearancePage, 'function bindAppearanceResourcePackActions(')
@@ -394,6 +448,12 @@ function main() {
         && has(contents.types, 'exportAppearanceResourcePack: (options?: Record<string, any>)')
         && has(contents.types, 'clearAppearanceResourcePoolIcons: () => AppearanceResourcePoolOperationResult')
         && has(contents.types, 'slotKey?: string;')
+        && has(contents.types, 'appearanceActivePackId: string;')
+        && has(contents.types, 'interface AppearancePackMeta')
+        && has(contents.types, 'interface AppearancePackRepositoryStats')
+        && has(contents.types, 'listAppearancePacks: () => Promise<AppearancePackListResult>;')
+        && has(contents.types, 'importAppearancePackToRepository: (fileText: string, meta?: Record<string, any>) => Promise<AppearanceResourcePackResult>;')
+        && has(contents.types, 'deleteAppearancePackFromRepository: (id: string) => Promise<AppearancePackDeleteResult>;')
         && has(contents.types, 'discardedIcons?: number;')
         && has(contents.types, 'unmatchedIcons?: number;'));
     check(results, 'types', 'types.d.ts 声明字体库设置、视图模型与服务', has(contents.types, 'interface AppearanceFontLibrarySettings')
@@ -412,7 +472,8 @@ function main() {
         && has(contents.types, 'getReadableTextScalePercentValue: () => number;')
         && has(contents.types, 'applyReadableTextScale: (root?: Element | null, percent?: number) => void;')
         && has(contents.types, 'setupReadableTextScaleSettings: (container: HTMLElement) => (() => void) | void;'));
-    check(results, 'types', 'types.d.ts 声明 savePhoneSettingsPatch() 返回保存结果布尔值', has(contents.types, 'savePhoneSettingsPatch(patch: Partial<PhoneSettings>): boolean;'));
+    check(results, 'types', 'types.d.ts 声明 settings 保存与 flush 返回保存触发结果布尔值', has(contents.types, 'savePhoneSettingsPatch(patch: Partial<PhoneSettings>): boolean;')
+        && has(contents.types, 'flushPhoneSettingsSave(): boolean;'));
     check(results, 'schema', 'settings schema 声明首页 App 名称颜色默认值与枚举校验', has(contents.schema, "homeAppLabelColorMode: 'white'") && has(contents.schema, "homeAppLabelColorMode: { type: 'string', enum: ['white', 'black'] }"));
     check(results, 'homeRender', 'Home 渲染通过受控枚举映射首页标签颜色', has(contents.homeRender, 'function resolveHomeAppLabelColorTokens(mode)') && has(contents.homeRender, 'phoneSettings.homeAppLabelColorMode'));
 

@@ -548,6 +548,16 @@ Appearance 页面服务统一由 [`appearance-settings.js`](../modules/settings-
 5. 导入使用替换语义写入 [`appIcons`](../modules/settings/schema.js:1)：分配成功的图标写入当前 slot 的真实 key，包内多余图标直接丢弃，包内图标不足的位置不保留旧图标，首页自然回退默认文字图标。
 6. 导入保存使用 [`savePhoneSettingsPatch()`](../modules/settings/persistence.js:161) 的布尔返回值判断是否成功；失败时必须回滚旧 [`backgroundImage`](../modules/settings/schema.js:1)、[`appIcons`](../modules/settings/schema.js:1) 与 legacy [`appearanceResourcePool`](../modules/settings/schema.js:1)。
 
+美化包仓库链路：
+
+1. settings 只保存轻量激活标记 [`appearanceActivePackId`](../modules/settings/schema.js:1)，不保存多个完整外观包；该字段由 schema 归一化为最长 160 字符的字符串。
+2. 本地仓库由 [`appearance-pack-repository.js`](../modules/settings-app/services/appearance-settings/appearance-pack-repository.js:1) 封装，使用独立 IndexedDB 数据库 `yuzi-phone-appearance-packs`、object store `appearancePacks`、`keyPath: 'id'`。
+3. 仓库容量边界固定为最多 20 个包、单包 20MB、总量 100MB；写入前会校验外观包格式、数量、单包容量和总容量，IndexedDB quota/access/unknown 错误会被结构化返回。
+4. [`listAppearancePacks()`](../modules/settings-app/services/appearance-settings/appearance-pack-repository.js:212) 只返回 metadata，不把完整 `pack` 复制给 UI；完整包只在应用时通过 [`getAppearancePack()`](../modules/settings-app/services/appearance-settings/appearance-pack-repository.js:227) 读取。
+5. 页面只能通过 [`appearance-settings.js`](../modules/settings-app/services/appearance-settings.js:1) facade 暴露的 `importAppearancePackToRepository()`、`listAppearancePacks()`、`applyAppearancePackFromRepository()` 与 `deleteAppearancePackFromRepository()` 操作仓库，不允许页面裸用 IndexedDB。
+6. 导入 JSON 美化包只保存到仓库，不自动应用；应用仓库包时才写入当前 [`backgroundImage`](../modules/settings/schema.js:1)、[`appIcons`](../modules/settings/schema.js:1)，并更新 `appearanceActivePackId`。
+7. 删除当前激活仓库包只清空 `appearanceActivePackId`，不清空当前已应用的 `backgroundImage` 或 `appIcons`。删除备份不等于撤销当前外观，这条边界别写反。
+
 图片上传与裁剪链路：
 
 1. 背景图、自定义 App 图标、悬浮按钮封面等图片上传入口必须统一走 [`media-upload.js`](../modules/settings-app/services/media-upload.js:1) façade；页面和业务服务不得绕过 façade 直接拼接 FileReader、canvas 或裁剪 DOM。
@@ -1169,6 +1179,8 @@ graph TD
 - 新增 store 需要更新 [`openDb()`](../modules/cache-manager.js:12) 的 upgrade 逻辑和 [`CACHE_STORES`](../modules/cache-manager.js:79)。
 - 写入大对象必须先确认业务预算，例如背景图和图标已有 [`STORAGE_BUDGETS`](../modules/settings-app/constants.js:11)。
 - 读取缓存必须能接受 `undefined` 并降级渲染；缓存不存在不是错误。
+- 外观美化包仓库不是 cache-manager 的 store；[`appearance-pack-repository.js`](../modules/settings-app/services/appearance-settings/appearance-pack-repository.js:1) 使用独立 IndexedDB 保存用户导入的持久本地资产，不能被可再生缓存清理语义覆盖。
+- 裸 `indexedDB.open()` 目前只允许出现在 [`cache-manager.js`](../modules/cache-manager.js:1) 与 [`appearance-pack-repository.js`](../modules/settings-app/services/appearance-settings/appearance-pack-repository.js:1)；页面层和普通业务模块新增 IndexedDB 入口必须先扩展存储边界契约。
 
 ### 7.4 Window 交互：拖拽、缩放与 runtime 重建
 
@@ -1269,6 +1281,7 @@ graph TD
 - 新增 AI 输出格式：是否同步解析器、提示词、表格字段、UI 展示。
 - 新增 Slash 命令：是否登记 [`SLASH_COMMAND_DEFINITIONS`](../modules/slash-commands/command-registration.js:6)，并通过 [`registerPhoneSlashCommandHandlers()`](../modules/bootstrap/command-registry.js:14) 注入业务 handler。
 - 新增缓存：是否选择正确存储层，settings、localStorage manager、IndexedDB cache 的事实源边界是否清楚。
+- 新增或修改持久 IndexedDB 用户资产仓库：是否有专用 repository、容量限制、页面层禁用裸 IndexedDB，并确认 [`check-p1-storage-boundary-contract.cjs`](../scripts/check-p1-storage-boundary-contract.cjs:1) 与对应业务契约脚本，例如 [`check-appearance-pack-repository-contract.cjs`](../scripts/check-appearance-pack-repository-contract.cjs:1)，已在 `npm run check` 中通过。
 - 新增窗口交互：是否使用 [`getWindowInteractionRuntime()`](../modules/window/runtime.js:8)，并确认销毁后可重建。
 - 新增发布前改动：是否执行 [`npm run lint`](../package.json:13)、[`npm run check`](../package.json:11)、[`npm run check:ci`](../package.json:12)、[`npm run build`](../package.json:8)，并确认 [`manifest.json`](../manifest.json:6) 指向的 [`dist/yuzi-phone.bundle.js`](../dist/yuzi-phone.bundle.js) 与 [`dist/yuzi-phone.bundle.css`](../dist/yuzi-phone.bundle.css) 已由构建产物更新。源码、样式、版本字段或 loader 变化后，`dist/` 如有差异必须纳入交付。
 - 新增文档事实：是否放入 [`docs/`](README.md) 或 [`docs/reference/`](reference)，并确认所有相对链接可跳转；未实施计划只能放入 [`plans/`](../plans)。

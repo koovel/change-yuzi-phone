@@ -407,6 +407,26 @@ async function testSharedNormalizersAreExported() {
     assert.equal(typeof schema.normalizeAppearanceFontLibrarySettings, 'function');
 }
 
+async function testAppearanceActivePackIdNormalization() {
+    const { validateSetting, validateSettings } = await loadSchema();
+
+    const nullResult = validateSetting('appearanceActivePackId', null);
+    assert.equal(nullResult.valid, true);
+    assert.equal(nullResult.value, '');
+
+    const normalResult = validateSetting('appearanceActivePackId', '  appearance_pack_123  ');
+    assert.equal(normalResult.valid, true);
+    assert.equal(normalResult.value, 'appearance_pack_123');
+
+    const longId = 'a'.repeat(200);
+    const longResult = validateSetting('appearanceActivePackId', longId);
+    assert.equal(longResult.valid, true);
+    assert.equal(longResult.value.length, 160);
+
+    const settings = validateSettings({});
+    assert.equal(settings.appearanceActivePackId, '');
+}
+
 async function main() {
     const tests = [
         ['phoneChat 字段级归一化覆盖错误数字和未知字段', testPhoneChatDeepNormalization],
@@ -415,6 +435,7 @@ async function main() {
         ['appearanceResourcePool 字段级归一化覆盖坏图片、重复资源和未知字段', testAppearanceResourcePoolDeepNormalization],
         ['appearanceFontLibrary 字段级归一化覆盖坏字体、重复字体和回退默认', testAppearanceFontLibraryDeepNormalization],
         ['settings schema 暴露共享嵌套 normalizer', testSharedNormalizersAreExported],
+        ['appearanceActivePackId 默认值与长度限制校验', testAppearanceActivePackIdNormalization],
     ];
 
     for (const [, run] of tests) {

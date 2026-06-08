@@ -44,7 +44,7 @@ async function main() {
     assert.equal(timers.size, 2, 'schedule 必须创建 debounce 与 maxWait timer');
     const [debounceTimer, maxWaitTimer] = [...timers.values()];
 
-    tools.flushPhoneSettingsSave();
+    assert.equal(tools.flushPhoneSettingsSave(), true, 'flush 成功触发宿主保存请求时必须返回 true');
     assert.equal(saveCalls, 1, 'flush 应触发一次宿主保存请求');
     assert.equal(debounceTimer.cleared, true, 'flush 必须 clear debounce timer');
     assert.equal(maxWaitTimer.cleared, true, 'flush 必须 clear maxWait timer');
@@ -61,7 +61,7 @@ async function main() {
         clone: value => ({ ...value }),
         showNotification: () => {},
     });
-    unavailableTools.flushPhoneSettingsSave();
+    assert.equal(unavailableTools.flushPhoneSettingsSave(), false, 'flush 无法触发宿主保存请求时必须返回 false');
 
     console.log('[settings-flush-timer-behavior-check] 检查通过');
 }

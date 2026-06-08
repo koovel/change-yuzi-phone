@@ -465,12 +465,24 @@ export function exportAppearanceResourcePack(options = {}) {
     };
 }
 
-export function importAppearanceResourcePackFromData(input) {
-    const warnings = [];
+function createAppearancePackFailure(message, errors = [], warnings = [], extra = {}) {
+    return {
+        success: false,
+        imported: 0,
+        assignedIcons: 0,
+        poolIcons: 0,
+        discardedIcons: 0,
+        unmatchedIcons: 0,
+        warnings,
+        errors,
+        message,
+        ...extra,
+    };
+}
+
+export function validateAppearanceResourcePack(input) {
     try {
         const pack = validatePack(parsePackInput(input));
-        const currentSettings = getPhoneSettings();
-        const iconSlots = collectAppearanceIconSlots();
         const packIcons = [
             ...pack.icons,
             ...dedupeResourcesByContent(pack.iconPool),
@@ -478,117 +490,122 @@ export function importAppearanceResourcePackFromData(input) {
         const wallpaper = pack.wallpapers[0] || null;
 
         if (wallpaper && wallpaper.bytes > STORAGE_BUDGETS.backgroundImageBytes) {
-            return {
-                success: false,
-                imported: 0,
-                assignedIcons: 0,
-                poolIcons: 0,
-                discardedIcons: 0,
-                unmatchedIcons: 0,
-                warnings,
-                errors: ['背景图超过当前背景容量上限，未导入'],
-                message: '导入失败：背景图过大',
-            };
+            return createAppearancePackFailure('导入失败：背景图过大', ['背景图超过当前背景容量上限，未导入']);
         }
 
         const oversizedIcon = packIcons.find(icon => icon.bytes > STORAGE_BUDGETS.appIconBytes);
         if (oversizedIcon) {
-            return {
-                success: false,
-                imported: 0,
-                assignedIcons: 0,
-                poolIcons: 0,
-                discardedIcons: 0,
-                unmatchedIcons: 0,
-                warnings,
-                errors: [`图标“${oversizedIcon.name}”超过单图容量上限，未导入`],
-                message: '导入失败：图标过大',
-            };
+            return createAppearancePackFailure('导入失败：图标过大', [`图标“${oversizedIcon.name}”超过单图容量上限，未导入`]);
         }
-
-        const assignment = buildReplacingIconAssignment({
-            iconSlots,
-            packIcons,
-        });
-        const nextTotalIconBytes = estimateIconsStorageBytes(assignment.nextIcons);
-
-        if (nextTotalIconBytes > STORAGE_BUDGETS.appIconsTotalBytes) {
-            return {
-                success: false,
-                imported: 0,
-                assignedIcons: 0,
-                poolIcons: 0,
-                discardedIcons: assignment.discarded.length,
-                unmatchedIcons: assignment.discarded.length,
-                warnings,
-                errors: ['导入后图标总容量超过上限，未导入'],
-                message: '导入失败：图标总容量超限',
-            };
-        }
-
-        if (iconSlots.length === 0 && packIcons.length > 0) {
-            warnings.push('当前没有可分配图标位，图标已丢弃');
-        } else if (assignment.discarded.length > 0) {
-            warnings.push(`有 ${assignment.discarded.length} 个图标超过当前图标位数量，已丢弃`);
-        }
-        if (assignment.scoreMatchedIcons.length > 0) {
-            warnings.push(`有 ${assignment.scoreMatchedIcons.length} 个图标通过名称相似度匹配`);
-        }
-        if (assignment.sequentialFilledIcons.length > 0) {
-            warnings.push(`有 ${assignment.sequentialFilledIcons.length} 个图标未找到名称相似项，已按剩余图标位顺序补位`);
-        }
-
-        const backup = {
-            backgroundImage: currentSettings.backgroundImage || null,
-            appIcons: { ...(currentSettings.appIcons || {}) },
-            appearanceResourcePool: currentSettings.appearanceResourcePool || createEmptyAppearanceResourcePool(),
-        };
-        const patch = {
-            backgroundImage: wallpaper ? wallpaper.dataUrl : backup.backgroundImage,
-            appIcons: assignment.nextIcons,
-            appearanceResourcePool: createEmptyAppearanceResourcePool(),
-        };
-
-        const saved = savePhoneSettingsPatch(patch);
-        if (!saved) {
-            savePhoneSettingsPatch(backup);
-            flushPhoneSettingsSave();
-            return {
-                success: false,
-                imported: 0,
-                assignedIcons: 0,
-                poolIcons: 0,
-                discardedIcons: assignment.discarded.length,
-                unmatchedIcons: assignment.discarded.length,
-                warnings,
-                errors: ['设置保存失败，已回滚'],
-                message: '导入失败：设置保存失败',
-            };
-        }
-        flushPhoneSettingsSave();
 
         return {
             success: true,
-            imported: (wallpaper ? 1 : 0) + assignment.assigned.length,
-            assignedIcons: assignment.assigned.length,
-            poolIcons: 0,
-            discardedIcons: assignment.discarded.length,
-            unmatchedIcons: assignment.discarded.length,
-            warnings,
-            errors: [],
-            message: `导入完成：背景 ${wallpaper ? 1 : 0}，分配图标 ${assignment.assigned.length}，丢弃多余图标 ${assignment.discarded.length}`,
-        };
-    } catch (error) {
-        return {
-            success: false,
+            pack,
             imported: 0,
             assignedIcons: 0,
             poolIcons: 0,
             discardedIcons: 0,
             unmatchedIcons: 0,
-            warnings,
-            errors: [error?.message || '未知错误'],
-            message: `导入失败：${error?.message || '未知错误'}`,
+            warnings: [],
+            errors: [],
+            message: '外观包校验通过',
         };
+    } catch (error) {
+        const message = error?.message || '未知错误';
+        return createAppearancePackFailure(`导入失败：${message}`, [message]);
     }
+}
+
+export function applyAppearanceResourcePack(packInput, options = {}) {
+    const warnings = [];
+    const validationResult = validateAppearanceResourcePack(packInput);
+    if (!validationResult.success || !validationResult.pack) {
+        return validationResult;
+    }
+
+    const pack = validationResult.pack;
+    const currentSettings = getPhoneSettings();
+    const iconSlots = collectAppearanceIconSlots();
+    const packIcons = [
+        ...pack.icons,
+        ...dedupeResourcesByContent(pack.iconPool),
+    ];
+    const wallpaper = pack.wallpapers[0] || null;
+    const assignment = buildReplacingIconAssignment({
+        iconSlots,
+        packIcons,
+    });
+    const nextTotalIconBytes = estimateIconsStorageBytes(assignment.nextIcons);
+
+    if (nextTotalIconBytes > STORAGE_BUDGETS.appIconsTotalBytes) {
+        return createAppearancePackFailure(
+            '导入失败：图标总容量超限',
+            ['导入后图标总容量超过上限，未导入'],
+            warnings,
+            {
+                discardedIcons: assignment.discarded.length,
+                unmatchedIcons: assignment.discarded.length,
+            },
+        );
+    }
+
+    if (iconSlots.length === 0 && packIcons.length > 0) {
+        warnings.push('当前没有可分配图标位，图标已丢弃');
+    } else if (assignment.discarded.length > 0) {
+        warnings.push(`有 ${assignment.discarded.length} 个图标超过当前图标位数量，已丢弃`);
+    }
+    if (assignment.scoreMatchedIcons.length > 0) {
+        warnings.push(`有 ${assignment.scoreMatchedIcons.length} 个图标通过名称相似度匹配`);
+    }
+    if (assignment.sequentialFilledIcons.length > 0) {
+        warnings.push(`有 ${assignment.sequentialFilledIcons.length} 个图标未找到名称相似项，已按剩余图标位顺序补位`);
+    }
+
+    const backup = {
+        backgroundImage: currentSettings.backgroundImage || null,
+        appIcons: { ...(currentSettings.appIcons || {}) },
+        appearanceResourcePool: currentSettings.appearanceResourcePool || createEmptyAppearanceResourcePool(),
+        appearanceActivePackId: safeString(currentSettings.appearanceActivePackId, 160),
+    };
+    const patch = {
+        backgroundImage: wallpaper ? wallpaper.dataUrl : backup.backgroundImage,
+        appIcons: assignment.nextIcons,
+        appearanceResourcePool: createEmptyAppearanceResourcePool(),
+    };
+    const activePackId = safeString(options.activePackId, 160);
+    if (activePackId && options.markActivePack !== false) {
+        patch.appearanceActivePackId = activePackId;
+    }
+
+    const saved = savePhoneSettingsPatch(patch);
+    if (!saved) {
+        savePhoneSettingsPatch(backup);
+        flushPhoneSettingsSave();
+        return createAppearancePackFailure(
+            '导入失败：设置保存失败',
+            ['设置保存失败，已回滚'],
+            warnings,
+            {
+                discardedIcons: assignment.discarded.length,
+                unmatchedIcons: assignment.discarded.length,
+            },
+        );
+    }
+    flushPhoneSettingsSave();
+
+    return {
+        success: true,
+        imported: (wallpaper ? 1 : 0) + assignment.assigned.length,
+        assignedIcons: assignment.assigned.length,
+        poolIcons: 0,
+        discardedIcons: assignment.discarded.length,
+        unmatchedIcons: assignment.discarded.length,
+        warnings,
+        errors: [],
+        message: `导入完成：背景 ${wallpaper ? 1 : 0}，分配图标 ${assignment.assigned.length}，丢弃多余图标 ${assignment.discarded.length}`,
+    };
+}
+
+export function importAppearanceResourcePackFromData(input) {
+    return applyAppearanceResourcePack(input, { markActivePack: false });
 }

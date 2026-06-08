@@ -86,14 +86,17 @@ export function buildAppearancePageHtml({
                 <div class="phone-settings-action phone-settings-action-wrap">
                     <button type="button" class="phone-settings-btn" id="phone-import-appearance-pack">
                         ${PHONE_ICONS.upload}
-                        <span>导入美化包</span>
+                        <span>导入到仓库</span>
                     </button>
                     <button type="button" class="phone-settings-btn" id="phone-export-appearance-pack">导出当前外观</button>
                     <input type="file" id="phone-appearance-pack-file" accept="application/json,.json" hidden>
                 </div>
             `,
             bodyHtml: `
-                <div class="phone-settings-note">导入会替换当前自定义图标：图标会优先按名称匹配当前 App，剩余图标按当前图标位顺序补位；多余图标直接丢弃，不足位置回退默认文字图标。</div>
+                <div class="phone-settings-note">导入会先保存到美化包仓库，不会自动替换当前外观。删除仓库条目不会清空当前已应用的背景和图标。</div>
+                <div id="phone-appearance-pack-repository" class="phone-appearance-pack-repository">
+                    <div id="phone-appearance-pack-repository-list" class="phone-appearance-pack-repository-list" aria-live="polite"></div>
+                </div>
             `,
         })}
 

@@ -9,10 +9,20 @@ import {
     setupIconLayoutSettings as setupIconLayoutSettingsImpl,
 } from './appearance-settings/layout-settings.js';
 import {
+    applyAppearanceResourcePack as applyAppearanceResourcePackImpl,
     clearAppearanceResourcePoolIcons as clearAppearanceResourcePoolIconsImpl,
     exportAppearanceResourcePack as exportAppearanceResourcePackImpl,
     importAppearanceResourcePackFromData as importAppearanceResourcePackFromDataImpl,
+    validateAppearanceResourcePack as validateAppearanceResourcePackImpl,
 } from './appearance-settings/resource-pack-service.js';
+import {
+    deleteAppearancePack as deleteAppearancePackImpl,
+    getAppearancePack as getAppearancePackImpl,
+    getAppearancePackRepositoryStats as getAppearancePackRepositoryStatsImpl,
+    listAppearancePacks as listAppearancePacksImpl,
+    saveAppearancePack as saveAppearancePackImpl,
+} from './appearance-settings/appearance-pack-repository.js';
+import { flushPhoneSettingsSave, getPhoneSettings, savePhoneSettingsPatch } from '../../settings.js';
 import {
     applyAppearanceFontLibrary as applyAppearanceFontLibraryImpl,
     deleteAppearanceFont as deleteAppearanceFontImpl,
@@ -60,6 +70,93 @@ export function setupIconLayoutSettings(container) {
 
 export function importAppearanceResourcePackFromData(input, options = {}) {
     return importAppearanceResourcePackFromDataImpl(input, options);
+}
+
+export function validateAppearanceResourcePack(input) {
+    return validateAppearanceResourcePackImpl(input);
+}
+
+export function applyAppearanceResourcePack(packInput, options = {}) {
+    return applyAppearanceResourcePackImpl(packInput, options);
+}
+
+export async function listAppearancePacks() {
+    return await listAppearancePacksImpl();
+}
+
+export async function getAppearancePack(id) {
+    return await getAppearancePackImpl(id);
+}
+
+export async function saveAppearancePack(packInput, options = {}) {
+    return await saveAppearancePackImpl(packInput, options);
+}
+
+export async function deleteAppearancePack(id) {
+    return await deleteAppearancePackImpl(id);
+}
+
+export async function getAppearancePackRepositoryStats() {
+    return await getAppearancePackRepositoryStatsImpl();
+}
+
+export async function importAppearancePackToRepository(fileText, meta = {}) {
+    return await saveAppearancePackImpl(fileText, meta);
+}
+
+export async function applyAppearancePackFromRepository(id) {
+    const entryResult = await getAppearancePackImpl(id);
+    if (!entryResult?.success || !entryResult.pack) {
+        return entryResult;
+    }
+    return applyAppearanceResourcePackImpl(entryResult.pack, { activePackId: entryResult.meta?.id || id });
+}
+
+export async function deleteAppearancePackFromRepository(id) {
+    const settings = getPhoneSettings();
+    const activePackId = String(settings?.appearanceActivePackId || '').trim();
+    const targetPackId = String(id || '').trim();
+
+    if (activePackId && activePackId === targetPackId) {
+        const clearResult = savePhoneSettingsPatch({ appearanceActivePackId: '' });
+        if (!clearResult) {
+            return {
+                success: false,
+                message: '删除失败：当前激活标记清理失败，仓库包未删除；当前外观未被清空',
+                deletedId: '',
+                activeCleared: false,
+            };
+        }
+        const flushResult = flushPhoneSettingsSave();
+        if (!flushResult) {
+            savePhoneSettingsPatch({ appearanceActivePackId: activePackId });
+            flushPhoneSettingsSave();
+            return {
+                success: false,
+                message: '删除失败：当前激活标记无法持久化，仓库包未删除；当前外观未被清空',
+                deletedId: '',
+                activeCleared: false,
+            };
+        }
+
+        const deleteResult = await deleteAppearancePackImpl(id);
+        if (!deleteResult?.success) {
+            savePhoneSettingsPatch({ appearanceActivePackId: activePackId });
+            const restoreFlushResult = flushPhoneSettingsSave();
+            if (!restoreFlushResult) {
+                return { ...deleteResult, message: `${deleteResult.message || '删除失败'}；当前激活标记恢复保存失败`, activeCleared: false };
+            }
+            return { ...deleteResult, activeCleared: false };
+        }
+        return { ...deleteResult, activeCleared: true };
+    }
+
+    const deleteResult = await deleteAppearancePackImpl(id);
+    if (!deleteResult?.success) {
+        return deleteResult;
+    }
+
+    return { ...deleteResult, activeCleared: false };
 }
 
 export function exportAppearanceResourcePack(options = {}) {

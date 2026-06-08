@@ -103,7 +103,7 @@ export function createSettingsPersistenceTools(options = {}) {
                 action: 'persist.flush',
                 message: '无法触发宿主设置保存请求：上下文不可用',
             });
-            return;
+            return false;
         }
 
         try {
@@ -112,6 +112,7 @@ export function createSettingsPersistenceTools(options = {}) {
                 action: 'persist.flush',
                 message: '已清理本扩展待保存任务并触发宿主设置保存请求',
             });
+            return true;
         } catch (error) {
             logger.error({
                 action: 'persist.flush',
@@ -120,6 +121,7 @@ export function createSettingsPersistenceTools(options = {}) {
             });
             showNotification?.('保存设置失败', 'error');
         }
+        return false;
     }
 
     function savePhoneSetting(key, value) {
