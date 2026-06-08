@@ -78,6 +78,13 @@ export function renderMessageTable(container, context, deps = {}) {
         mediaPreview: null,
         rowsData: Array.isArray(rows) ? rows.map(row => (Array.isArray(row) ? [...row] : row)) : [],
         draftByConversation: {},
+        composeMediaByConversation: {},
+        attachmentDialog: {
+            visible: false,
+            conversationId: null,
+            kind: null,
+            draftValue: '',
+        },
         sending: false,
         sendPhase: 'idle',
         activeSendRequest: null,

@@ -58,6 +58,8 @@ export function bindGenericDetailEditController(options = {}) {
         toLockColIndex,
         render,
         restoreListScroll,
+        captureDetailScroll,
+        restoreDetailScroll,
         renderKeepScroll,
         getTableLockState,
         isTableRowLocked,
@@ -257,9 +259,15 @@ export function bindGenericDetailEditController(options = {}) {
             state.setEditMode(false);
         }
 
+        if (typeof captureDetailScroll === 'function') {
+            captureDetailScroll();
+        }
         state.set('rowIndex', targetRowIndex);
         if (typeof render === 'function') {
             render();
+        }
+        if (typeof restoreDetailScroll === 'function') {
+            restoreDetailScroll();
         }
     }
 

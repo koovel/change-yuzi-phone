@@ -16,7 +16,7 @@ export function buildFusionPageHtml() {
                     <div class="phone-fusion-import-card" id="phone-source-a">
                         ${PHONE_ICONS.upload}
                         <span>模板 A 来源</span>
-                        <button type="button" class="phone-fusion-source-action" id="phone-use-builtin-a">使用内置小剧场模板</button>
+                        <button type="button" class="phone-fusion-source-action" id="phone-use-builtin-a">使用内置小剧场+纪要表</button>
                         <button type="button" class="phone-fusion-source-action" id="phone-import-a">导入本地 JSON</button>
                         <span class="phone-fusion-file-name" id="phone-fname-a"></span>
                     </div>

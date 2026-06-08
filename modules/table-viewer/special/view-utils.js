@@ -2,6 +2,33 @@ import { escapeHtml } from '../../utils/dom-escape.js';
 
 export function buildConversations(rows, readSpecialField, styleOptions = {}) {
     const conversations = {};
+    const readStaticField = typeof readSpecialField?.readStaticField === 'function'
+        ? (row, fieldKey, fallback = '') => readSpecialField.readStaticField(row, fieldKey, fallback)
+        : readSpecialField;
+
+    const buildMessageSortKey = (time, rowIndex) => {
+        const timestamp = toTimestamp(time);
+        return {
+            timestamp,
+            hasTimestamp: timestamp > 0,
+            rowIndex: Number.isInteger(rowIndex) ? rowIndex : -1,
+        };
+    };
+
+    const compareMessageSortKey = (left, right) => {
+        const leftKey = left || buildMessageSortKey('', -1);
+        const rightKey = right || buildMessageSortKey('', -1);
+        if (leftKey.hasTimestamp && rightKey.hasTimestamp && leftKey.timestamp !== rightKey.timestamp) {
+            return leftKey.timestamp - rightKey.timestamp;
+        }
+        if (leftKey.hasTimestamp !== rightKey.hasTimestamp) {
+            return leftKey.hasTimestamp ? 1 : -1;
+        }
+        if (leftKey.timestamp !== rightKey.timestamp) {
+            return leftKey.timestamp - rightKey.timestamp;
+        }
+        return leftKey.rowIndex - rightKey.rowIndex;
+    };
 
     rows.forEach((row, rowIndex) => {
         const id = String(readSpecialField(row, 'threadId', `default_thread_${rowIndex + 1}`) || `default_thread_${rowIndex + 1}`)
@@ -9,9 +36,10 @@ export function buildConversations(rows, readSpecialField, styleOptions = {}) {
 
         const sender = normalizeSenderName(readSpecialField(row, 'sender', ''));
         const content = readSpecialField(row, 'content', '') || '...';
-        const time = readSpecialField(row, 'sentAt', '');
+        const time = readStaticField(row, 'sentAt', '');
         const threadTitle = String(readSpecialField(row, 'threadTitle', '') || '').trim();
         const threadSubtitle = String(readSpecialField(row, 'threadSubtitle', '') || '').trim();
+        const sortKey = buildMessageSortKey(time, rowIndex);
 
         if (!conversations[id]) {
             conversations[id] = {
@@ -20,6 +48,7 @@ export function buildConversations(rows, readSpecialField, styleOptions = {}) {
                 threadSubtitle,
                 lastMessage: content,
                 lastTime: time,
+                lastSortKey: sortKey,
                 latestSender: sender || '',
                 senders: new Set(),
             };
@@ -37,12 +66,10 @@ export function buildConversations(rows, readSpecialField, styleOptions = {}) {
             conversations[id].senders.add(sender);
         }
 
-        const currentTs = toTimestamp(time);
-        const storedTs = toTimestamp(conversations[id]?.lastTime);
-
-        if (currentTs >= storedTs) {
+        if (compareMessageSortKey(sortKey, conversations[id]?.lastSortKey) >= 0) {
             conversations[id].lastMessage = content;
             conversations[id].lastTime = time;
+            conversations[id].lastSortKey = sortKey;
             conversations[id].latestSender = sender || conversations[id].latestSender || '';
         }
     });
@@ -71,15 +98,16 @@ export function buildConversations(rows, readSpecialField, styleOptions = {}) {
                 lastTime: conv.lastTime,
                 latestSender: conv.latestSender || '',
                 titleSender,
+                sortKey: conv.lastSortKey || buildMessageSortKey(conv.lastTime, -1),
             };
         })
-        .sort((a, b) => toTimestamp(b.lastTime) - toTimestamp(a.lastTime));
+        .sort((a, b) => compareMessageSortKey(b.sortKey, a.sortKey));
 
     if (feedOrder === 'asc') {
         sorted.reverse();
     }
 
-    return sorted;
+    return sorted.map(({ sortKey, ...conversation }) => conversation);
 }
 
 export function resolveConversationDisplayName(conversation, titleMode = 'auto') {

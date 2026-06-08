@@ -75,6 +75,13 @@ function getActionElement(event, container) {
     return actionEl instanceof HTMLElement && container.contains(actionEl) ? actionEl : null;
 }
 
+function isDisabledActionElement(actionEl) {
+    if (!(actionEl instanceof HTMLElement)) return true;
+    if (typeof HTMLButtonElement !== 'undefined' && actionEl instanceof HTMLButtonElement && actionEl.disabled) return true;
+    if (typeof HTMLButtonElement === 'undefined' && 'disabled' in actionEl && actionEl.disabled === true) return true;
+    return actionEl.getAttribute('aria-disabled') === 'true';
+}
+
 function getDetailContextForEvent(container) {
     const context = getMessageDetailControllerContext(container);
     if (!(container instanceof HTMLElement) || !context?.state) return null;
@@ -88,6 +95,12 @@ function getComposeInputFromEvent(event, container) {
         return null;
     }
     return target.classList.contains('phone-special-message-compose-input') ? target : null;
+}
+
+function getAttachmentInputFromEvent(event, container) {
+    const target = event?.target instanceof HTMLTextAreaElement ? event.target : null;
+    if (!(target instanceof HTMLTextAreaElement) || !(container instanceof HTMLElement) || !container.contains(target)) return null;
+    return target.classList.contains('phone-special-message-attachment-textarea') ? target : null;
 }
 
 function getContextConversationId(context) {
@@ -132,6 +145,24 @@ function normalizeMedia(context, value) {
 
 function resizeCompose(context, textarea) {
     context?.autoResizeComposeInput?.(textarea);
+}
+
+function normalizeComposeMediaKind(value) {
+    const kind = String(value || '').trim();
+    return kind === 'image' || kind === 'video' ? kind : '';
+}
+
+function getComposeMediaKey(kind) {
+    return kind === 'image' ? 'imageDesc' : (kind === 'video' ? 'videoDesc' : '');
+}
+
+function resetAttachmentDialog(context) {
+    context.state.attachmentDialog = {
+        visible: false,
+        conversationId: null,
+        kind: null,
+        draftValue: '',
+    };
 }
 
 function handleNavBack(context) {
@@ -234,6 +265,93 @@ function handleRetryArchive(context) {
     });
 }
 
+function handleOpenAttachmentDialog(context, actionEl) {
+    if (context.state.sending) return;
+    const conversationId = String(actionEl?.dataset?.conversationId || '').trim();
+    const currentConversationId = getContextConversationId(context);
+    if (!conversationId || conversationId !== currentConversationId) return;
+
+    const kind = normalizeComposeMediaKind(actionEl?.dataset?.mediaKind);
+    const mediaKey = getComposeMediaKey(kind);
+    if (!mediaKey) return;
+
+    const mediaMap = context.state.composeMediaByConversation && typeof context.state.composeMediaByConversation === 'object'
+        ? context.state.composeMediaByConversation
+        : (context.state.composeMediaByConversation = {});
+    const media = mediaMap[conversationId] && typeof mediaMap[conversationId] === 'object'
+        ? mediaMap[conversationId]
+        : {};
+    context.state.attachmentDialog = {
+        visible: true,
+        conversationId,
+        kind,
+        draftValue: normalizeMedia(context, media[mediaKey]),
+    };
+    context.renderKeepScroll?.();
+}
+
+function handleCloseAttachmentDialog(context, actionEl = null) {
+    const actionConversationId = actionEl instanceof HTMLElement
+        ? String(actionEl.dataset.conversationId || '').trim()
+        : '';
+    if (actionConversationId && actionConversationId !== getContextConversationId(context)) {
+        return;
+    }
+    resetAttachmentDialog(context);
+    context.renderKeepScroll?.();
+}
+
+function handleSaveComposeMedia(context, actionEl) {
+    if (context.state.sending) return;
+    const conversationId = String(actionEl?.dataset?.conversationId || '').trim();
+    const currentConversationId = getContextConversationId(context);
+    if (!conversationId || conversationId !== currentConversationId) return;
+
+    const kind = normalizeComposeMediaKind(actionEl?.dataset?.mediaKind || context.state.attachmentDialog?.kind);
+    const mediaKey = getComposeMediaKey(kind);
+    const dialog = context.state.attachmentDialog && typeof context.state.attachmentDialog === 'object'
+        ? context.state.attachmentDialog
+        : null;
+    if (!mediaKey || !dialog?.visible || dialog.conversationId !== conversationId || dialog.kind !== kind) return;
+
+    const normalized = normalizeMedia(context, dialog.draftValue);
+    const mediaMap = context.state.composeMediaByConversation && typeof context.state.composeMediaByConversation === 'object'
+        ? context.state.composeMediaByConversation
+        : (context.state.composeMediaByConversation = {});
+    const currentMedia = mediaMap[conversationId] && typeof mediaMap[conversationId] === 'object'
+        ? { ...mediaMap[conversationId] }
+        : {};
+    if (normalized) {
+        currentMedia[mediaKey] = normalized;
+        mediaMap[conversationId] = currentMedia;
+    } else {
+        delete currentMedia[mediaKey];
+        if (Object.keys(currentMedia).length > 0) {
+            mediaMap[conversationId] = currentMedia;
+        } else {
+            delete mediaMap[conversationId];
+        }
+    }
+    resetAttachmentDialog(context);
+    context.renderKeepScroll?.();
+}
+
+function handleClearComposeMedia(context, actionEl) {
+    if (context.state.sending) return;
+    const conversationId = String(actionEl?.dataset?.conversationId || '').trim();
+    const currentConversationId = getContextConversationId(context);
+    if (!conversationId || conversationId !== currentConversationId) return;
+    const mediaKey = getComposeMediaKey(normalizeComposeMediaKind(actionEl?.dataset?.mediaKind));
+    if (!mediaKey || !context.state.composeMediaByConversation || typeof context.state.composeMediaByConversation !== 'object') return;
+    const currentMedia = context.state.composeMediaByConversation[conversationId];
+    if (!currentMedia || typeof currentMedia !== 'object') return;
+    delete currentMedia[mediaKey];
+    if (Object.keys(currentMedia).length === 0) {
+        delete context.state.composeMediaByConversation[conversationId];
+    }
+    context.renderKeepScroll?.();
+}
+
 function dispatchDetailAction(container, context, actionEl) {
     const action = String(actionEl?.dataset?.action || '').trim();
     if (!action) return false;
@@ -273,6 +391,18 @@ function dispatchDetailAction(container, context, actionEl) {
         case 'retry-archive':
             handleRetryArchive(context);
             return true;
+        case 'open-attachment-dialog':
+            handleOpenAttachmentDialog(context, actionEl);
+            return true;
+        case 'close-attachment-dialog':
+            handleCloseAttachmentDialog(context, actionEl);
+            return true;
+        case 'save-compose-media':
+            handleSaveComposeMedia(context, actionEl);
+            return true;
+        case 'clear-compose-media':
+            handleClearComposeMedia(context, actionEl);
+            return true;
         default:
             return false;
     }
@@ -293,6 +423,7 @@ function bindMessageDetailDelegates(container, context) {
         const currentContext = getDetailContextForEvent(container);
         const actionEl = getActionElement(event, container);
         if (!currentContext || !actionEl) return;
+        if (isDisabledActionElement(actionEl)) return;
         const action = String(actionEl.dataset.action || '').trim();
         if (!action) return;
         markPointerHandled(currentContext, action, event);
@@ -312,8 +443,16 @@ function bindMessageDetailDelegates(container, context) {
             return;
         }
 
+        const attachmentMask = target.closest('.phone-special-attachment-dialog-mask');
+        if (attachmentMask instanceof HTMLElement && attachmentMask === target && container.contains(attachmentMask)) {
+            consumeEvent(event);
+            handleCloseAttachmentDialog(currentContext, attachmentMask);
+            return;
+        }
+
         const actionEl = getActionElement(event, container);
         if (!actionEl) return;
+        if (isDisabledActionElement(actionEl)) return;
         const action = String(actionEl.dataset.action || '').trim();
         if (!action) return;
         if (shouldSuppressSyntheticClick(currentContext, action, event)) {
@@ -326,6 +465,18 @@ function bindMessageDetailDelegates(container, context) {
 
     addListener(container, 'input', (event) => {
         const currentContext = getDetailContextForEvent(container);
+        const attachmentInput = getAttachmentInputFromEvent(event, container);
+        if (currentContext && attachmentInput instanceof HTMLTextAreaElement) {
+            const dialog = currentContext.state.attachmentDialog && typeof currentContext.state.attachmentDialog === 'object'
+                ? currentContext.state.attachmentDialog
+                : null;
+            const inputConversationId = String(attachmentInput.dataset.conversationId || '').trim();
+            const inputKind = normalizeComposeMediaKind(attachmentInput.dataset.mediaKind);
+            if (dialog?.visible && dialog.conversationId === inputConversationId && dialog.kind === inputKind) {
+                dialog.draftValue = String(attachmentInput.value || '');
+            }
+            return;
+        }
         const composeInput = getComposeInputFromEvent(event, container);
         if (!currentContext || !(composeInput instanceof HTMLTextAreaElement)) return;
         const conversationId = getContextConversationId(currentContext);

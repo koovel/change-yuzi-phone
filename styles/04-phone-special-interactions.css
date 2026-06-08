@@ -1255,8 +1255,11 @@
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-compose-meta {
-    gap: 7px;
-    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 1px 4px 0;
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-template-pill {
@@ -1270,6 +1273,9 @@
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-compose-status {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: right;
     color: rgba(69, 79, 74, 0.48);
     font-size: 10px;
 }
@@ -1298,10 +1304,12 @@
 
 .phone-special-message.phone-special-template-scope .phone-special-message-send-btn,
 .phone-special-message.phone-special-template-scope .phone-special-message-compose-editor .phone-special-message-send-btn {
-    min-width: 66px;
-    height: 40px;
-    padding: 0 16px;
+    min-width: 62px;
+    min-height: 38px;
+    height: 38px;
+    padding: 0 14px;
     border: 1px solid rgba(51, 148, 89, 0.18);
+    font-size: 13px;
     background: linear-gradient(180deg, #5fc486 0%, #3ba467 100%);
     color: #ffffff;
 }
@@ -1348,6 +1356,219 @@
     border-color: rgba(217, 108, 98, 0.28);
     background: rgba(255, 232, 229, 0.94);
     filter: none;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid rgba(76, 175, 122, 0.14);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.56);
+    color: rgba(48, 122, 80, 0.78);
+    line-height: 1;
+    box-shadow: 0 2px 7px rgba(86, 75, 58, 0.055), inset 0 1px 0 rgba(255, 255, 255, 0.66);
+    transition: transform var(--sp-duration-fast) var(--sp-ease-standard), border-color var(--sp-duration-fast) var(--sp-ease-standard), background var(--sp-duration-fast) var(--sp-ease-standard), color var(--sp-duration-fast) var(--sp-ease-standard), opacity var(--sp-duration-fast) var(--sp-ease-standard);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-icon {
+    display: block;
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+    stroke: currentColor;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-btn:hover:not(:disabled) {
+    border-color: rgba(76, 175, 122, 0.24);
+    background: rgba(239, 249, 242, 0.82);
+    color: rgba(43, 133, 77, 0.92);
+    transform: translateY(-1px);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-btn:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chips {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+    min-height: 0;
+    margin: 0 0 -1px 2px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    max-width: 56px;
+    border: 1px solid rgba(76, 175, 122, 0.12);
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.50);
+    box-shadow: 0 2px 6px rgba(86, 75, 58, 0.045), inset 0 1px 0 rgba(255, 255, 255, 0.64);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-main,
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    border: 0;
+    background: transparent;
+    color: rgba(45, 126, 78, 0.76);
+    line-height: 1;
+    cursor: pointer;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-main {
+    width: 27px;
+    padding: 0 0 0 2px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-clear {
+    width: 21px;
+    padding: 0 2px 0 0;
+    border-left: 1px solid rgba(76, 175, 122, 0.08);
+    color: rgba(88, 105, 94, 0.42);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-main:hover:not(:disabled),
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-clear:hover:not(:disabled) {
+    color: rgba(43, 133, 77, 0.88);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-clear:hover:not(:disabled) {
+    background: rgba(231, 242, 235, 0.42);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-main:disabled,
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-clear:disabled {
+    opacity: 0.46;
+    cursor: not-allowed;
+}
+
+.phone-special-message.phone-special-template-scope > .phone-special-attachment-dialog-mask.phone-special-viewport-overlay {
+    background: rgba(0, 0, 0, 0.46);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog {
+    width: min(calc(100% - 28px), 360px);
+    max-height: min(85%, 420px);
+    display: flex;
+    flex-direction: column;
+    border-radius: 22px;
+    overflow: hidden;
+    background: rgba(255, 252, 246, 0.98);
+    box-shadow: 0 18px 46px rgba(38, 32, 24, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-header,
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-header {
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(111, 94, 69, 0.08);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-title {
+    color: #22302a;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-close {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(122, 105, 77, 0.08);
+    color: rgba(69, 79, 74, 0.72);
+    font-size: 18px;
+    line-height: 1;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-body {
+    padding: 14px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: rgba(69, 79, 74, 0.72);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-textarea {
+    width: 100%;
+    min-height: 118px;
+    resize: vertical;
+    padding: 10px 12px;
+    border: 1px solid rgba(122, 105, 77, 0.14);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #22302a;
+    font-size: 13px;
+    line-height: 1.55;
+    outline: none;
+    box-shadow: inset 0 1px 3px rgba(105, 91, 69, 0.08);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-textarea:focus {
+    border-color: rgba(76, 175, 122, 0.34);
+    box-shadow: inset 0 1px 3px rgba(105, 91, 69, 0.07), 0 0 0 3px rgba(76, 175, 122, 0.12);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-footer {
+    justify-content: flex-end;
+    border-top: 1px solid rgba(111, 94, 69, 0.08);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-cancel,
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-confirm {
+    min-width: 72px;
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-weight: 800;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-cancel {
+    border: 1px solid rgba(122, 105, 77, 0.12);
+    background: rgba(255, 255, 255, 0.76);
+    color: rgba(69, 79, 74, 0.72);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-attachment-dialog-confirm {
+    border: 1px solid rgba(51, 148, 89, 0.18);
+    background: linear-gradient(180deg, #5fc486 0%, #3ba467 100%);
+    color: #ffffff;
 }
 
 .phone-special-message.phone-special-template-scope .phone-empty-msg {
@@ -1445,18 +1666,18 @@
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-thread {
-    padding: 16px 19px 10px;
+    padding: 14px 16px 10px;
     scrollbar-color: transparent transparent;
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-list {
-    gap: 18px;
-    padding-right: 0;
-    padding-left: 0;
+    gap: 16px;
+    padding-right: 1px;
+    padding-left: 1px;
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-item {
-    gap: 10px;
+    gap: 8px;
     padding-right: 4px;
 }
 
@@ -1479,7 +1700,7 @@
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-stack {
-    max-width: min(76%, 410px);
+    max-width: min(79%, 430px);
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-bubble {
@@ -1489,10 +1710,10 @@
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-compose {
-    gap: 7px;
+    gap: 6px;
     width: 100%;
     margin: 0;
-    padding: 12px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px));
     border-top: 0;
     background:
         linear-gradient(180deg, rgba(245, 239, 229, 0.18) 0%, #f2eadf 34%, #efe7dd 100%);
@@ -1513,21 +1734,27 @@
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-compose-editor {
-    gap: 10px;
-    align-items: center;
+    gap: 8px;
+    align-items: flex-end;
+    min-width: 0;
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-compose-input {
-    min-height: 46px;
-    max-height: 78px;
-    padding: 11px 17px;
+    min-height: 42px;
+    max-height: 76px;
+    padding: 9px 15px;
     border: 1px solid rgba(54, 48, 39, 0.16) !important;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.92) !important;
     color: #24302b !important;
     -webkit-text-fill-color: #24302b !important;
     box-shadow: inset 0 1px 2px rgba(79, 70, 55, 0.045), 0 2px 6px rgba(88, 76, 58, 0.032);
-    line-height: 1.42;
+    line-height: 1.44;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-input::placeholder {
+    font-size: 12px;
+    line-height: 1.44;
 }
 
 .phone-special-message.phone-special-template-scope .phone-special-message-compose-input:focus {
@@ -1538,19 +1765,84 @@
 
 .phone-special-message.phone-special-template-scope .phone-special-message-send-btn,
 .phone-special-message.phone-special-template-scope .phone-special-message-compose-editor .phone-special-message-send-btn {
-    min-width: 80px;
-    height: 46px;
-    padding: 0 20px;
+    min-width: 62px;
+    min-height: 38px;
+    height: 38px;
+    padding: 0 14px;
     border-radius: 999px;
     border-color: rgba(47, 143, 92, 0.18);
+    font-size: 13px;
     background: linear-gradient(180deg, #62c987 0%, #42ad6d 100%);
-    box-shadow: 0 5px 12px rgba(61, 151, 96, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+    box-shadow: 0 4px 10px rgba(61, 151, 96, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.34);
 }
 
-.phone-special-message.phone-special-template-scope .phone-special-message-template-pill {
-    margin-left: 6px;
-    background: rgba(236, 248, 240, 0.66);
-    box-shadow: none;
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-meta {
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-actions {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+    border-radius: 12px;
+    border-color: rgba(78, 142, 101, 0.14);
+    background: rgba(255, 255, 255, 0.52);
+    color: rgba(54, 126, 82, 0.78);
+    box-shadow: 0 2px 7px rgba(86, 75, 58, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.66);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-icon {
+    width: 15px;
+    height: 15px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chips {
+    gap: 4px;
+    margin: 0 0 -1px 2px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip {
+    height: 24px;
+    max-width: 56px;
+    border-color: rgba(78, 142, 101, 0.12);
+    background: rgba(255, 255, 255, 0.50);
+    box-shadow: 0 2px 6px rgba(86, 75, 58, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.64);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-main,
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-clear {
+    height: 24px;
+    color: rgba(48, 122, 80, 0.74);
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-main {
+    width: 27px;
+    padding: 0 0 0 2px;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-attachment-chip-clear {
+    width: 21px;
+    padding: 0 2px 0 0;
+    border-left-color: rgba(78, 142, 101, 0.08);
+    color: rgba(89, 101, 94, 0.40);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.phone-special-message.phone-special-template-scope .phone-special-message-compose-status {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: right;
 }
 
 @media (max-width: 380px) {
@@ -1561,31 +1853,48 @@
     }
 
     .phone-special-message.phone-special-template-scope .phone-special-message-thread {
-        padding-right: 16px;
-        padding-left: 16px;
+        padding-right: 12px;
+        padding-left: 12px;
     }
 
     .phone-special-message.phone-special-template-scope .phone-special-message-item.other,
     .phone-special-message.phone-special-template-scope .phone-special-message-item:not(.self) {
-        padding-right: 14px;
+        padding-right: 12px;
     }
 
     .phone-special-message.phone-special-template-scope .phone-special-message-item.self {
-        padding-left: 14px;
+        padding-left: 12px;
     }
 
     .phone-special-message.phone-special-template-scope .phone-special-message-stack {
-        max-width: min(78%, 320px);
+        max-width: min(80%, 320px);
     }
 
     .phone-special-message.phone-special-template-scope .phone-special-message-compose {
-        padding-right: 14px;
-        padding-left: 14px;
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-compose-editor {
+        gap: 6px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-attachment-actions {
+        gap: 5px;
+    }
+
+    .phone-special-message.phone-special-template-scope .phone-special-message-attachment-btn {
+        width: 26px;
+        height: 26px;
+        min-width: 26px;
+        min-height: 26px;
+        border-radius: 11px;
     }
 
     .phone-special-message.phone-special-template-scope .phone-special-message-send-btn,
     .phone-special-message.phone-special-template-scope .phone-special-message-compose-editor .phone-special-message-send-btn {
-        min-width: 66px;
-        padding: 0 14px;
+        min-width: 56px;
+        min-height: 38px;
+        padding: 0 12px;
     }
 }

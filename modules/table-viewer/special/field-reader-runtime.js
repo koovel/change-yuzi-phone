@@ -15,14 +15,16 @@ export function createSpecialFieldReader({ templateMatch, type, headerMap, sheet
     const safeSheetKey = String(sheetKey || '').trim();
     const safeTableName = String(tableName || '').trim();
 
-    const readField = (row, fieldKey, fallback = '') => {
+    const readFieldWithOptions = (row, fieldKey, fallback = '', options = {}) => {
         const candidates = Array.isArray(fieldBindings[fieldKey]) ? fieldBindings[fieldKey] : [];
+        const useDynamicTokens = options?.dynamicTokens !== false;
 
         for (const candidate of candidates) {
             const token = String(candidate || '').trim();
             if (!token) continue;
 
             if (token === '@now') {
+                if (!useDynamicTokens) continue;
                 return new Date().toISOString();
             }
 
@@ -48,6 +50,10 @@ export function createSpecialFieldReader({ templateMatch, type, headerMap, sheet
 
         return String(fallback ?? '');
     };
+
+    const readField = (row, fieldKey, fallback = '') => readFieldWithOptions(row, fieldKey, fallback);
+
+    readField.readStaticField = (row, fieldKey, fallback = '') => readFieldWithOptions(row, fieldKey, fallback, { dynamicTokens: false });
 
     readField.getStyleOption = (optionKey, fallback = '') => {
         if (Object.prototype.hasOwnProperty.call(styleOptions, optionKey)) {

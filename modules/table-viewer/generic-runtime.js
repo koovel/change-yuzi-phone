@@ -222,6 +222,16 @@ export function createGenericTableViewerRuntime(container, context, hooks = {}) 
         scrollPreserver.restoreScroll('listScrollTop');
     };
 
+    const captureDetailScroll = () => {
+        if (state.mode !== 'detail') return;
+        scrollPreserver.captureScroll('detailScrollTop');
+    };
+
+    const restoreDetailScroll = () => {
+        if (state.mode !== 'detail') return;
+        scrollPreserver.restoreScroll('detailScrollTop');
+    };
+
     const render = () => {
         if (state.mode === 'detail' && state.rowIndex >= 0) {
             renderDetailPage({
@@ -235,6 +245,8 @@ export function createGenericTableViewerRuntime(container, context, hooks = {}) 
                 ddlFieldMetadata,
                 render,
                 restoreListScroll,
+                captureDetailScroll,
+                restoreDetailScroll,
                 renderKeepScroll,
                 getTableLockState,
                 isTableRowLocked,
@@ -338,5 +350,7 @@ export function createGenericTableViewerRuntime(container, context, hooks = {}) 
         renderKeepScroll,
         captureListScroll,
         restoreListScroll,
+        captureDetailScroll,
+        restoreDetailScroll,
     };
 }

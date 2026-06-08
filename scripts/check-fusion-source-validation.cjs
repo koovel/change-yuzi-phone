@@ -49,10 +49,13 @@ function getSheet(model, key) {
     assert.equal(builtin.type, FUSION_SOURCE_TYPES.BUILTIN_THEATER);
     assert.equal(builtin.valid, true);
     assert.equal(builtin.invalidReason, '');
-    assert.equal(builtin.meta.sourcePath, 'tables/generated/小剧场2.1.json');
+    assert.equal(builtin.name, '内置小剧场+纪要表');
+    assert.equal(builtin.meta.sourcePath, 'tables/generated/小剧场2.1.json + tables/generated/纪要.json');
     assert.equal(typeof builtin.meta.sha256, 'string');
-    assert.ok(builtin.sheetCount >= 6);
+    assert.ok(builtin.sheetCount >= 7);
     assert.equal(builtin.invalidSheetCount, 0);
+    assert.ok(getSheet(builtin, 'sheet_summary'), 'builtin source model 必须包含 sheet_summary');
+    assert.equal(getSheet(builtin, 'sheet_summary').name, '纪要表');
 
     for (const badInput of [null, 'text', []]) {
         const invalid = validateFusionTemplate(badInput);

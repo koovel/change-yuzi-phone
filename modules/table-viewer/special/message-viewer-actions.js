@@ -119,6 +119,31 @@ export function createMessageViewerActions(ctx = {}) {
     const scrollMessageDetailToBottomIfActive = () => runIfViewerActive(() => scrollMessageDetailToBottomImpl(container));
     const supportsAbortController = typeof AbortController === 'function';
 
+    const normalizeComposeMediaDesc = (value) => {
+        const normalized = String(value || '').trim();
+        return normalized && normalized.toLowerCase() !== 'none' ? normalized : 'none';
+    };
+
+    const getComposeMediaForConversation = (conversationId) => {
+        const safeConversationId = String(conversationId || '').trim();
+        const mediaMap = state.composeMediaByConversation && typeof state.composeMediaByConversation === 'object'
+            ? state.composeMediaByConversation
+            : (state.composeMediaByConversation = {});
+        const media = safeConversationId && mediaMap[safeConversationId] && typeof mediaMap[safeConversationId] === 'object'
+            ? mediaMap[safeConversationId]
+            : {};
+        return {
+            imageDesc: normalizeComposeMediaDesc(media.imageDesc),
+            videoDesc: normalizeComposeMediaDesc(media.videoDesc),
+        };
+    };
+
+    const clearComposeMediaForConversation = (conversationId) => {
+        const safeConversationId = String(conversationId || '').trim();
+        if (!safeConversationId || !state.composeMediaByConversation || typeof state.composeMediaByConversation !== 'object') return;
+        delete state.composeMediaByConversation[safeConversationId];
+    };
+
     const clearActiveSendRequest = (requestState = null) => {
         if (!state || typeof state !== 'object') return;
         if (!requestState || state.activeSendRequest === requestState) {
@@ -458,6 +483,9 @@ export function createMessageViewerActions(ctx = {}) {
     const finalizeArchiveSuccess = (archiveResult, batchId, successText, requestState = null) => {
         if (!isViewerActive()) return;
         if (requestState && shouldIgnoreSendResult(requestState)) return;
+        if (requestState) {
+            clearComposeMediaForConversation(requestState.conversationId);
+        }
         state.pendingArchive = null;
         state.sending = false;
         state.errorText = '';
@@ -553,6 +581,7 @@ export function createMessageViewerActions(ctx = {}) {
         clearPendingArchive();
 
         const requestId = createPhoneMessageRequestIdImpl();
+        const composeMedia = getComposeMediaForConversation(activeConversationId);
         const batchId = `${requestId}_batch`;
         const abortController = supportsAbortController ? new AbortController() : null;
         const requestState = {
@@ -574,8 +603,8 @@ export function createMessageViewerActions(ctx = {}) {
             content: draftText,
             sentAt,
             requestId,
-            imageDesc: 'none',
-            videoDesc: 'none',
+            imageDesc: composeMedia.imageDesc,
+            videoDesc: composeMedia.videoDesc,
         };
 
         state.activeSendRequest = requestState;

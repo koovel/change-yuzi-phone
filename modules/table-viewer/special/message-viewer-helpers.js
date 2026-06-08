@@ -232,14 +232,18 @@ function buildMessageMetaHtml({ showMessageTime, time, timeFallbackText, message
  */
 export function renderOneMessageRow({ row, sourceRowIndex, readSpecialField, styleOptions = /** @type {MessageStyleOptions} */ ({}), deleteManageMode = false, selected = false }) {
     const sender = normalizeSenderName(readSpecialField(row, 'sender', '')) || '';
-    const rawContent = readSpecialField(row, 'content', '') || '';
-    const content = rawContent.replace(/^\s*正文[：:]\s*/m, '');
+    const senderRole = String(readSpecialField(row, 'senderRole', '') || '').trim().toLowerCase();
+    const rawContent = readSpecialField(row, 'content', '');
+    const contentText = typeof rawContent === 'string'
+        ? rawContent
+        : (Number.isFinite(rawContent) || typeof rawContent === 'boolean' || typeof rawContent === 'bigint' ? String(rawContent) : '');
+    const content = contentText.replace(/^\s*正文[：:]\s*/m, '');
     const time = readSpecialField(row, 'sentAt', '');
     const messageStatus = String(readSpecialField(row, 'messageStatus', '') || '').trim();
     const imageDesc = normalizeMediaDesc(readSpecialField(row, 'imageDesc', ''));
     const videoDesc = normalizeMediaDesc(readSpecialField(row, 'videoDesc', ''));
 
-    const isSelf = sender === '我';
+    const isSelf = sender === '我' || ['user', 'self', '主角'].includes(senderRole);
     const senderLabel = isSelf ? '我' : (sender || '对方');
     const senderColor = isSelf ? '#4A90E2' : generateColor(senderLabel);
 

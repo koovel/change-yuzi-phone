@@ -41,6 +41,7 @@ function main() {
     check(results, 'state', 'state 继续暴露 Proxy 兼容顶层属性访问', has(contents.state, 'return new Proxy(stateManager, {'));
     check(results, 'state', 'state 初始字段包含批量删除选择集合', has(contents.state, 'selectedDeleteRowIndexes: [],'));
     check(results, 'state', 'state 初始字段包含批量删除中状态', has(contents.state, 'deletingSelection: false,'));
+    check(results, 'state', 'state 初始字段包含详情页滚动位置', has(contents.state, 'detailScrollTop: 0,'));
     check(results, 'state', 'state 暴露 setSelectedDeleteRowIndexes() 显式动作', has(contents.state, 'setSelectedDeleteRowIndexes(rowIndexes = []) {'));
     check(results, 'state', 'state 暴露 clearDeleteSelection() 显式动作', has(contents.state, 'clearDeleteSelection() {'));
     check(results, 'state', 'state 暴露 setDeletingSelection() 显式动作', has(contents.state, 'setDeletingSelection(enabled) {'));
@@ -51,6 +52,10 @@ function main() {
     check(results, 'runtime', 'generic runtime 将批量删除选择纳入局部刷新键', has(contents.runtime, "'selectedDeleteRowIndexes',"));
     check(results, 'runtime', 'generic runtime 将批量删除中状态纳入局部刷新键', has(contents.runtime, "'deletingSelection',"));
     check(results, 'runtime', 'generic runtime 向列表页传入 deleteRowsFromList()', has(contents.runtime, 'const { deleteRowsFromList } = createRowDeleteController({') && has(contents.runtime, 'deleteRowsFromList,'));
+    check(results, 'runtime', 'generic runtime 保持 listScrollTop rerender 语义', has(contents.runtime, "createRerenderWithScroll('listScrollTop', render)"));
+    check(results, 'runtime', 'generic runtime 提供 detailScrollTop capture/restore helper', has(contents.runtime, "captureScroll('detailScrollTop')") && has(contents.runtime, "restoreScroll('detailScrollTop')"));
+    check(results, 'detailController', '详情 sibling 翻页只在 handleNavigateSibling 中恢复详情滚动', has(contents.detailController, 'captureDetailScroll') && has(contents.detailController, 'restoreDetailScroll') && has(contents.detailController, 'function handleNavigateSibling(el)'));
+    check(results, 'detailController', '详情返回列表仍使用 restoreListScroll', has(contents.detailController, 'state.returnToListMode();') && has(contents.detailController, 'restoreListScroll();'));
 
     check(results, 'listController', '列表页搜索继续通过 state.set() 写入 listSearchQuery', has(contents.listController, 'listSearchQuery: nextValue'));
     check(results, 'listController', '列表页搜索在删除态约束批量删除选择集合', has(contents.listController, 'selectedDeleteRowIndexes: nextSelection'));

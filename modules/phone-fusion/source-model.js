@@ -175,7 +175,7 @@ export function createBuiltinTheaterSourceModel() {
     return createSourceModel(createBuiltinTheaterTemplate(), {
         type: FUSION_SOURCE_TYPES.BUILTIN_THEATER,
         id: FUSION_SOURCE_TYPES.BUILTIN_THEATER,
-        name: '内置小剧场模板',
+        name: '内置小剧场+纪要表',
         sourcePath: BUILTIN_THEATER_TEMPLATE_SOURCE_PATH,
         sha256: BUILTIN_THEATER_TEMPLATE_SHA256,
     });

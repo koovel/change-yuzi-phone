@@ -559,6 +559,7 @@ export function createTableViewerState(sheetKey) {
         selectedDeleteRowIndexes: [],
         deletingSelection: false,
         listScrollTop: 0,
+        detailScrollTop: 0,
         listSearchQuery: '',
         listSortDescending: false,
         pendingExternalTableUpdate: null,

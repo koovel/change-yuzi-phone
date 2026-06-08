@@ -75,7 +75,8 @@ function main() {
     check(results, 'interactions', '存在 `createFusionInteractionController()`', has(contents.interactions, 'export function createFusionInteractionController('));
     check(results, 'interactions', '存在 `reportFusionError()`', has(contents.interactions, 'export function reportFusionError('));
 
-    check(results, 'templates', '模板 A 支持使用内置小剧场模板', has(contents.templates, '使用内置小剧场模板'));
+    check(results, 'templates', '模板 A 支持使用内置小剧场+纪要表', has(contents.templates, '使用内置小剧场+纪要表'));
+    check(results, 'templates', '旧的内置小剧场模板文案已删除', !has(contents.templates, '使用内置小剧场模板'));
     check(results, 'templates', '模板 A/B 继续支持导入本地 JSON', has(contents.templates, '导入本地 JSON'));
     check(results, 'templates', '模板 B 使用简化后的当前表格文案', has(contents.templates, '选择当前表格'));
     check(results, 'templates', '旧的当前数据库表格按钮文案已删除', !has(contents.templates, '从当前数据库表格选择'));
@@ -102,6 +103,7 @@ function main() {
     check(results, 'interactions', 'interactions 导入成功后刷新数据库投影', has(contents.interactions, 'refreshDatabaseProjectionViaApi'));
     check(results, 'interactions', 'interactions 导入前执行最终模板校验', has(contents.interactions, 'validateFusionTemplate'));
     check(results, 'interactions', '当前数据库空数据有明确错误提示', has(contents.interactions, '当前数据库表格为空'));
+    check(results, 'interactions', '内置来源标签同步为小剧场+纪要表', has(contents.interactions, '内置小剧场+纪要表'));
 
     check(results, 'compareMerge', 'compare-merge 接入 merge-model', has(contents.compareMerge, "from './merge-model.js'"));
     check(results, 'compareMerge', 'compare-merge 接入 source-model 兼容旧本地 JSON', has(contents.compareMerge, 'createLegacyCompatibleSourceModel'));

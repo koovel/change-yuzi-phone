@@ -128,7 +128,7 @@ export function createFusionInteractionController(deps = {}) {
         };
 
         const onUseBuiltinA = () => {
-            setSourceA(container, createBuiltinTheaterSourceModel(), '内置小剧场模板');
+            setSourceA(container, createBuiltinTheaterSourceModel(), '内置小剧场+纪要表');
         };
 
         const onImportB = () => {

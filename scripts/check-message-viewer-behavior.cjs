@@ -303,6 +303,7 @@ function createHarness(createMessageViewerActions, options = {}) {
             errorText: String(state.errorText || ''),
             sending: !!state.sending,
             sendPhase: String(state.sendPhase || ''),
+            composeMediaByConversation: state.composeMediaByConversation ? JSON.parse(JSON.stringify(state.composeMediaByConversation)) : {},
         });
     };
     const disposeRuntime = () => {
@@ -324,6 +325,7 @@ function createHarness(createMessageViewerActions, options = {}) {
         conversationId: '',
         pendingArchive: null,
         skipSheetSyncOnce: false,
+        composeMediaByConversation: {},
         ...(options.state || {}),
     };
 
@@ -472,6 +474,63 @@ async function flushMicrotasks() {
     await Promise.resolve();
 }
 
+async function testBuildConversationsIgnoresDynamicNowFallback(buildConversations) {
+    const readSpecialField = (row, key, fallback = '') => {
+        if (key === 'sentAt' && row?.dynamicNowFallback) {
+            return '2999-01-01T00:00:00.000Z';
+        }
+        return row && Object.prototype.hasOwnProperty.call(row, key) ? row[key] : fallback;
+    };
+    readSpecialField.readStaticField = (row, key, fallback = '') => {
+        if (key === 'sentAt' && row?.dynamicNowFallback) return '';
+        return readSpecialField(row, key, fallback);
+    };
+
+    const rows = [
+        { threadId: 'conv_a', sender: '角色A', content: 'A 旧消息', sentAt: '2026-05-01T00:00:00.000Z', threadTitle: 'A' },
+        { threadId: 'conv_b', sender: '角色B', content: 'B 最新消息', sentAt: '2026-05-03T00:00:00.000Z', threadTitle: 'B' },
+        { threadId: 'conv_a', sender: '角色A', content: 'A 真实最新消息', sentAt: '2026-05-02T00:00:00.000Z', threadTitle: 'A' },
+        { threadId: 'conv_a', sender: '角色A', content: 'A 动态 now 伪最新消息', dynamicNowFallback: true, threadTitle: 'A' },
+    ];
+
+    const desc = buildConversations(rows, readSpecialField, { feedOrder: 'desc' });
+    assert.equal(desc[0].id, 'conv_b');
+    assert.equal(desc[1].id, 'conv_a');
+    assert.equal(desc[1].lastMessage, 'A 真实最新消息');
+    assert.equal(desc[1].lastTime, '2026-05-02T00:00:00.000Z');
+
+    const asc = buildConversations(rows, readSpecialField, { feedOrder: 'asc' });
+    assert.equal(asc[0].id, 'conv_a');
+    assert.equal(asc[0].lastMessage, 'A 真实最新消息');
+}
+
+async function testBuildConversationsUsesRowIndexTieBreak(buildConversations) {
+    const readSpecialField = createReadSpecialField(DEFAULT_HEADERS);
+    const rows = [
+        materializeRow(DEFAULT_HEADERS, { threadId: 'conv_tie', sender: '甲', content: '第一条', sentAt: '2026-05-01T00:00:00.000Z' }),
+        materializeRow(DEFAULT_HEADERS, { threadId: 'conv_tie', sender: '甲', content: '第二条', sentAt: '2026-05-01T00:00:00.000Z' }),
+        materializeRow(DEFAULT_HEADERS, { threadId: 'conv_missing', sender: '乙', content: '缺时间靠行号兜底' }),
+    ];
+    const conversations = buildConversations(rows, readSpecialField, { feedOrder: 'desc' });
+    const tieConversation = conversations.find((conversation) => conversation.id === 'conv_tie');
+    assert.equal(tieConversation?.lastMessage, '第二条');
+    assert.equal(conversations[0].id, 'conv_tie');
+}
+
+async function testRenderOneMessageRowNormalizesContentAndSenderRole(renderOneMessageRow) {
+    const html = renderOneMessageRow({
+        row: { sender: '不叫我', senderRole: 'user', content: { text: '对象内容不得泄漏' }, imageDesc: '<img src=x onerror=alert(1)>', videoDesc: 'none' },
+        sourceRowIndex: 0,
+        readSpecialField: (row, key, fallback = '') => (row && Object.prototype.hasOwnProperty.call(row, key) ? row[key] : fallback),
+        styleOptions: { emptyMessageText: '（空消息）' },
+    });
+    assert.ok(html.includes('phone-special-message-item self'), 'senderRole=user 应渲染为 self 气泡');
+    assert.ok(html.includes('（空消息）'), '对象 content 应回退为空消息文本');
+    assert.equal(html.includes('[object Object]'), false, '对象 content 不得泄漏为 [object Object]');
+    assert.ok(html.includes('data-action="open-media-preview"'), '有效图片描述应保留媒体预览按钮');
+    assert.equal(html.includes('<img src=x'), false, '媒体描述进入属性前必须转义');
+}
+
 async function testRejectsEmptyDraft(createMessageViewerActions) {
     const harness = createHarness(createMessageViewerActions, {
         state: {
@@ -495,6 +554,13 @@ async function testSendSuccessArchivesOnce(createMessageViewerActions) {
         state: {
             draftByConversation: {
                 conv_success: '你好，世界',
+            },
+            composeMediaByConversation: {
+                conv_success: {
+                    imageDesc: ' 一张发送前图片 ',
+                    videoDesc: '一段发送前视频',
+                },
+                conv_other: { imageDesc: '其他会话图片' },
             },
         },
         aiResult: {
@@ -521,6 +587,8 @@ async function testSendSuccessArchivesOnce(createMessageViewerActions) {
     assertNoMessageStatus(harness.logs.archiveCalls[0].messages);
     assert.equal(harness.logs.archiveCalls[0].messages[0].content, '你好，世界');
     assert.equal(harness.logs.archiveCalls[0].messages[0].requestId, 'req_test_1');
+    assert.equal(harness.logs.archiveCalls[0].messages[0].imageDesc, '一张发送前图片');
+    assert.equal(harness.logs.archiveCalls[0].messages[0].videoDesc, '一段发送前视频');
     assert.equal(harness.logs.archiveCalls[0].messages[1].content, '第一条回复');
     assert.equal(harness.logs.archiveCalls[0].messages[1].requestId, 'req_test_1_reply_1');
     assert.equal(harness.logs.archiveCalls[0].messages[1].replyToMessageId, 'req_test_1');
@@ -532,6 +600,8 @@ async function testSendSuccessArchivesOnce(createMessageViewerActions) {
     assertRowsArePersistent(harness.state.rowsData);
     assert.equal(harness.state.rowsData.length, 3);
     assert.equal(harness.body.scrollTop, harness.body.scrollHeight);
+    assert.equal(Object.prototype.hasOwnProperty.call(harness.state.composeMediaByConversation, 'conv_success'), false, '发送归档成功后应只清当前会话附件');
+    assert.deepEqual(harness.state.composeMediaByConversation.conv_other, { imageDesc: '其他会话图片' }, '发送成功不应清理其他会话附件');
 }
 
 async function testSendFailureRollback(createMessageViewerActions) {
@@ -539,6 +609,10 @@ async function testSendFailureRollback(createMessageViewerActions) {
         state: {
             draftByConversation: {
                 conv_fail: '请回我',
+            },
+            composeMediaByConversation: {
+                conv_fail: { imageDesc: '失败应保留图片', videoDesc: '失败应保留视频' },
+                conv_other: { videoDesc: '其他会话视频' },
             },
         },
         aiResult: {
@@ -557,6 +631,8 @@ async function testSendFailureRollback(createMessageViewerActions) {
     assertRowsHaveNoLocalTemps(harness.state.rowsData, 'AI 失败后不应遗留临时气泡');
     assert.equal(harness.logs.archiveCalls.length, 0);
     assert.equal(harness.logs.syncRowsCount, 0);
+    assert.deepEqual(harness.state.composeMediaByConversation.conv_fail, { imageDesc: '失败应保留图片', videoDesc: '失败应保留视频' }, 'AI 失败不得清理当前会话附件');
+    assert.deepEqual(harness.state.composeMediaByConversation.conv_other, { videoDesc: '其他会话视频' }, 'AI 失败不得清理其他会话附件');
 }
 
 async function testArchiveFailureAndRetry(createMessageViewerActions) {
@@ -568,6 +644,9 @@ async function testArchiveFailureAndRetry(createMessageViewerActions) {
         state: {
             draftByConversation: {
                 conv_archive_fail: '先生成再归档',
+            },
+            composeMediaByConversation: {
+                conv_archive_fail: { imageDesc: '归档失败图片', videoDesc: '归档失败视频' },
             },
         },
     });
@@ -586,6 +665,10 @@ async function testArchiveFailureAndRetry(createMessageViewerActions) {
     assert.equal(harness.logs.archiveCalls.length, 1);
     assert.equal(harness.logs.aiCalls.length, 1);
     assert.equal(harness.state.rowsData.length, 2);
+    assert.equal(harness.logs.archiveCalls[0].messages[0].imageDesc, '归档失败图片');
+    assert.equal(harness.logs.archiveCalls[0].messages[0].videoDesc, '归档失败视频');
+    assert.equal(harness.state.pendingArchive?.records?.[0]?.imageDesc, '归档失败图片');
+    assert.deepEqual(harness.state.composeMediaByConversation.conv_archive_fail, { imageDesc: '归档失败图片', videoDesc: '归档失败视频' }, '归档失败必须保留当前会话附件以便用户修改后重新发送');
     assert.ok(harness.state.rowsData.every((row) => row?.[LOCAL_TEMP_ROW_FLAG] === true));
     assertTempKindCounts(harness.state.rowsData, { user: 1, assistant: 1 }, '归档失败后应补齐助手临时气泡且不重复用户气泡');
 
@@ -598,7 +681,10 @@ async function testArchiveFailureAndRetry(createMessageViewerActions) {
     assert.equal(harness.logs.archiveCalls.length, 2);
     assert.equal(harness.logs.aiCalls.length, 1, '重新归档不得重新调用 AI');
     assertNoMessageStatus(harness.logs.archiveCalls[1].messages);
+    assert.equal(harness.logs.archiveCalls[1].messages[0].imageDesc, '归档失败图片');
+    assert.equal(harness.logs.archiveCalls[1].messages[0].videoDesc, '归档失败视频');
     assertRowsArePersistent(harness.state.rowsData);
+    assert.deepEqual(harness.state.composeMediaByConversation.conv_archive_fail, { imageDesc: '归档失败图片', videoDesc: '归档失败视频' }, '重新归档成功不得清理当前新草稿附件状态');
 }
 
 async function testRetryWithoutTarget(createMessageViewerActions) {
@@ -726,7 +812,12 @@ async function testRetrySkipsUiAfterRuntimeDispose(createMessageViewerActions) {
 async function main() {
     installDomGlobals();
     const { createMessageViewerActions } = await import(toModuleUrl('modules/table-viewer/special/message-viewer-actions.js'));
+    const { buildConversations } = await import(toModuleUrl('modules/table-viewer/special/view-utils.js'));
+    const { renderOneMessageRow } = await import(toModuleUrl('modules/table-viewer/special/message-viewer-helpers.js'));
 
+    await testBuildConversationsIgnoresDynamicNowFallback(buildConversations);
+    await testBuildConversationsUsesRowIndexTieBreak(buildConversations);
+    await testRenderOneMessageRowNormalizesContentAndSenderRole(renderOneMessageRow);
     await testRejectsEmptyDraft(createMessageViewerActions);
     await testSendSuccessArchivesOnce(createMessageViewerActions);
     await testSendFailureRollback(createMessageViewerActions);
@@ -737,8 +828,11 @@ async function main() {
     await testRetrySkipsUiAfterRuntimeDispose(createMessageViewerActions);
 
     console.log('[message-viewer-behavior-check] 检查通过');
+    console.log('- OK | 会话列表预览忽略 @now 动态 fallback 并保留真实最新消息');
+    console.log('- OK | 会话列表相同 sentAt 使用 rowIndex 稳定兜底');
+    console.log('- OK | 消息行渲染归一化非字符串 content 并兼容 senderRole self 判定');
     console.log('- OK | 空草稿发送被拒绝');
-    console.log('- OK | 发送成功只触发一次批量归档且归档前不显示临时气泡');
+    console.log('- OK | 发送成功只触发一次批量归档且归档前仅显示用户临时气泡');
     console.log('- OK | AI 失败不显示临时气泡并恢复草稿');
     console.log('- OK | 归档失败才补显示当前页临时气泡，重新归档不重调 AI');
     console.log('- OK | 重新归档缺失目标和会话不匹配时命中兜底分支');
