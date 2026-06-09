@@ -143,15 +143,23 @@ function buildViewModel(resolved) {
     const daysTable = resolved.tables.days;
     const rows = mapTheaterRows(daysTable, (row, rowIndex) => normalizeCalendarRow(daysTable, row, rowIndex))
         .filter(row => row.dateText || row.majorEvent || row.dayContent);
+    
+    // 1. 先对所有行进行统一全局排序
     const anchorRow = resolveAnchorRow(sortRows(rows, null));
+    const sortedRows = sortRows(rows, anchorRow);
+    
     const anchorDate = anchorRow?.parsedDate || FALLBACK_ANCHOR;
-    const contentByDateKey = buildContentByDateKey(sortRows(rows, anchorRow), anchorRow);
+    
+    // 2. 确保日历映射也使用统一排序好的 sortedRows
+    const contentByDateKey = buildContentByDateKey(sortedRows, anchorRow);
+    
     const selectedKey = anchorRow?.parsedDate?.key || contentByDateKey.keys().next().value || formatDateKey(anchorDate.year, anchorDate.monthIndex, anchorDate.day);
     const grid = buildMonthGrid(anchorDate.year, anchorDate.monthIndex);
     const todayKey = anchorRow?.parsedDate?.key || selectedKey;
 
     return {
-        rows,
+        // 3. 将排序好的列表导出给日程列表页，替换掉原本乱序的 rows
+        rows: sortedRows,
         anchorDate,
         selectedKey,
         todayKey,
@@ -168,7 +176,7 @@ function buildViewModel(resolved) {
         })),
         selectedEntries: contentByDateKey.get(selectedKey) || [],
         contentByDateKey,
-        empty: rows.length <= 0,
+        empty: sortedRows.length <= 0,
     };
 }
 
@@ -427,7 +435,7 @@ export const calendarScene = Object.freeze({
         }),
     ]),
     fieldSchema: Object.freeze({
-        days: Object.freeze({ identity: '与今天的关系' }),
+        days: Object.freeze({}),
     }),
     contract: Object.freeze({
         styleFile: 'styles/phone-theater/calendar.css',
