@@ -27,7 +27,7 @@ export function getSillyTavernContext() {
 
         return null;
     } catch (error) {
-        Logger.debug('[玉子手机] 获取 SillyTavern 上下文失败:', error);
+        Logger.debug('[koove手机] 获取 SillyTavern 上下文失败:', error);
         return null;
     }
 }

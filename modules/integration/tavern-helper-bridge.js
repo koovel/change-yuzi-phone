@@ -16,10 +16,10 @@ function initTavernHelper() {
             return true;
         }
 
-        Logger.warn('[玉子手机] TavernHelper API 不可用，部分功能将降级');
+        Logger.warn('[koove手机] TavernHelper API 不可用，部分功能将降级');
         return false;
     } catch (error) {
-        Logger.warn('[玉子手机] 初始化 TavernHelper API 失败:', error);
+        Logger.warn('[koove手机] 初始化 TavernHelper API 失败:', error);
         return false;
     }
 }
@@ -51,14 +51,14 @@ function resolveHelperOrGlobalMethod(methodName) {
 export function getChatMessages(range = -1, options = {}) {
     const helper = getTavernHelper();
     if (!helper || !helper.getChatMessages) {
-        Logger.warn('[玉子手机] getChatMessages API 不可用');
+        Logger.warn('[koove手机] getChatMessages API 不可用');
         return [];
     }
 
     try {
         return helper.getChatMessages(range, options);
     } catch (error) {
-        Logger.error('[玉子手机] 获取聊天消息失败:', error);
+        Logger.error('[koove手机] 获取聊天消息失败:', error);
         return [];
     }
 }
@@ -66,14 +66,14 @@ export function getChatMessages(range = -1, options = {}) {
 export function getLastMessageId() {
     const helper = getTavernHelper();
     if (!helper || !helper.getLastMessageId) {
-        Logger.warn('[玉子手机] getLastMessageId API 不可用');
+        Logger.warn('[koove手机] getLastMessageId API 不可用');
         return -1;
     }
 
     try {
         return helper.getLastMessageId();
     } catch (error) {
-        Logger.error('[玉子手机] 获取最后消息ID失败:', error);
+        Logger.error('[koove手机] 获取最后消息ID失败:', error);
         return -1;
     }
 }
@@ -81,14 +81,14 @@ export function getLastMessageId() {
 export function getVariables(options = {}) {
     const helper = getTavernHelper();
     if (!helper || !helper.getVariables) {
-        Logger.warn('[玉子手机] getVariables API 不可用');
+        Logger.warn('[koove手机] getVariables API 不可用');
         return {};
     }
 
     try {
         return helper.getVariables(options);
     } catch (error) {
-        Logger.error('[玉子手机] 获取变量失败:', error);
+        Logger.error('[koove手机] 获取变量失败:', error);
         return {};
     }
 }
@@ -96,28 +96,28 @@ export function getVariables(options = {}) {
 export async function setVariables(variables, options = {}) {
     const helper = getTavernHelper();
     if (!helper || !helper.insertOrAssignVariables) {
-        Logger.warn('[玉子手机] insertOrAssignVariables API 不可用');
+        Logger.warn('[koove手机] insertOrAssignVariables API 不可用');
         return;
     }
 
     try {
         await helper.insertOrAssignVariables(variables, options);
     } catch (error) {
-        Logger.error('[玉子手机] 设置变量失败:', error);
+        Logger.error('[koove手机] 设置变量失败:', error);
     }
 }
 
 export function substituteMacros(text) {
     const helper = getTavernHelper();
     if (!helper || !helper.substitudeMacros) {
-        Logger.warn('[玉子手机] substitudeMacros API 不可用');
+        Logger.warn('[koove手机] substitudeMacros API 不可用');
         return text;
     }
 
     try {
         return helper.substitudeMacros(text);
     } catch (error) {
-        Logger.error('[玉子手机] 替换宏失败:', error);
+        Logger.error('[koove手机] 替换宏失败:', error);
         return text;
     }
 }
@@ -125,14 +125,14 @@ export function substituteMacros(text) {
 export function getCharacterData(name = 'current', allowAvatar = false) {
     const helper = getTavernHelper();
     if (!helper || !helper.getCharData) {
-        Logger.warn('[玉子手机] getCharData API 不可用');
+        Logger.warn('[koove手机] getCharData API 不可用');
         return null;
     }
 
     try {
         return helper.getCharData(name, allowAvatar);
     } catch (error) {
-        Logger.error('[玉子手机] 获取角色数据失败:', error);
+        Logger.error('[koove手机] 获取角色数据失败:', error);
         return null;
     }
 }
@@ -140,7 +140,7 @@ export function getCharacterData(name = 'current', allowAvatar = false) {
 export async function getWorldbookNames() {
     const method = resolveHelperOrGlobalMethod('getWorldbookNames');
     if (!method) {
-        Logger.warn('[玉子手机] getWorldbookNames API 不可用');
+        Logger.warn('[koove手机] getWorldbookNames API 不可用');
         return [];
     }
 
@@ -148,7 +148,7 @@ export async function getWorldbookNames() {
         const result = await Promise.resolve(method());
         return Array.isArray(result) ? result : [];
     } catch (error) {
-        Logger.warn('[玉子手机] 获取世界书列表失败:', error);
+        Logger.warn('[koove手机] 获取世界书列表失败:', error);
         return [];
     }
 }
@@ -156,7 +156,7 @@ export async function getWorldbookNames() {
 export async function getCurrentCharacterWorldbooks() {
     const method = resolveHelperOrGlobalMethod('getCharWorldbookNames');
     if (!method) {
-        Logger.warn('[玉子手机] getCharWorldbookNames API 不可用');
+        Logger.warn('[koove手机] getCharWorldbookNames API 不可用');
         return { primary: null, additional: [] };
     }
 
@@ -169,7 +169,7 @@ export async function getCurrentCharacterWorldbooks() {
                 : [],
         };
     } catch (error) {
-        Logger.warn('[玉子手机] 获取角色绑定世界书失败:', error);
+        Logger.warn('[koove手机] 获取角色绑定世界书失败:', error);
         return { primary: null, additional: [] };
     }
 }
@@ -182,7 +182,7 @@ export async function getWorldbook(worldbookName) {
 
     const method = resolveHelperOrGlobalMethod('getWorldbook');
     if (!method) {
-        Logger.warn('[玉子手机] getWorldbook API 不可用');
+        Logger.warn('[koove手机] getWorldbook API 不可用');
         return [];
     }
 
@@ -190,7 +190,7 @@ export async function getWorldbook(worldbookName) {
         const result = await Promise.resolve(method(safeWorldbookName));
         return Array.isArray(result) ? result : [];
     } catch (error) {
-        Logger.warn('[玉子手机] 获取世界书条目失败:', error);
+        Logger.warn('[koove手机] 获取世界书条目失败:', error);
         return [];
     }
 }

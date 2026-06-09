@@ -1,6 +1,6 @@
 // modules/settings-app/intent.js
 /**
- * 玉子的手机 - 设置 App 跳转意图
+ * koove手机 - 设置 App 跳转意图
  *
  * 通过 globalThis 上的隐藏 key 让外部脚本能在打开设置面板前预设跳转目标：
  *   - mode：'prompt_editor' | 'ai_instruction_presets' | 'api_prompt_config'

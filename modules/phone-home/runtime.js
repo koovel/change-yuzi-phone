@@ -1,6 +1,6 @@
 // modules/phone-home/runtime.js
 /**
- * 玉子的手机 - 主屏交互 runtime
+ * koove手机 - 主屏交互 runtime
  *
  * 在主屏 container 上 attach 一个 runtimeScope，并通过 MutationObserver
  * 在 container 被卸载时自动 dispose 全部 grid/dock 监听。

@@ -1,7 +1,7 @@
 {
   "name": "st-yuzi-phone",
   "version": "1.4.2",
-  "description": "玉子手机 - SillyTavern 扩展",
+  "description": "koove手机 - SillyTavern 扩展",
   "type": "module",
   "private": true,
   "scripts": {

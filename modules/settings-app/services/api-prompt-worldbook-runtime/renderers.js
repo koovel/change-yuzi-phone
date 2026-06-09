@@ -5,7 +5,7 @@ import {
     setEntrySelectionState,
 } from '../worldbook-selection.js';
 
-const WORLDBOOK_ENTRIES_DELEGATED_CHANGE_KEY = '__stYuziPhoneWorldbookEntriesDelegatedChange';
+const WORLDBOOK_ENTRIES_DELEGATED_CHANGE_KEY = '__stKoovePhoneWorldbookEntriesDelegatedChange';
 
 export function createWorldbookRenderers(ctx = {}) {
     const {

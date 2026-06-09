@@ -263,6 +263,47 @@
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.78);
     box-shadow: 0 12px 28px rgba(255, 107, 82, 0.09);
+    display: flex;
+    flex-direction: column;
+}
+
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--calendar-muted);
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 59, 48, 0.08);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-list {
+    overflow-y: auto;
+    max-height: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 2px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-list::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(255, 59, 48, 0.25);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-item {
+    padding: 10px;
+    border: 1px solid rgba(255, 59, 48, 0.08);
+    border-radius: 12px;
+    background: rgba(255, 248, 244, 0.6);
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail.is-empty {

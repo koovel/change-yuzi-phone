@@ -2,7 +2,7 @@ import { Logger } from '../../error-handler.js';
 
 const logger = Logger.withScope({ scope: 'settings-app/services/api-prompt-config-controller', feature: 'settings-app' });
 
-const API_PROMPT_INTERACTION_CLEANUP_KEY = '__stYuziPhoneApiPromptConfigCleanup';
+const API_PROMPT_INTERACTION_CLEANUP_KEY = '__stKoovePhoneApiPromptConfigCleanup';
 
 export function bindApiPromptConfigInteractions(ctx = {}) {
     const {

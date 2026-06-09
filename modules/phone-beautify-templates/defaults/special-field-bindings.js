@@ -1,6 +1,6 @@
 // modules/phone-beautify-templates/defaults/special-field-bindings.js
 /**
- * 玉子的手机 - 专属模板默认字段绑定与样式 tokens
+ * koove手机 - 专属模板默认字段绑定与样式 tokens
  *
  * 这里集中维护 special_message 专属渲染器的：
  *   - 字段候选名绑定

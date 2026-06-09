@@ -1,6 +1,6 @@
 // modules/phone-core/preload.js
 /**
- * 玉子的手机 - 路由模块预热
+ * koove手机 - 路由模块预热
  *
  * [`route-renderer.js`](modules/phone-core/route-renderer.js:24) 用动态 import 实现路由懒加载——这意味着
  * 用户首次进入 settings/fusion/variable-manager 时浏览器才开始下载这些模块，会有 50-300ms 白屏。

@@ -1,6 +1,6 @@
 // modules/integration/cleanup.js
 /**
- * 玉子的手机 - 集成层清理入口
+ * koove手机 - 集成层清理入口
  *
  * 把 SillyTavern 集成相关的 cache 在卸载时清理：
  *   - context-bridge：getSillyTavernContext 缓存

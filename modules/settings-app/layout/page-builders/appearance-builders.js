@@ -123,7 +123,7 @@ export function buildAppearancePageHtml({
                     </label>
                     <div class="phone-settings-font-preview" id="phone-font-preview" style="font-family: var(--yuzi-phone-font-family);">
                         <span class="phone-settings-font-preview-title">${escapeHtml(activeFont.name || '系统默认')}</span>
-                        <span class="phone-settings-font-preview-sample">${escapeHtml(activeFont.previewText || '玉子手机 · 字体预览 Aa 123')}</span>
+                        <span class="phone-settings-font-preview-sample">${escapeHtml(activeFont.previewText || 'koove手机 · 字体预览 Aa 123')}</span>
                     </div>
                     <div class="phone-settings-font-panel">
                         <label class="phone-settings-field-inline phone-settings-field-full">

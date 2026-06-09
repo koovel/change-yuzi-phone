@@ -1,6 +1,6 @@
 // modules/phone-beautify-templates/defaults/builtin-templates.js
 /**
- * 玉子的手机 - 内置美化模板
+ * koove手机 - 内置美化模板
  *
  * 这里保留体积最大的 BUILTIN_TEMPLATES，避免字段绑定 / 默认样式常量与内置模板混在同一个 36KB 文件里。
  */
@@ -82,7 +82,7 @@ export const BUILTIN_TEMPLATES = Object.freeze([
             ].join('\n'),
         },
         meta: {
-            author: 'YuziPhone',
+            author: 'KoovePhone',
             description: '内置默认专属模板：消息记录表（补齐聊天对象/请求链路字段，并接入结构/排版/动效配置）',
             tags: ['builtin', 'special', 'message', 'structure-runtime'],
             updatedAt: 1760000000000,
@@ -271,7 +271,7 @@ export const BUILTIN_TEMPLATES = Object.freeze([
             ].join('\n'),
         },
         meta: {
-            author: 'YuziPhone',
+            author: 'KoovePhone',
             description: '内置默认模板：侘寂禅意·通用表格（米白/炭灰/苔绿，紧凑行式列表，留白详情页）',
             tags: ['builtin', 'generic', 'wabi-sabi', 'summary-bindings', 'structure-runtime'],
             updatedAt: 1761000000000,

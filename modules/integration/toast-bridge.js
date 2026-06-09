@@ -23,7 +23,7 @@ export function showNotification(message, type = 'info') {
 
         Logger.info(`[ToastFallback][${String(type || 'info').toUpperCase()}] ${safeMessage}`);
     } catch (error) {
-        Logger.error('[玉子手机] 显示通知失败:', error);
+        Logger.error('[koove手机] 显示通知失败:', error);
     }
 }
 

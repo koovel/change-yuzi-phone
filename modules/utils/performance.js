@@ -1,6 +1,6 @@
 // modules/utils/performance.js
 /**
- * 玉子的手机 - 性能监控工具
+ * koove手机 - 性能监控工具
  *
  * - createPerformanceTimer：基于 performance.now() 的轻量计时器
  * - createFPSMonitor：基于 requestAnimationFrame 的帧率监控器
@@ -36,7 +36,7 @@ export function createPerformanceTimer(name) {
         },
         measure: () => {
             const duration = endTime - startTime;
-            Logger.info(`[玉子手机] ${name} 耗时: ${duration.toFixed(2)}ms`);
+            Logger.info(`[koove手机] ${name} 耗时: ${duration.toFixed(2)}ms`);
             return duration;
         },
     };

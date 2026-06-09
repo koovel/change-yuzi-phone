@@ -1,6 +1,6 @@
 // modules/settings-panel.js
 /**
- * 玉子手机 - 扩展设置面板（最小版）
+ * koove手机 - 扩展设置面板（最小版）
  */
 
 import { getPhoneSettings, savePhoneSetting } from './settings.js';
@@ -57,14 +57,14 @@ export function createPhoneSettingsPanel(onToggleEnabled) {
         <div id="${PANEL_ID}" class="extension_settings">
             <div class="inline-drawer">
                 <div class="inline-drawer-toggle inline-drawer-header">
-                    <b>玉子手机</b>
+                    <b>koove手机</b>
                     <div class="inline-drawer-icon fa-solid fa-circle-chevron-down"></div>
                 </div>
                 <div class="inline-drawer-content" style="display:none;">
                     <div style="padding: 10px;">
                         <label class="checkbox_label">
                             <input type="checkbox" id="${CHECKBOX_ID}" ${isEnabled ? 'checked' : ''}>
-                            <span>启用玉子手机</span>
+                            <span>启用koove手机</span>
                         </label>
                         <label class="checkbox_label" style="margin-top: 8px; display:flex; align-items:center; gap:8px;">
                             <input type="checkbox" id="${FLOATING_TOGGLE_CHECKBOX_ID}" ${isFloatingToggleEnabled ? 'checked' : ''}>

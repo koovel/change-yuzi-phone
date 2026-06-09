@@ -1,5 +1,5 @@
 /* ========================================
-   玉子的手机 — Theme Modes
+   koove手机 — Theme Modes
    作用：统一 light/dark 语义主题 token，并桥接到既有 --yuzi-settings-* 变量
    作用域：html[data-yuzi-phone-theme] 与 #yuzi-phone-standalone[data-yuzi-phone-theme]
    ======================================== */

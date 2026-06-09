@@ -3,7 +3,7 @@ import { Logger } from '../../error-handler.js';
 
 const logger = Logger.withScope({ scope: 'settings-app/services/database-page-controller', feature: 'settings-app' });
 
-const DATABASE_INTERACTION_CLEANUP_KEY = '__stYuziPhoneDatabasePageCleanup';
+const DATABASE_INTERACTION_CLEANUP_KEY = '__stKoovePhoneDatabasePageCleanup';
 
 export function bindDatabasePageInteractions(ctx = {}) {
     const {

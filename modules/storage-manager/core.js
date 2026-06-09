@@ -16,7 +16,7 @@ export const StorageErrorType = {
     UNKNOWN: 'UNKNOWN',
 };
 
-export const LOG_PREFIX = '[玉子手机][存储]';
+export const LOG_PREFIX = '[koove手机][存储]';
 
 export function detectStorageErrorType(error) {
     const message = error?.message || '';

@@ -1,6 +1,6 @@
 // modules/runtime-manager.js
 /**
- * Yuzi Phone - 运行时资源管理
+ * Koove Phone - 运行时资源管理
  * 统一管理定时器、RAF、事件监听与清理逻辑，避免长会话泄漏。
  * @fix P1-016 统一错误处理，使用 Logger 替代 console
  */

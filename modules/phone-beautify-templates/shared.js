@@ -1,6 +1,6 @@
 // modules/phone-beautify-templates/shared.js
 /**
- * 玉子的手机 - 美化模板兼容导出层
+ * koove手机 - 美化模板兼容导出层
  * - 保留历史 shared 导入入口，避免 settings 页面与外部门面断裂
  * - 真实实现已拆分到 constants / defaults / core / normalize / store / matcher-helpers / pack-helpers / template-id
  * - 新代码应优先直接依赖所属模块，而不是继续绕 shared 总线

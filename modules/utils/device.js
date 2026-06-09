@@ -1,6 +1,6 @@
 // modules/utils/device.js
 /**
- * 玉子的手机 - 设备检测与格式化工具
+ * koove手机 - 设备检测与格式化工具
  *
  * - isMobileDevice / isTouchDevice：用于判定 toggle button 与拖拽行为
  * - formatFileSize：用于设置页里展示导入图片体积

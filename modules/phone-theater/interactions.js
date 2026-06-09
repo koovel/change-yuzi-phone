@@ -149,7 +149,7 @@ async function executeConfirmedDelete(container, options) {
         requestRenderIfActive(container, options);
         showToastIfActive(container, options, result?.message || '删除失败', true);
     } catch (error) {
-        console.error('[YuziPhone] Theater delete failed:', error);
+        console.error('[KoovePhone] Theater delete failed:', error);
         if (!isTheaterInteractionActive(container, options)) return;
 
         state.deleting = false;

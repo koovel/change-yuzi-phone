@@ -439,7 +439,7 @@ export function exportAppearanceResourcePack(options = {}) {
         if (icon) icons.push(icon);
     });
 
-    const packName = safeString(options.packName, 120) || '玉子手机外观资源包';
+    const packName = safeString(options.packName, 120) || 'koove手机外观资源包';
     return {
         success: true,
         pack: {
@@ -449,7 +449,7 @@ export function exportAppearanceResourcePack(options = {}) {
             packMeta: {
                 name: packName,
                 exportedAt: new Date().toISOString(),
-                exporter: 'YuziPhone',
+                exporter: 'KoovePhone',
             },
             wallpapers: dedupeResourcesByContent(wallpapers),
             icons: dedupeIconSlotResources(icons),

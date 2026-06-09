@@ -1,6 +1,6 @@
 // modules/error-handler.js
 /**
- * Yuzi Phone - 统一错误处理系统
+ * Koove Phone - 统一错误处理系统
  * @version 1.1.0
  * @description 提供统一的错误处理、日志记录和用户通知
  * @fix P0-008 移除对 integration.js 的直接依赖，解决循环依赖问题
@@ -31,7 +31,7 @@ export function getNotificationCallback() {
     return notificationCallback;
 }
 
-const LOG_NAMESPACE = '玉子手机';
+const LOG_NAMESPACE = 'koove手机';
 const LOG_LEVEL_LABELS = {
     debug: 'DEBUG',
     info: 'INFO',
@@ -197,18 +197,18 @@ export const ErrorTypes = {
 };
 
 /**
- * Yuzi Phone 自定义错误类
+ * Koove Phone 自定义错误类
  */
-export class YuziPhoneError extends Error {
+export class KoovePhoneError extends Error {
     /**
-     * 创建 Yuzi Phone 错误
+     * 创建 Koove Phone 错误
      * @param {string} message - 错误消息
      * @param {string} code - 错误代码
      * @param {Object} details - 错误详情
      */
     constructor(message, code = ErrorCodes.UNKNOWN_ERROR, details = {}) {
         super(message);
-        this.name = 'YuziPhoneError';
+        this.name = 'KoovePhoneError';
         this.code = code;
         this.details = details;
         this.timestamp = Date.now();
@@ -218,7 +218,7 @@ export class YuziPhoneError extends Error {
         
         // 保持正确的堆栈跟踪
         if (Error.captureStackTrace) {
-            Error.captureStackTrace(this, YuziPhoneError);
+            Error.captureStackTrace(this, KoovePhoneError);
         }
     }
 
@@ -542,7 +542,7 @@ export function handleError(error, userMessage = '操作失败', options = {}) {
     if (shouldLogError) {
         errorLogger.error({
             action: 'handle',
-            errorCode: error instanceof YuziPhoneError ? error.code : undefined,
+            errorCode: error instanceof KoovePhoneError ? error.code : undefined,
             message: '统一错误处理器捕获异常',
             context: {
                 userMessage,
@@ -557,7 +557,7 @@ export function handleError(error, userMessage = '操作失败', options = {}) {
     if (shouldShowNotification && errorHandlerConfig.enableNotification) {
         let notificationMessage = userMessage;
         
-        if (error instanceof YuziPhoneError) {
+        if (error instanceof KoovePhoneError) {
             notificationMessage = `${userMessage} (错误码: ${error.code})`;
         }
         
@@ -645,55 +645,55 @@ export const createError = {
      * 创建存储错误
      * @param {string} message - 错误消息
      * @param {Object} details - 错误详情
-     * @returns {YuziPhoneError} 错误对象
+     * @returns {KoovePhoneError} 错误对象
      */
     storage: (message, details = {}) => {
         const code = details.code || ErrorCodes.STORAGE_WRITE_FAILED;
-        return new YuziPhoneError(message, code, details);
+        return new KoovePhoneError(message, code, details);
     },
 
     /**
      * 创建表格错误
      * @param {string} message - 错误消息
      * @param {Object} details - 错误详情
-     * @returns {YuziPhoneError} 错误对象
+     * @returns {KoovePhoneError} 错误对象
      */
     table: (message, details = {}) => {
         const code = details.code || ErrorCodes.TABLE_NOT_FOUND;
-        return new YuziPhoneError(message, code, details);
+        return new KoovePhoneError(message, code, details);
     },
 
     /**
      * 创建 API 错误
      * @param {string} message - 错误消息
      * @param {Object} details - 错误详情
-     * @returns {YuziPhoneError} 错误对象
+     * @returns {KoovePhoneError} 错误对象
      */
     api: (message, details = {}) => {
         const code = details.code || ErrorCodes.API_NOT_AVAILABLE;
-        return new YuziPhoneError(message, code, details);
+        return new KoovePhoneError(message, code, details);
     },
 
     /**
      * 创建设置错误
      * @param {string} message - 错误消息
      * @param {Object} details - 错误详情
-     * @returns {YuziPhoneError} 错误对象
+     * @returns {KoovePhoneError} 错误对象
      */
     settings: (message, details = {}) => {
         const code = details.code || ErrorCodes.INVALID_SETTINGS;
-        return new YuziPhoneError(message, code, details);
+        return new KoovePhoneError(message, code, details);
     },
 
     /**
      * 创建渲染错误
      * @param {string} message - 错误消息
      * @param {Object} details - 错误详情
-     * @returns {YuziPhoneError} 错误对象
+     * @returns {KoovePhoneError} 错误对象
      */
     render: (message, details = {}) => {
         const code = details.code || ErrorCodes.RENDER_FAILED;
-        return new YuziPhoneError(message, code, details);
+        return new KoovePhoneError(message, code, details);
     },
 };
 
@@ -705,7 +705,7 @@ export const createError = {
  */
 export function assert(condition, message, code = ErrorCodes.UNKNOWN_ERROR) {
     if (!condition) {
-        throw new YuziPhoneError(message, code);
+        throw new KoovePhoneError(message, code);
     }
 }
 

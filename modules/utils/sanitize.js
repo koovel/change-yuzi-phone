@@ -1,6 +1,6 @@
 // modules/utils/sanitize.js
 /**
- * 玉子的手机 - URL / CSS 安全净化工具
+ * koove手机 - URL / CSS 安全净化工具
  *
  * - sanitizeUrl：限制 URL 协议（仅允许 http / https / data / blob）
  * - escapeCssUrl：CSS url() 表达式中的特殊字符转义（与 sanitizeUrl 联动）

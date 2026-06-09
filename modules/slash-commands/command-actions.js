@@ -108,11 +108,11 @@ function getPhoneStatusSnapshot() {
 function showPhoneStatus() {
     try {
         const snapshot = getPhoneStatusSnapshot();
-        Logger.info('[玉子手机] Slash 状态详情:', snapshot);
+        Logger.info('[koove手机] Slash 状态详情:', snapshot);
 
         const summary = snapshot.isVisible
-            ? '玉子手机当前已打开，详细状态已输出到控制台'
-            : '玉子手机当前已关闭，详细状态已输出到控制台';
+            ? 'koove手机当前已打开，详细状态已输出到控制台'
+            : 'koove手机当前已关闭，详细状态已输出到控制台';
 
         showNotification(summary, 'info');
     } catch (error) {
@@ -121,7 +121,7 @@ function showPhoneStatus() {
 }
 
 function showPhoneHelp() {
-    Logger.info('[玉子手机] Slash 命令帮助:\n/yuziphone\n/yuziphone open\n/yuziphone close\n/yuziphone toggle\n/yuziphone reset\n/yuziphone status\n/yuziphone help\n/yuziphone-table <表名>\n/yuziphone-tables\n/yuziphone-settings reset\n/yuziphone-settings export\n/yuziphone-settings import <JSON>');
+    Logger.info('[koove手机] Slash 命令帮助:\n/yuziphone\n/yuziphone open\n/yuziphone close\n/yuziphone toggle\n/yuziphone reset\n/yuziphone status\n/yuziphone help\n/yuziphone-table <表名>\n/yuziphone-tables\n/yuziphone-settings reset\n/yuziphone-settings export\n/yuziphone-settings import <JSON>');
     showNotification('Slash 命令帮助已输出到控制台', 'info');
 }
 

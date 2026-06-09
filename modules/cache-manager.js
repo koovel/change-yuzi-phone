@@ -1,6 +1,6 @@
 // modules/cache-manager.js
 /**
- * Yuzi Phone - IndexedDB 缓存管理
+ * Koove Phone - IndexedDB 缓存管理
  */
 
 const DB_NAME = 'yuzi-phone-cache';

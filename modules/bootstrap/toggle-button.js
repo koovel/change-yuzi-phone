@@ -292,7 +292,7 @@ export function createPhoneToggleButton(options = {}) {
 
         const textSpan = document.createElement('span');
         textSpan.className = 'yuzi-phone-toggle-text';
-        textSpan.textContent = '玉子手机';
+        textSpan.textContent = 'koove手机';
 
         btn.appendChild(iconSpan);
         btn.appendChild(textSpan);

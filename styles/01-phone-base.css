@@ -1,5 +1,5 @@
 /* ========================================
-   玉子的手机 — Phone Base Modern Aggregator
+   koove手机 — Phone Base Modern Aggregator
    作用：只聚合 `styles/phone-base/` 下的现代基础层。
    顶层入口 [`style.css`](style.css:1) 负责 shell / nav / special / generic 的总装配，
    本文件不再承担 legacy CSS 的默认加载职责。

@@ -353,13 +353,13 @@ function bindAppearanceResourcePackActions(ctx, runtime) {
     if (exportBtn) {
         cleanupFns.push(bindEvent(exportBtn, 'click', () => {
             const result = appearancePageService.exportAppearanceResourcePack({
-                packName: '玉子手机外观资源包',
+                packName: 'koove手机外观资源包',
             });
             if (!result?.success || !result.pack) {
                 showToast(container, '导出失败：外观资源包生成失败', true);
                 return;
             }
-            downloadTextFile('玉子手机外观资源包.json', JSON.stringify(result.pack, null, 2), 'application/json');
+            downloadTextFile('koove手机外观资源包.json', JSON.stringify(result.pack, null, 2), 'application/json');
             showToast(container, '已导出当前外观资源包');
         }));
     }

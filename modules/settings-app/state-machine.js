@@ -1,6 +1,6 @@
 // modules/settings-app/state-machine.js
 /**
- * 玉子的手机 - 设置 App 状态机
+ * koove手机 - 设置 App 状态机
  *
  * 提供 createSettingsAppState() 工厂方法，返回一份与 [`types.SettingsAppState`](types.d.ts:1) 对齐的初值。
  *

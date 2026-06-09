@@ -18,29 +18,29 @@ const BUILTIN_FONTS = Object.freeze([
         id: 'builtin.system-ui',
         name: '系统清晰',
         family: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "HarmonyOS Sans", "Noto Sans CJK SC", sans-serif',
-        previewText: '玉子手机 · 清晰耐看的系统界面字体',
+        previewText: 'koove手机 · 清晰耐看的系统界面字体',
     }),
     Object.freeze({
         id: 'builtin.modern-sans',
         name: '现代黑体',
         family: '"Helvetica Neue", "HarmonyOS Sans", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif',
-        previewText: '玉子手机 · 干净利落的现代黑体观感',
+        previewText: 'koove手机 · 干净利落的现代黑体观感',
     }),
     Object.freeze({
         id: 'builtin.chill-round',
         name: '寒蝉圆体',
-        family: '"YuziPhoneChillRoundF", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif',
-        previewText: '玉子手机 · 柔和圆润的内置中文圆体',
+        family: '"KoovePhoneChillRoundF", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif',
+        previewText: 'koove手机 · 柔和圆润的内置中文圆体',
         fontFaces: Object.freeze([
             Object.freeze({
-                family: 'YuziPhoneChillRoundF',
+                family: 'KoovePhoneChillRoundF',
                 file: 'assets/fonts/chill-round-f/ChillRoundFRegular.otf',
                 format: 'opentype',
                 weight: '400',
                 style: 'normal',
             }),
             Object.freeze({
-                family: 'YuziPhoneChillRoundF',
+                family: 'KoovePhoneChillRoundF',
                 file: 'assets/fonts/chill-round-f/ChillRoundFBold.otf',
                 format: 'opentype',
                 weight: '700',
@@ -52,7 +52,7 @@ const BUILTIN_FONTS = Object.freeze([
         id: 'builtin.basic-sans',
         name: '基础无衬线',
         family: 'sans-serif',
-        previewText: '玉子手机 · 使用浏览器基础无衬线字体',
+        previewText: 'koove手机 · 使用浏览器基础无衬线字体',
     }),
 ]);
 
@@ -144,7 +144,7 @@ function cssUrl(value) {
 }
 
 function buildInternalFamily(hash) {
-    return normalizeAppearanceFontFamilyName(`YuziPhoneUserFont_${normalizeString(hash).replace(/[^a-zA-Z0-9_-]/g, '_')}`);
+    return normalizeAppearanceFontFamilyName(`KoovePhoneUserFont_${normalizeString(hash).replace(/[^a-zA-Z0-9_-]/g, '_')}`);
 }
 
 function getNormalizedFontLibrary() {
@@ -257,7 +257,7 @@ function resolveActiveFont(library = getNormalizedFontLibrary()) {
             ...userFont,
             builtin: false,
             cssFamily: buildUserFontCssFamily(userFont),
-            previewText: `玉子手机 · ${userFont.name}`,
+            previewText: `koove手机 · ${userFont.name}`,
         };
     }
 

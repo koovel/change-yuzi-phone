@@ -65,7 +65,7 @@ export function exportPhoneBeautifyPack(options = {}) {
             packMeta: {
                 name: normalizeString(options.packName, 80) || '手机美化模板包',
                 exportedAt: new Date().toISOString(),
-                exporter: 'YuziPhone',
+                exporter: 'KoovePhone',
                 exportMode,
                 schemaCompatMin: PHONE_BEAUTIFY_TEMPLATE_MIN_COMPAT_SCHEMA_VERSION,
                 schemaCompatMax: PHONE_BEAUTIFY_TEMPLATE_SCHEMA_VERSION,

@@ -1,6 +1,6 @@
 // modules/slash-commands.js
 /**
- * Yuzi Phone - Slash 命令系统
+ * Koove Phone - Slash 命令系统
  * @version 1.0.0
  * @description 提供命令行操作接口，支持手机控制、表格操作等
  */

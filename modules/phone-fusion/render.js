@@ -1,6 +1,6 @@
 // modules/phone-fusion/render.js
 /**
- * 玉子的手机 - 模板缝合 App 入口
+ * koove手机 - 模板缝合 App 入口
  *
  * 导入两个模板 → 识别 sheet 区块 → 可视化对照 → 合并导出。
  */

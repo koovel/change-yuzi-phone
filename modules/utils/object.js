@@ -1,6 +1,6 @@
 // modules/utils/object.js
 /**
- * 玉子的手机 - 对象与数值通用工具
+ * koove手机 - 对象与数值通用工具
  *
  * - clampNumber：在多个 settings/page builder 里被用来限制数值范围
  * - deepMerge：合并设置默认值与用户值时使用

@@ -36,11 +36,11 @@ export function isTheaterRoute(route) {
 
 function assertUnique(map, key, label, sceneId) {
     if (!key) {
-        throw new Error(`[YuziPhone] Theater scene "${sceneId || 'unknown'}" missing ${label}`);
+        throw new Error(`[KoovePhone] Theater scene "${sceneId || 'unknown'}" missing ${label}`);
     }
     const existing = map.get(key);
     if (existing) {
-        throw new Error(`[YuziPhone] Theater scene ${label} collision: "${key}" used by "${existing}" and "${sceneId}"`);
+        throw new Error(`[KoovePhone] Theater scene ${label} collision: "${key}" used by "${existing}" and "${sceneId}"`);
     }
     map.set(key, sceneId);
 }
@@ -53,7 +53,7 @@ function normalizeEditableTables(sceneId, editableTables, tables) {
             const role = normalizeText(entry?.role);
             if (!role) return null;
             if (!Object.prototype.hasOwnProperty.call(tables, role)) {
-                throw new Error(`[YuziPhone] Theater scene "${sceneId}" editableTables role "${role}" is not declared in tables`);
+                throw new Error(`[KoovePhone] Theater scene "${sceneId}" editableTables role "${role}" is not declared in tables`);
             }
             return Object.freeze({
                 role,
@@ -75,16 +75,16 @@ function normalizeSceneDefinition(scene) {
     const childTableNames = Object.freeze(Object.values(tables).map(normalizeText).filter(Boolean));
     const editableTables = normalizeEditableTables(id, scene?.editableTables, tables);
 
-    if (!id) throw new Error('[YuziPhone] Theater scene missing id');
-    if (!appKey) throw new Error(`[YuziPhone] Theater scene "${id}" missing appKey`);
-    if (!route) throw new Error(`[YuziPhone] Theater scene "${id}" missing route`);
-    if (!primaryTableRole) throw new Error(`[YuziPhone] Theater scene "${id}" missing primaryTableRole`);
-    if (!primaryTableName) throw new Error(`[YuziPhone] Theater scene "${id}" primary table role "${primaryTableRole}" is not declared in tables`);
-    if (childTableNames.length <= 0) throw new Error(`[YuziPhone] Theater scene "${id}" missing tables`);
-    if (typeof scene.buildViewModel !== 'function') throw new Error(`[YuziPhone] Theater scene "${id}" missing buildViewModel hook`);
-    if (typeof scene.renderContent !== 'function') throw new Error(`[YuziPhone] Theater scene "${id}" missing renderContent hook`);
-    if (typeof scene.collectDeletableKeys !== 'function') throw new Error(`[YuziPhone] Theater scene "${id}" missing collectDeletableKeys hook`);
-    if (typeof scene.deleteEntities !== 'function') throw new Error(`[YuziPhone] Theater scene "${id}" missing deleteEntities hook`);
+    if (!id) throw new Error('[KoovePhone] Theater scene missing id');
+    if (!appKey) throw new Error(`[KoovePhone] Theater scene "${id}" missing appKey`);
+    if (!route) throw new Error(`[KoovePhone] Theater scene "${id}" missing route`);
+    if (!primaryTableRole) throw new Error(`[KoovePhone] Theater scene "${id}" missing primaryTableRole`);
+    if (!primaryTableName) throw new Error(`[KoovePhone] Theater scene "${id}" primary table role "${primaryTableRole}" is not declared in tables`);
+    if (childTableNames.length <= 0) throw new Error(`[KoovePhone] Theater scene "${id}" missing tables`);
+    if (typeof scene.buildViewModel !== 'function') throw new Error(`[KoovePhone] Theater scene "${id}" missing buildViewModel hook`);
+    if (typeof scene.renderContent !== 'function') throw new Error(`[KoovePhone] Theater scene "${id}" missing renderContent hook`);
+    if (typeof scene.collectDeletableKeys !== 'function') throw new Error(`[KoovePhone] Theater scene "${id}" missing collectDeletableKeys hook`);
+    if (typeof scene.deleteEntities !== 'function') throw new Error(`[KoovePhone] Theater scene "${id}" missing deleteEntities hook`);
 
     return Object.freeze({
         ...scene,

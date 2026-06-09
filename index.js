@@ -1,6 +1,6 @@
 // index.js
 /**
- * 玉子手机 - 独立扩展入口
+ * koove手机 - 独立扩展入口
  * @version 1.4.2
  * @description 集成 SillyTavern 事件系统、TavernHelper API、Slash 命令、错误处理等
  * @fix P0-001 修复 innerHTML XSS 风险
@@ -36,7 +36,7 @@ import {
 import {
     Logger,
     handleError,
-    YuziPhoneError,
+    KoovePhoneError,
     ErrorCodes,
     configureErrorHandler,
 } from './modules/error-handler.js';
@@ -107,10 +107,10 @@ function blockSingletonInitialization(reason, context = {}) {
     logger.warn({
         feature: 'lifecycle',
         action: 'singleton.block',
-        message: '检测到玉子手机已加载或存在旧实例痕迹，已阻止重复初始化',
+        message: '检测到koove手机已加载或存在旧实例痕迹，已阻止重复初始化',
         context: { reason, ...context },
     });
-    showNotification('检测到玉子手机已加载，请勿同时启用扩展版和脚本版。', 'warning');
+    showNotification('检测到koove手机已加载，请勿同时启用扩展版和脚本版。', 'warning');
     return false;
 }
 
@@ -302,7 +302,7 @@ async function doInitialize() {
         message: '扩展初始化完成',
         context: { version: EXTENSION_VERSION },
     });
-    showNotification(`玉子手机已加载 (v${EXTENSION_VERSION})`, 'success');
+    showNotification(`koove手机已加载 (v${EXTENSION_VERSION})`, 'success');
 }
 
 /**
@@ -334,7 +334,7 @@ async function doInitialize() {
         } catch (error) {
             setOwnedInstanceStatus('failed', { lastError: error?.message || String(error) });
             releaseSingletonGuard();
-            handleError(error, '玉子手机初始化失败');
+            handleError(error, 'koove手机初始化失败');
             // 重置初始化状态，允许重试
             resetInitializationState();
         }
@@ -413,7 +413,7 @@ export function destroy() {
             action: 'destroy.complete',
             message: '扩展已卸载',
         });
-        showNotification('玉子手机已卸载', 'info');
+        showNotification('koove手机已卸载', 'info');
     } catch (error) {
         handleError(error, '卸载错误');
     } finally {
@@ -444,7 +444,7 @@ export {
     // 错误处理
     Logger,
     handleError,
-    YuziPhoneError,
+    KoovePhoneError,
     ErrorCodes,
     configureErrorHandler,
 };

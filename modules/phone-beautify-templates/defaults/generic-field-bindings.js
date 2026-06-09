@@ -1,6 +1,6 @@
 // modules/phone-beautify-templates/defaults/generic-field-bindings.js
 /**
- * 玉子的手机 - 通用模板默认布局与字段绑定
+ * koove手机 - 通用模板默认布局与字段绑定
  *
  * 这里集中维护 generic_table 使用的默认布局选项与摘要字段候选名。
  */

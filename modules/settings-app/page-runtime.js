@@ -1,6 +1,6 @@
 // modules/settings-app/page-runtime.js
 /**
- * 玉子的手机 - 设置 App 页面 runtime 管理器
+ * koove手机 - 设置 App 页面 runtime 管理器
  *
  * 把 [`renderSettings()`](modules/settings-app/render.js:1) 内部的 currentPageRuntime 闭包封装成显式工厂。
  *

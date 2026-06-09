@@ -12,7 +12,7 @@ function assertFunctionDeps(groupName, group, keys = []) {
     keys.forEach((key) => {
         assert(
             typeof safeGroup[key] === 'function',
-            `[玉子手机] settings renderer 缺少 ${groupName}.${key}`,
+            `[koove手机] settings renderer 缺少 ${groupName}.${key}`,
             ErrorCodes.INVALID_SETTINGS,
         );
     });
@@ -24,17 +24,17 @@ function validateSettingsRendererDeps(deps = {}) {
 
     assert(
         !hasHTMLElement || common.container instanceof HTMLElement,
-        '[玉子手机] settings renderer 缺少有效的 common.container',
+        '[koove手机] settings renderer 缺少有效的 common.container',
         ErrorCodes.DOM_ELEMENT_NOT_FOUND,
     );
     assert(
         common.state && typeof common.state === 'object',
-        '[玉子手机] settings renderer 缺少有效的 common.state',
+        '[koove手机] settings renderer 缺少有效的 common.state',
         ErrorCodes.INVALID_SETTINGS,
     );
     assert(
         typeof common.render === 'function',
-        '[玉子手机] settings renderer 缺少 common.render',
+        '[koove手机] settings renderer 缺少 common.render',
         ErrorCodes.INVALID_SETTINGS,
     );
 

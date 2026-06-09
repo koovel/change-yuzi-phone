@@ -94,20 +94,23 @@ function resolveAnchorRow(rows = []) {
 
 function buildContentByDateKey(rows = [], anchorRow) {
     const contentByDateKey = new Map();
-    rows.forEach((row) => {
+    for (const row of rows) {
         const relationIndex = RELATION_ORDER.indexOf(row.todayRelation);
         const offset = relationIndex >= 0 ? relationIndex - 3 : null;
         const derivedDate = anchorRow?.parsedDate && offset !== null
             ? getDateWithOffset(anchorRow.parsedDate, offset)
             : row.parsedDate;
         const key = derivedDate?.key || row.parsedDate?.key || '';
-        if (!key) return;
-        contentByDateKey.set(key, {
+        if (!key) continue;
+        if (!contentByDateKey.has(key)) {
+            contentByDateKey.set(key, []);
+        }
+        contentByDateKey.get(key).push({
             ...row,
             dateKey: key,
             displayDate: row.dateText || derivedDate?.label || row.parsedDate?.label || key,
         });
-    });
+    }
     return contentByDateKey;
 }
 
@@ -136,9 +139,9 @@ function buildViewModel(resolved) {
             isToday: day.key === todayKey,
             isSelected: day.key === selectedKey,
             hasContent: contentByDateKey.has(day.key),
-            entry: contentByDateKey.get(day.key) || null,
+            entry: (contentByDateKey.get(day.key) || [])[0] || null,
         })),
-        selectedEntry: contentByDateKey.get(selectedKey) || null,
+        selectedEntries: contentByDateKey.get(selectedKey) || [],
         contentByDateKey,
         empty: rows.length <= 0,
     };
@@ -172,8 +175,8 @@ function renderDayCell(day) {
     `;
 }
 
-function renderSelectedEntry(entry) {
-    if (!entry) {
+function renderSelectedEntries(entries) {
+    if (!entries || entries.length === 0) {
         return `
             <section class="phone-theater-calendar-detail is-empty">
                 <div class="phone-theater-calendar-detail-title">暂无日程内容</div>
@@ -183,21 +186,28 @@ function renderSelectedEntry(entry) {
 
     return `
         <section class="phone-theater-calendar-detail">
-            <div class="phone-theater-calendar-detail-head">
-                <div>
-                    <div class="phone-theater-calendar-detail-date">${escapeHtml(entry.displayDate || entry.dateText)}</div>
-                    <div class="phone-theater-calendar-detail-relation">${escapeHtml(entry.todayRelation || '')}</div>
-                </div>
-                ${entry.dayStatus || entry.weatherText ? `
-                    <div class="phone-theater-calendar-badges">
-                        ${entry.dayStatus ? `<span class="phone-theater-calendar-status">${escapeHtml(entry.dayStatus)}</span>` : ''}
-                        ${entry.weatherText ? `<span class="phone-theater-calendar-weather">${escapeHtml(entry.weatherText)}</span>` : ''}
+            ${entries.length > 1 ? `<div class="phone-theater-calendar-detail-count">共 ${entries.length} 条日程</div>` : ''}
+            <div class="phone-theater-calendar-detail-list">
+                ${entries.map((entry) => `
+                    <div class="phone-theater-calendar-detail-item">
+                        <div class="phone-theater-calendar-detail-head">
+                            <div>
+                                <div class="phone-theater-calendar-detail-date">${escapeHtml(entry.displayDate || entry.dateText)}</div>
+                                <div class="phone-theater-calendar-detail-relation">${escapeHtml(entry.todayRelation || '')}</div>
+                            </div>
+                            ${entry.dayStatus || entry.weatherText ? `
+                                <div class="phone-theater-calendar-badges">
+                                    ${entry.dayStatus ? `<span class="phone-theater-calendar-status">${escapeHtml(entry.dayStatus)}</span>` : ''}
+                                    ${entry.weatherText ? `<span class="phone-theater-calendar-weather">${escapeHtml(entry.weatherText)}</span>` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                        ${entry.festivalText ? `<div class="phone-theater-calendar-festival">${escapeHtml(entry.festivalText)}</div>` : ''}
+                        ${entry.majorEvent ? `<div class="phone-theater-calendar-event">${escapeHtml(entry.majorEvent)}</div>` : ''}
+                        ${entry.dayContent ? `<p class="phone-theater-calendar-content">${escapeHtml(entry.dayContent)}</p>` : ''}
                     </div>
-                ` : ''}
+                `).join('')}
             </div>
-            ${entry.festivalText ? `<div class="phone-theater-calendar-festival">${escapeHtml(entry.festivalText)}</div>` : ''}
-            ${entry.majorEvent ? `<div class="phone-theater-calendar-event">${escapeHtml(entry.majorEvent)}</div>` : ''}
-            ${entry.dayContent ? `<p class="phone-theater-calendar-content">${escapeHtml(entry.dayContent)}</p>` : ''}
         </section>
     `;
 }
@@ -251,7 +261,7 @@ function renderContent(viewModel) {
             <section class="phone-theater-calendar-grid">
                 ${content.grid.map(renderDayCell).join('')}
             </section>
-            ${renderSelectedEntry(content.selectedEntry)}
+            ${renderSelectedEntries(content.selectedEntries)}
         </div>
     `;
 }
@@ -296,7 +306,7 @@ function rerenderMonth(container, content, year, monthIndex, selectedKey) {
         isToday: day.key === content.todayKey,
         isSelected: day.key === safeSelectedKey,
         hasContent: contentByDateKey.has(day.key),
-        entry: contentByDateKey.get(day.key) || null,
+        entry: (contentByDateKey.get(day.key) || [])[0] || null,
     }));
     labelNode.textContent = `${year}年${monthIndex + 1}月`;
     renderYearOptions(container, year);
@@ -308,7 +318,15 @@ function rerenderMonth(container, content, year, monthIndex, selectedKey) {
         page.setAttribute(SELECTED_DATE_ATTR, safeSelectedKey);
     }
     if (detailNode instanceof HTMLElement) {
-        detailNode.outerHTML = renderSelectedEntry(contentByDateKey.get(safeSelectedKey) || null);
+        const newDetailHTML = renderSelectedEntries(contentByDateKey.get(safeSelectedKey) || []);
+        detailNode.outerHTML = newDetailHTML;
+        const updatedDetail = container.querySelector(".phone-theater-calendar-detail");
+        if (updatedDetail instanceof HTMLElement) {
+            const listEl = updatedDetail.querySelector(".phone-theater-calendar-detail-list");
+            if (listEl instanceof HTMLElement) {
+                listEl.scrollTop = 0;
+            }
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 // modules/phone-home/render.js
 /**
- * 玉子的手机 - 主屏渲染入口
+ * koove手机 - 主屏渲染入口
  *
  * 这是 [`route-renderer.js`](modules/phone-core/route-renderer.js:25) 在路由进入 'home' 时
  * 通过动态 import 的入口。

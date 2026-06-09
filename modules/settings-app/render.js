@@ -1,6 +1,6 @@
 // modules/settings-app/render.js
 /**
- * 玉子的手机 - 设置 App 渲染入口
+ * koove手机 - 设置 App 渲染入口
  *
  * 这是 [`route-renderer.js:48`](modules/phone-core/route-renderer.js:48) 在路由进入 'settings'
  * 时通过动态 import 的入口。它负责：

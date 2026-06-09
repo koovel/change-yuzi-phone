@@ -1,10 +1,10 @@
 # docs/
 
-玉子手机扩展的开发参考文档目录。运行时不需要这里的任何文件——这些都是给开发者维护扩展时用的资料。
+koove手机扩展的开发参考文档目录。运行时不需要这里的任何文件——这些都是给开发者维护扩展时用的资料。
 
 ## 入口
 
-- [`architecture-guide.md`](./architecture-guide.md) — 玉子手机当前稳定架构事实、模块边界、调用链与新增功能检查清单。
+- [`architecture-guide.md`](./architecture-guide.md) — koove手机当前稳定架构事实、模块边界、调用链与新增功能检查清单。
 - [`review-issue-ledger.md`](./review-issue-ledger.md) — 深挖审查阶段的问题、风险、修复记录、验证方式与回退方式台账。
 - [`../BUILD.md`](../BUILD.md) — 构建、检查、发布与 `dist/` 提交规则。
 - [`reference/`](./reference) — SillyTavern 宿主、数据库 API、模板语法和数据样本参考资料。

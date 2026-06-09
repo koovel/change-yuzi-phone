@@ -1,6 +1,6 @@
 // modules/utils/observers.js
 /**
- * 玉子的手机 - 视口/可见性观察工具
+ * koove手机 - 视口/可见性观察工具
  *
  * - createVisibilityObserver：IntersectionObserver 的 thin wrapper（含降级路径）
  * - createLazyLoader：基于 createVisibilityObserver 的懒加载视图实现
@@ -36,7 +36,7 @@ export function createVisibilityObserver(callback, options = {}) {
     } = options;
 
     if (!('IntersectionObserver' in window)) {
-        Logger.warn('[玉子手机] IntersectionObserver 不支持，使用降级方案');
+        Logger.warn('[koove手机] IntersectionObserver 不支持，使用降级方案');
         return {
             observe: (element) => {
                 callback({ isIntersecting: true, target: element }, null);
@@ -114,7 +114,7 @@ export function createInfiniteScroll(loadMoreCallback, options = {}) {
             try {
                 await loadMoreCallback();
             } catch (error) {
-                Logger.error('[玉子手机] 无限滚动加载失败:', error);
+                Logger.error('[koove手机] 无限滚动加载失败:', error);
             } finally {
                 isLoading = false;
             }

@@ -3,7 +3,7 @@ import {
     normalizePhoneAiInstructionSegmentMainSlot,
 } from '../phone-core/chat-support/ai-instruction-slots.js';
 
-export const extensionName = 'YuziPhone';
+export const extensionName = 'KoovePhone';
 
 export const PHONE_CONTAINER_SIZE_LIMITS = Object.freeze({
     width: Object.freeze({ min: 200, max: 800 }),
@@ -188,7 +188,7 @@ export function cloneSettingsValue(value) {
     try {
         return JSON.parse(JSON.stringify(value));
     } catch (error) {
-        Logger.error('[玉子手机] 克隆对象失败:', error);
+        Logger.error('[koove手机] 克隆对象失败:', error);
         return value;
     }
 }
@@ -377,7 +377,7 @@ function normalizeAppearanceDataUrlFontItem(src, index = 0) {
     const fallbackId = `user_font_${index + 1}`;
     const id = normalizeString(src.id, fallbackId).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.idLength) || fallbackId;
     const name = normalizeString(src.name, id).slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.nameLength) || id;
-    const fallbackFamily = `YuziPhoneUserFont_${hash.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+    const fallbackFamily = `KoovePhoneUserFont_${hash.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
     const family = normalizeAppearanceFontFamilyName(src.family, fallbackFamily);
     const source = normalizeString(src.source || 'user').slice(0, APPEARANCE_FONT_LIBRARY_LIMITS.sourceLength) || 'user';
     const createdAt = Number.isFinite(Number(src.createdAt)) ? Math.round(Number(src.createdAt)) : Date.now();
@@ -681,7 +681,7 @@ export function validateSettings(settings) {
         if (result.valid) {
             validated[key] = result.value;
         } else {
-            Logger.warn(`[玉子手机] 设置验证失败: ${result.error}, 使用默认值`);
+            Logger.warn(`[koove手机] 设置验证失败: ${result.error}, 使用默认值`);
             validated[key] = result.value;
         }
     }

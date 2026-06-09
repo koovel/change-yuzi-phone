@@ -1,6 +1,6 @@
 // modules/utils/event-manager.js
 /**
- * 玉子的手机 - 事件管理器
+ * koove手机 - 事件管理器
  *
  * EventManager 是基于 [`createRuntimeScope()`](modules/runtime-manager.js:48) 的兼容包装：
  *   - 兼容旧路径里"按 target/type/handler 移除监听"的索引式语义

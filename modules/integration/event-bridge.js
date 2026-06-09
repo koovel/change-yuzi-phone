@@ -84,7 +84,7 @@ async function initEventSystem() {
             eventTypes = resolveEventTypes(window)
                 || resolveEventTypes(window.SillyTavern)
                 || null;
-            Logger.info('[玉子手机] 从全局对象获取事件系统成功');
+            Logger.info('[koove手机] 从全局对象获取事件系统成功');
             isInitialized = true;
             return true;
         }
@@ -98,7 +98,7 @@ async function initEventSystem() {
                 || (typeof window !== 'undefined' ? resolveEventTypes(window.SillyTavern) : null)
                 || eventTypes;
             if (eventSource) {
-                Logger.info('[玉子手机] 从上下文获取事件系统成功');
+                Logger.info('[koove手机] 从上下文获取事件系统成功');
                 isInitialized = true;
                 return true;
             }
@@ -113,21 +113,21 @@ async function initEventSystem() {
                     }
                     eventTypes = resolveEventTypes(scriptModule) || eventTypes;
                     if (eventSource) {
-                        Logger.info('[玉子手机] 通过动态导入获取事件系统成功');
+                        Logger.info('[koove手机] 通过动态导入获取事件系统成功');
                         isInitialized = true;
                         return true;
                     }
                 }
             } catch (importError) {
-                Logger.debug('[玉子手机] 动态导入失败，使用降级方案');
+                Logger.debug('[koove手机] 动态导入失败，使用降级方案');
             }
         }
 
-        Logger.warn('[玉子手机] SillyTavern 事件系统不可用，部分功能将降级');
+        Logger.warn('[koove手机] SillyTavern 事件系统不可用，部分功能将降级');
         isInitialized = true;
         return false;
     } catch (error) {
-        handleError(error, '[玉子手机] 初始化事件系统失败');
+        handleError(error, '[koove手机] 初始化事件系统失败');
         isInitialized = true;
         return false;
     }
@@ -139,7 +139,7 @@ export async function onEvent(eventType, listener, options = {}) {
     }
 
     if (!eventSource) {
-        Logger.warn(`[玉子手机] 无法注册事件监听器: ${eventType}，事件系统不可用`);
+        Logger.warn(`[koove手机] 无法注册事件监听器: ${eventType}，事件系统不可用`);
         return () => {};
     }
 
@@ -156,21 +156,21 @@ export async function onEvent(eventType, listener, options = {}) {
         } else if (typeof eventSource.on === 'function') {
             registerMethod = eventSource.on.bind(eventSource);
         } else {
-            Logger.warn(`[玉子手机] 事件源不支持标准注册方法: ${eventType}`);
+            Logger.warn(`[koove手机] 事件源不支持标准注册方法: ${eventType}`);
             return () => {};
         }
 
         registerMethod(eventType, listener);
-        Logger.debug(`[玉子手机] 事件监听器已注册: ${eventType}`);
+        Logger.debug(`[koove手机] 事件监听器已注册: ${eventType}`);
 
         const cleanup = () => {
             try {
                 const removed = removeEventListenerSafe(eventSource, eventType, listener);
                 if (removed) {
-                    Logger.debug(`[玉子手机] 事件监听器已取消: ${eventType}`);
+                    Logger.debug(`[koove手机] 事件监听器已取消: ${eventType}`);
                 }
             } catch (error) {
-                Logger.debug(`[玉子手机] 取消事件监听失败: ${eventType}`, error);
+                Logger.debug(`[koove手机] 取消事件监听失败: ${eventType}`, error);
             }
         };
 
@@ -181,7 +181,7 @@ export async function onEvent(eventType, listener, options = {}) {
             unregisterRuntimeCleanup();
         };
     } catch (error) {
-        handleError(error, `[玉子手机] 注册事件监听器失败: ${eventType}`);
+        handleError(error, `[koove手机] 注册事件监听器失败: ${eventType}`);
         return () => {};
     }
 }
@@ -196,19 +196,19 @@ export async function triggerEvent(eventType, data) {
     }
 
     if (!eventSource) {
-        Logger.warn(`[玉子手机] 无法触发事件: ${eventType}，事件系统不可用`);
+        Logger.warn(`[koove手机] 无法触发事件: ${eventType}，事件系统不可用`);
         return;
     }
 
     try {
         if (typeof eventSource.emit === 'function') {
             eventSource.emit(eventType, data);
-            Logger.debug(`[玉子手机] 事件已触发: ${eventType}`);
+            Logger.debug(`[koove手机] 事件已触发: ${eventType}`);
         } else {
-            Logger.warn(`[玉子手机] 事件源不支持 emit 方法: ${eventType}`);
+            Logger.warn(`[koove手机] 事件源不支持 emit 方法: ${eventType}`);
         }
     } catch (error) {
-        handleError(error, `[玉子手机] 触发事件失败: ${eventType}`);
+        handleError(error, `[koove手机] 触发事件失败: ${eventType}`);
     }
 }
 
@@ -224,7 +224,7 @@ export function waitForEvent(eventType, timeout = 30000) {
             try {
                 cleanup();
             } catch (error) {
-                Logger.debug(`[玉子手机] waitForEvent 清理监听失败: ${eventType}`, error);
+                Logger.debug(`[koove手机] waitForEvent 清理监听失败: ${eventType}`, error);
             }
             callback();
         };

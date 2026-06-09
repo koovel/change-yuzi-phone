@@ -7,22 +7,22 @@ const SLASH_COMMAND_DEFINITIONS = Object.freeze([
     {
         name: 'yuziphone',
         handler: handlePhoneCommand,
-        description: '玉子手机控制命令：/yuziphone [open|close|toggle|reset|status|help]',
+        description: 'koove手机控制命令：/yuziphone [open|close|toggle|reset|status|help]',
     },
     {
         name: 'yuziphone-open',
         handler: () => handlePhoneCommand('open'),
-        description: '打开玉子手机',
+        description: '打开koove手机',
     },
     {
         name: 'yuziphone-close',
         handler: () => handlePhoneCommand('close'),
-        description: '关闭玉子手机',
+        description: '关闭koove手机',
     },
     {
         name: 'yuziphone-toggle',
         handler: () => handlePhoneCommand('toggle'),
-        description: '切换玉子手机状态',
+        description: '切换koove手机状态',
     },
     {
         name: 'yuziphone-table',

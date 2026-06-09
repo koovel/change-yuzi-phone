@@ -1,6 +1,6 @@
 // modules/phone-beautify-templates/defaults.js
 /**
- * 玉子的手机 - 默认美化模板常量聚合层
+ * koove手机 - 默认美化模板常量聚合层
  *
  * 真实实现已按职责拆分到 [`defaults/`](modules/phone-beautify-templates/defaults) 子目录：
  *   - [`defaults/special-field-bindings.js`](modules/phone-beautify-templates/defaults/special-field-bindings.js)

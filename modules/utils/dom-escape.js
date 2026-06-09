@@ -1,6 +1,6 @@
 // modules/utils/dom-escape.js
 /**
- * 玉子的手机 - DOM/HTML 转义工具
+ * koove手机 - DOM/HTML 转义工具
  *
  * 提供项目内统一的 HTML 文本与属性转义、安全字符串处理工具。
  * 这些函数被模板渲染层（list/detail/special-viewer/settings-app/page-builders 等）

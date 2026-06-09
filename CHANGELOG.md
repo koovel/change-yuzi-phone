@@ -14,8 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 调整本地用户字体容量上限：单字体从 6MB 提升到 15MB，总容量从 24MB 提升到 30MB；远程 `css-url` 字体仍计入用户字体数量上限，但不占用本地 `bytes` 容量。
 - 发布门禁补齐 `npm run check:ci`，当前普通 contract 检查与 CI contract 基线检查都要求全量通过，历史失败基线清零。
 - 文档入口和架构说明链接收敛到真实文件路径，稳定事实保留在 `docs/`，演进计划保留在 `plans/`。
-- Breaking：玉子手机对外 Slash 命令前缀从 `/phone*` 改为 `/yuziphone*`，旧 `/phone*` 命令不再注册；请重新导入新版 `玉子手机qr.json`。
-- 调整 `玉子手机qr.json`：切换命令改为 `/yuziphone-toggle`，并关闭 `showLabel` 以减轻移动端 QR 按钮的大文字标签展示问题。
+- Breaking：koove手机对外 Slash 命令前缀从 `/phone*` 改为 `/yuziphone*`，旧 `/phone*` 命令不再注册；请重新导入新版 `koove手机qr.json`。
+- 调整 `koove手机qr.json`：切换命令改为 `/yuziphone-toggle`，并关闭 `showLabel` 以减轻移动端 QR 按钮的大文字标签展示问题。
 
 ### Added
 

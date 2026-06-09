@@ -1,6 +1,6 @@
 // modules/utils/timing.js
 /**
- * 玉子的手机 - 时序与节流工具
+ * koove手机 - 时序与节流工具
  *
  * 包含 debounce / throttle / requestIdleCallback 兼容垫片 / createBatchHandler。
  *

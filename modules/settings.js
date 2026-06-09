@@ -1,6 +1,6 @@
 // modules/settings.js
 /**
- * Yuzi Phone - 设置与存储 facade
+ * Koove Phone - 设置与存储 facade
  * 增强版：类型安全、错误处理、验证机制
  */
 
@@ -74,7 +74,7 @@ export function getPhoneSettings() {
         const settings = ensureNamespace();
         return settings || clone(defaultSettings);
     } catch (error) {
-        Logger.error('[玉子手机] 获取设置失败:', error);
+        Logger.error('[koove手机] 获取设置失败:', error);
         return clone(defaultSettings);
     }
 }

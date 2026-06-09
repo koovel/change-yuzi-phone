@@ -42,7 +42,7 @@ export function createStorageManager(options = {}) {
                 ? { ...index.entries[storageKey] }
                 : null;
         } catch (error) {
-            Logger.warn('[玉子手机] 存储读取旧 payload 失败:', error);
+            Logger.warn('[koove手机] 存储读取旧 payload 失败:', error);
             return false;
         }
         const ttl = Number(opts.ttl);
@@ -63,10 +63,10 @@ export function createStorageManager(options = {}) {
                 recomputeIndexStats(index);
                 const rollbackSaveResult = saveIndex(index);
                 if (rollbackSaveResult?.success !== true) {
-                    Logger.warn('[玉子手机] 存储索引失败后回滚索引保存失败:', rollbackSaveResult);
+                    Logger.warn('[koove手机] 存储索引失败后回滚索引保存失败:', rollbackSaveResult);
                 }
             } catch (rollbackError) {
-                Logger.warn('[玉子手机] 存储索引失败后回滚 payload 失败:', rollbackError);
+                Logger.warn('[koove手机] 存储索引失败后回滚 payload 失败:', rollbackError);
             }
         };
 
@@ -102,11 +102,11 @@ export function createStorageManager(options = {}) {
                     evictByLRU(index, mergedOptions);
                     return saveIndexOrRollback();
                 } catch (retryError) {
-                    Logger.warn('[玉子手机] 存储空间不足，写入失败:', retryError);
+                    Logger.warn('[koove手机] 存储空间不足，写入失败:', retryError);
                     return false;
                 }
             }
-            Logger.warn('[玉子手机] 存储写入失败:', error);
+            Logger.warn('[koove手机] 存储写入失败:', error);
             return false;
         }
     };
