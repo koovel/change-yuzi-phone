@@ -114,13 +114,38 @@ function buildContentByDateKey(rows = [], anchorRow) {
     return contentByDateKey;
 }
 
+
+function getRowSortKey(row, anchorRow) {
+    const relationIndex = RELATION_ORDER.indexOf(row.todayRelation);
+    const offset = relationIndex >= 0 ? relationIndex - 3 : null;
+    const derivedDate = anchorRow?.parsedDate && offset !== null
+        ? getDateWithOffset(anchorRow.parsedDate, offset)
+        : row.parsedDate;
+    const key = derivedDate?.key || row.parsedDate?.key || '';
+    const daySerial = derivedDate?.daySerial ?? row.parsedDate?.daySerial;
+    return { key, daySerial };
+}
+
+function sortRows(rows, anchorRow) {
+    return [...rows].sort((a, b) => {
+        const sa = getRowSortKey(a, anchorRow);
+        const sb = getRowSortKey(b, anchorRow);
+        if (sa.key && sb.key) {
+            const keyCmp = sa.key.localeCompare(sb.key);
+            if (keyCmp !== 0) return keyCmp;
+        }
+        if (typeof sa.daySerial === 'bigint' && typeof sb.daySerial === 'bigint')
+            return Number(sa.daySerial - sb.daySerial);
+        return 0;
+    });
+}
 function buildViewModel(resolved) {
     const daysTable = resolved.tables.days;
     const rows = mapTheaterRows(daysTable, (row, rowIndex) => normalizeCalendarRow(daysTable, row, rowIndex))
         .filter(row => row.dateText || row.majorEvent || row.dayContent);
-    const anchorRow = resolveAnchorRow(rows);
+    const anchorRow = resolveAnchorRow(sortRows(rows, null));
     const anchorDate = anchorRow?.parsedDate || FALLBACK_ANCHOR;
-    const contentByDateKey = buildContentByDateKey(rows, anchorRow);
+    const contentByDateKey = buildContentByDateKey(sortRows(rows, anchorRow), anchorRow);
     const selectedKey = anchorRow?.parsedDate?.key || contentByDateKey.keys().next().value || formatDateKey(anchorDate.year, anchorDate.monthIndex, anchorDate.day);
     const grid = buildMonthGrid(anchorDate.year, anchorDate.monthIndex);
     const todayKey = anchorRow?.parsedDate?.key || selectedKey;

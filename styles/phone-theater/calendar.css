@@ -45,6 +45,8 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    flex: 1;
+    min-height: 0;
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-header {
@@ -258,6 +260,8 @@
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail {
+    flex: 1;
+    min-height: 0;
     padding: 13px;
     border: 1px solid rgba(255, 59, 48, 0.1);
     border-radius: 18px;
@@ -265,6 +269,7 @@
     box-shadow: 0 12px 28px rgba(255, 107, 82, 0.09);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 
@@ -279,7 +284,9 @@
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-list {
     overflow-y: auto;
-    max-height: 260px;
+    max-height: 400px;
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 10px;
