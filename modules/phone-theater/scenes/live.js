@@ -204,7 +204,7 @@ function renderLivePoster(room) {
             </div>
             <span class="phone-theater-live-poster-status">${escapeHtml(status)}</span>
             <span class="phone-theater-live-poster-title">${escapeHtml(title)}</span>
-        </div></div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个" onclick="var t=this.parentElement.querySelector('.phone-theater-hscroll-track');if(t.scrollLeft+t.clientWidth>=t.scrollWidth-1)t.scrollBy({left:-t.scrollWidth,behavior:'smooth'});else t.scrollBy({left:t.clientWidth,behavior:'smooth'})">›</button></div>
+        </div>
     `;
 }
 
