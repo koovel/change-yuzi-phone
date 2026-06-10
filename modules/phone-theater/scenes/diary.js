@@ -184,7 +184,7 @@ function renderDiaryEmpty() {
                 <div class="phone-theater-diary-empty-kicker">NO PRIVATE NOTES</div>
                 <div class="phone-theater-diary-empty-title">暂无小日记内容</div>
                 <p class="phone-theater-diary-empty-text">等角色把昨日的秘密写下来，这里会变成一叠暖白色的私人手帐。</p>
-            </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
+            </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个" onclick="var x=this.parentElement.querySelector('.phone-theater-hscroll-track');x.scrollBy({left:x.clientWidth,behavior:'smooth'})">›</button></div>
         </div>
     `;
 }
@@ -193,7 +193,7 @@ function renderDiaryCard(entry, uiState = {}, renderKit) {
     const selected = uiState.deleteManageMode && uiState.selectedKeys?.has(entry.deleteKey);
     const postscriptHtml = renderDiaryPostscript(entry.parsedContent.postscriptLines);
     return `
-        <article class="phone-theater-diary-card ${selected ? 'is-delete-selected' : ''}" data-diary-entry-id="${escapeHtmlAttr(entry.identity)}" data-theater-delete-key="${escapeHtmlAttr(entry.deleteKey)}">
+        <article style="flex-shrink:0;width:100%;min-width:100%;max-width:100%;scroll-snap-align:start" class="phone-theater-diary-card ${selected ? 'is-delete-selected' : ''}" data-diary-entry-id="${escapeHtmlAttr(entry.identity)}" data-theater-delete-key="${escapeHtmlAttr(entry.deleteKey)}">
             ${renderKit.renderDeleteSelectButton(entry.deleteKey, uiState)}
             <div class="phone-theater-diary-card-pin" aria-hidden="true"></div>
             <header class="phone-theater-diary-card-head">
@@ -222,7 +222,7 @@ function renderContent(viewModel, uiState = {}, renderKit) {
 
     return `
         <div class="phone-theater-diary-page">
-            <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner">
+            <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个" onclick="var x=this.parentElement.querySelector('.phone-theater-hscroll-track');x.scrollBy({left:-x.clientWidth,behavior:'smooth'})">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner" style="display:flex">
                 ${entries.map(entry => renderDiaryCard(entry, uiState, renderKit)).join('')}
             </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
         </div>
@@ -230,17 +230,8 @@ function renderContent(viewModel, uiState = {}, renderKit) {
 }
 
 
-function bindInteractions(container, context) {
-    void context;
-    var hscroll = container.querySelector(".phone-theater-hscroll-container");
-    if (!(hscroll instanceof HTMLElement)) return;
-    var track = hscroll.querySelector(".phone-theater-hscroll-track");
-    var btnL = hscroll.querySelector(".phone-theater-hscroll-left");
-    var btnR = hscroll.querySelector(".phone-theater-hscroll-right");
-    if (!(track instanceof HTMLElement) || !(btnL instanceof HTMLElement) || !(btnR instanceof HTMLElement)) return;
-    btnL.addEventListener("click", function() { track.scrollBy({ left: -track.clientWidth, behavior: "smooth" }); });
-    btnR.addEventListener("click", function() { track.scrollBy({ left: track.clientWidth, behavior: "smooth" }); });
-}
+
+
 
 
 export const diaryScene = Object.freeze({

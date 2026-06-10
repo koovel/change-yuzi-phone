@@ -100,7 +100,7 @@ function renderForumNoteCard(thread, uiState = {}, renderKit) {
     const board = normalizeText(thread.board);
     const selected = uiState.deleteManageMode && uiState.selectedKeys?.has(thread.deleteKey);
     return `
-        <article class="phone-theater-card phone-theater-forum-note-card ${selected ? 'is-delete-selected' : ''}" data-theater-delete-key="${escapeHtmlAttr(thread.deleteKey)}">
+        <article style="flex-shrink:0;width:100%;min-width:100%;max-width:100%;scroll-snap-align:start" class="phone-theater-card phone-theater-forum-note-card ${selected ? 'is-delete-selected' : ''}" data-theater-delete-key="${escapeHtmlAttr(thread.deleteKey)}">
             ${renderKit.renderDeleteSelectButton(thread.deleteKey, uiState)}
             <div class="phone-theater-forum-cover ${coverClass}" aria-hidden="true">
                 <div class="phone-theater-forum-cover-kicker">${escapeHtml(board || '主贴')}</div>
@@ -135,9 +135,9 @@ function renderContent(viewModel, uiState = {}, renderKit) {
         </div>
     `;
     return `
-        <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner">
+        <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个" onclick="var x=this.parentElement.querySelector('.phone-theater-hscroll-track');x.scrollBy({left:-x.clientWidth,behavior:'smooth'})">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner" style="display:flex">
             ${threadList}
-        </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
+        </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个" onclick="var x=this.parentElement.querySelector('.phone-theater-hscroll-track');x.scrollBy({left:x.clientWidth,behavior:'smooth'})">›</button></div>
     `;
 }
 
@@ -155,17 +155,8 @@ function deleteEntities(context) {
 }
 
 
-function bindInteractions(container, context) {
-    void context;
-    var hscroll = container.querySelector(".phone-theater-hscroll-container");
-    if (!(hscroll instanceof HTMLElement)) return;
-    var track = hscroll.querySelector(".phone-theater-hscroll-track");
-    var btnL = hscroll.querySelector(".phone-theater-hscroll-left");
-    var btnR = hscroll.querySelector(".phone-theater-hscroll-right");
-    if (!(track instanceof HTMLElement) || !(btnL instanceof HTMLElement) || !(btnR instanceof HTMLElement)) return;
-    btnL.addEventListener("click", function() { track.scrollBy({ left: -track.clientWidth, behavior: "smooth" }); });
-    btnR.addEventListener("click", function() { track.scrollBy({ left: track.clientWidth, behavior: "smooth" }); });
-}
+
+
 
 
 export const forumScene = Object.freeze({

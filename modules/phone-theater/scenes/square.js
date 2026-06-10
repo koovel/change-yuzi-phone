@@ -171,7 +171,7 @@ function renderSquarePost(post, uiState = {}, renderKit) {
     const hasMediaButtons = !!normalizeText(mediaButtonsHtml);
     const selected = uiState.deleteManageMode && uiState.selectedKeys?.has(post.deleteKey);
     return `
-        <article class="phone-theater-card phone-theater-square-post ${selected ? 'is-delete-selected' : ''}" data-post-id="${escapeHtmlAttr(post.id)}" data-theater-delete-key="${escapeHtmlAttr(post.deleteKey)}">
+        <article style="flex-shrink:0;width:100%;min-width:100%;max-width:100%;scroll-snap-align:start" class="phone-theater-card phone-theater-square-post ${selected ? 'is-delete-selected' : ''}" data-post-id="${escapeHtmlAttr(post.id)}" data-theater-delete-key="${escapeHtmlAttr(post.deleteKey)}">
             ${renderKit.renderDeleteSelectButton(post.deleteKey, uiState)}
             <header class="phone-theater-square-card-head">
                 <div class="phone-theater-avatar" aria-hidden="true">${escapeHtml(initial)}</div>
@@ -209,9 +209,9 @@ function renderContent(viewModel, uiState = {}, renderKit) {
     const posts = viewModel?.content?.posts || [];
     if (posts.length <= 0) return renderKit.renderEmpty(viewModel.emptyText);
     return `
-        <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner">
+        <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个" onclick="var x=this.parentElement.querySelector('.phone-theater-hscroll-track');x.scrollBy({left:-x.clientWidth,behavior:'smooth'})">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner" style="display:flex">
             ${posts.map(post => renderSquarePost(post, uiState, renderKit)).join('')}
-        </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
+        </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个" onclick="var x=this.parentElement.querySelector('.phone-theater-hscroll-track');x.scrollBy({left:x.clientWidth,behavior:'smooth'})">›</button></div>
     `;
 }
 
@@ -229,17 +229,8 @@ function deleteEntities(context) {
 }
 
 
-function bindInteractions(container, context) {
-    void context;
-    var hscroll = container.querySelector(".phone-theater-hscroll-container");
-    if (!(hscroll instanceof HTMLElement)) return;
-    var track = hscroll.querySelector(".phone-theater-hscroll-track");
-    var btnL = hscroll.querySelector(".phone-theater-hscroll-left");
-    var btnR = hscroll.querySelector(".phone-theater-hscroll-right");
-    if (!(track instanceof HTMLElement) || !(btnL instanceof HTMLElement) || !(btnR instanceof HTMLElement)) return;
-    btnL.addEventListener("click", function() { track.scrollBy({ left: -track.clientWidth, behavior: "smooth" }); });
-    btnR.addEventListener("click", function() { track.scrollBy({ left: track.clientWidth, behavior: "smooth" }); });
-}
+
+
 
 
 export const squareScene = Object.freeze({
