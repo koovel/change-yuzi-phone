@@ -130,14 +130,14 @@ function renderContent(viewModel, uiState = {}, renderKit) {
     const threads = viewModel?.content?.threads || [];
     if (threads.length <= 0) return renderKit.renderEmpty(viewModel.emptyText);
     const threadList = `
-        <div class="phone-theater-forum-thread-list">
+        
             ${threads.map(thread => renderForumNoteCard(thread, uiState, renderKit)).join('')}
         </div>
     `;
     return `
-        <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner"><div class="phone-theater-forum-home">
+        <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner">
             ${threadList}
-        </div></div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
+        </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
     `;
 }
 

@@ -184,7 +184,7 @@ function renderDiaryEmpty() {
                 <div class="phone-theater-diary-empty-kicker">NO PRIVATE NOTES</div>
                 <div class="phone-theater-diary-empty-title">暂无小日记内容</div>
                 <p class="phone-theater-diary-empty-text">等角色把昨日的秘密写下来，这里会变成一叠暖白色的私人手帐。</p>
-            </section></div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
+            </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
         </div>
     `;
 }
@@ -222,9 +222,9 @@ function renderContent(viewModel, uiState = {}, renderKit) {
 
     return `
         <div class="phone-theater-diary-page">
-            <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner"><section class="phone-theater-diary-stack" aria-label="小日记列表">
+            <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner">
                 ${entries.map(entry => renderDiaryCard(entry, uiState, renderKit)).join('')}
-            </section></div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
+            </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
         </div>
     `;
 }
