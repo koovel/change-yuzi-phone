@@ -12,7 +12,7 @@ const CALENDAR_TABLES = Object.freeze({
 });
 
 const WEEKDAY_HEADINGS = Object.freeze(['一', '二', '三', '四', '五', '六', '日']);
-const RELATION_ORDER = Object.freeze(['3天前', '前天', '昨天', '今天', '明天', '后天', '3天后']);
+const RELATION_ORDER = Object.freeze(['T-1', 'T+0', 'T+1', 'T+2', 'T+3', 'T+4', 'T+5']);
 const FALLBACK_ANCHOR = Object.freeze({ year: 2026, monthIndex: 0, day: 1 });
 const SELECTED_DATE_ATTR = 'data-calendar-selected-key';
 const YEAR_PICKER_RANGE = 50;
@@ -82,12 +82,13 @@ function normalizeCalendarRow(daysTable, row, rowIndex) {
         weatherText: normalizeText(getCellByHeader(daysTable, row, '天气')),
         todayRelation: relation,
         dayContent: normalizeText(getCellByHeader(daysTable, row, '内容')),
+        eventTime: normalizeText(getCellByHeader(daysTable, row, '事件时间')),
         monthDays,
     };
 }
 
 function resolveAnchorRow(rows = []) {
-    return rows.find(row => row.todayRelation === '今天' && row.parsedDate)
+    return rows.find(row => row.todayRelation === 'T+0' && row.parsedDate)
         || rows.find(row => row.parsedDate)
         || null;
 }
@@ -96,7 +97,7 @@ function buildContentByDateKey(rows = [], anchorRow) {
     const contentByDateKey = new Map();
     for (const row of rows) {
         const relationIndex = RELATION_ORDER.indexOf(row.todayRelation);
-        const offset = relationIndex >= 0 ? relationIndex - 3 : null;
+        const offset = relationIndex >= 0 ? relationIndex - 1 : null;
         const derivedDate = anchorRow?.parsedDate && offset !== null
             ? getDateWithOffset(anchorRow.parsedDate, offset)
             : row.parsedDate;
@@ -117,7 +118,7 @@ function buildContentByDateKey(rows = [], anchorRow) {
 
 function getRowSortKey(row, anchorRow) {
     const relationIndex = RELATION_ORDER.indexOf(row.todayRelation);
-    const offset = relationIndex >= 0 ? relationIndex - 3 : null;
+    const offset = relationIndex >= 0 ? relationIndex - 1 : null;
     const derivedDate = anchorRow?.parsedDate && offset !== null
         ? getDateWithOffset(anchorRow.parsedDate, offset)
         : row.parsedDate;
@@ -136,6 +137,11 @@ function sortRows(rows, anchorRow) {
         }
         if (typeof sa.daySerial === 'bigint' && typeof sb.daySerial === 'bigint')
             return Number(sa.daySerial - sb.daySerial);
+        const ta = a.eventTime || '';
+        const tb = b.eventTime || '';
+        if (ta === '全天' && tb !== '全天') return -1;
+        if (tb === '全天' && ta !== '全天') return 1;
+        if (ta && tb && ta !== tb) return ta.localeCompare(tb);
         return 0;
     });
 }
@@ -220,8 +226,9 @@ function renderSelectedEntries(entries) {
                                 <div class="phone-theater-calendar-detail-date">${escapeHtml(entry.displayDate || entry.dateText)}</div>
                                 <div class="phone-theater-calendar-detail-relation">${escapeHtml(entry.todayRelation || '')}</div>
                             </div>
-                            ${entry.dayStatus || entry.weatherText ? `
+                            ${entry.eventTime || entry.dayStatus || entry.weatherText ? `
                                 <div class="phone-theater-calendar-badges">
+                                    ${entry.eventTime ? `<span class="phone-theater-calendar-event-time">${escapeHtml(entry.eventTime)}</span>` : ''}
                                     ${entry.dayStatus ? `<span class="phone-theater-calendar-status">${escapeHtml(entry.dayStatus)}</span>` : ''}
                                     ${entry.weatherText ? `<span class="phone-theater-calendar-weather">${escapeHtml(entry.weatherText)}</span>` : ''}
                                 </div>

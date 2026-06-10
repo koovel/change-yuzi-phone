@@ -347,6 +347,15 @@
     max-width: 48%;
 }
 
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-event-time {
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 1.4;
+    background: rgba(52, 199, 89, 0.14);
+    color: #1a7a3a;
+}
+
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-status,
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-weather {
     padding: 3px 8px;
