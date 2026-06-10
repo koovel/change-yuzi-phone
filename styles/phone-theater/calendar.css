@@ -465,3 +465,91 @@
     padding: 2px 0;
     border-bottom: 1px solid rgba(255, 59, 48, 0.12);
 }
+
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-view-toggle-btn {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(255, 59, 48, 0.08);
+    color: var(--calendar-red);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    margin-right: 6px;
+}
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-view {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    max-height: 420px;
+    border: 1px solid rgba(255, 59, 48, 0.1);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 12px 28px rgba(255, 107, 82, 0.09);
+    padding: 13px;
+}
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-view-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-date-header {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--calendar-red);
+    padding: 6px 4px 2px;
+    border-bottom: 1px solid rgba(255, 59, 48, 0.12);
+    margin-top: 4px;
+}
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255, 248, 244, 0.6);
+    font-size: 13px;
+}
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-time {
+    flex-shrink: 0;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: rgba(52, 199, 89, 0.14);
+    color: #1a7a3a;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 36px;
+    text-align: center;
+}
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-event {
+    flex: 1;
+    font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-status {
+    flex-shrink: 0;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(255, 149, 0, 0.13);
+    color: #b05a00;
+    font-size: 11px;
+}
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-weather {
+    flex-shrink: 0;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(0, 122, 255, 0.12);
+    color: #0b63c7;
+    font-size: 11px;
+}
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-empty {
+    color: var(--calendar-muted);
+    text-align: center;
+    padding: 13px;
+    font-size: 13px;
+}

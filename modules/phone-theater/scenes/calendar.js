@@ -173,7 +173,7 @@ function buildViewModel(resolved) {
             entry: (contentByDateKey.get(day.key) || [])[0] || null,
         })),
         selectedEntries: contentByDateKey.get(selectedKey) || [],
-        allEntries: [...contentByDateKey.values()].flat(),
+        sortedAllEntries: [...contentByDateKey.keys()].sort().flatMap(k => contentByDateKey.get(k)),
         contentByDateKey,
         empty: rows.length <= 0,
     };
@@ -317,6 +317,29 @@ function renderYearPicker(content) {
     `;
 }
 
+﻿function renderListView(sortedEntries) {
+    if (!sortedEntries || sortedEntries.length === 0) {
+        return '<div class="phone-theater-calendar-list-empty">\u6682\u65e0\u65e5\u7a0b</div>';
+    }
+    var parts = [];
+    for (var i = 0; i < sortedEntries.length; i++) {
+        var entry = sortedEntries[i];
+        var prev = i > 0 ? sortedEntries[i - 1] : null;
+        var showDateHeader = !prev || prev.dateKey !== entry.dateKey;
+        if (showDateHeader) {
+            parts.push('<div class="phone-theater-calendar-list-date-header">' + escapeHtml(entry.displayDate || entry.dateText) + '</div>');
+        }
+        var item = '<div class="phone-theater-calendar-list-item">';
+        item += '<span class="phone-theater-calendar-list-time">' + escapeHtml(entry.eventTime || '') + '</span>';
+        item += '<span class="phone-theater-calendar-list-event">' + escapeHtml(entry.majorEvent || '') + '</span>';
+        if (entry.dayStatus) item += '<span class="phone-theater-calendar-list-status">' + escapeHtml(entry.dayStatus) + '</span>';
+        if (entry.weatherText) item += '<span class="phone-theater-calendar-list-weather">' + escapeHtml(entry.weatherText) + '</span>';
+        item += '</div>';
+        parts.push(item);
+    }
+    return '<div class="phone-theater-calendar-list-view-inner">' + parts.join('') + '</div>';
+}
+
 function renderContent(viewModel) {
     const content = viewModel?.content || {};
     if (content.empty) {
@@ -324,8 +347,10 @@ function renderContent(viewModel) {
     }
 
     return `
-        <div class="phone-theater-calendar-page" ${SELECTED_DATE_ATTR}="${escapeHtmlAttr(content.selectedKey)}">
+        <div class="phone-theater-calendar-page" data-calendar-view="grid" ${SELECTED_DATE_ATTR}="${escapeHtmlAttr(content.selectedKey)}">
+            <div class="phone-theater-calendar-grid-view">
             <section class="phone-theater-calendar-header">
+                <button type="button" class="phone-theater-calendar-view-toggle-btn" data-calendar-action="toggle-list-view" title="切换列表视图">\u2261</button>
                 <button type="button" class="phone-theater-calendar-nav-btn" data-calendar-action="prev-month" aria-label="上个月">‹</button>
                 <div class="phone-theater-calendar-month-select">
                     <span class="phone-theater-calendar-month-label">${escapeHtml(content.displayMonthLabel)}</span>
@@ -340,6 +365,10 @@ function renderContent(viewModel) {
                 ${content.grid.map(renderDayCell).join('')}
             </section>
             ${renderSelectedEntries(content.selectedEntries)}
+            </div>
+            <div class="phone-theater-calendar-list-view" style="display:none">
+                ${renderListView(content.sortedAllEntries)}
+            </div>
             ${renderAllEntriesList(content.allEntries)}
         </div>
     `;
@@ -419,6 +448,26 @@ function bindInteractions(container, context = {}) {
     page.dataset.calendarMonthIndex = String(content.displayMonthIndex);
 
     const handleClick = (event) => {
+        const actionNode2 = event.target instanceof Element ? event.target.closest('[data-calendar-action]') : null;
+        if (actionNode2 instanceof HTMLElement && actionNode2.dataset.calendarAction === 'toggle-list-view') {
+            const page2 = container.querySelector('.phone-theater-calendar-page');
+            const gridView2 = page2 instanceof HTMLElement ? page2.querySelector('.phone-theater-calendar-grid-view') : null;
+            const listView2 = page2 instanceof HTMLElement ? page2.querySelector('.phone-theater-calendar-list-view') : null;
+            if (page2 instanceof HTMLElement && gridView2 instanceof HTMLElement && listView2 instanceof HTMLElement) {
+                if (page2.dataset.calendarView === 'list') {
+                    page2.dataset.calendarView = 'grid';
+                    gridView2.style.display = '';
+                    listView2.style.display = 'none';
+                } else {
+                    page2.dataset.calendarView = 'list';
+                    gridView2.style.display = 'none';
+                    listView2.style.display = '';
+                    const listInner3 = listView2.querySelector('.phone-theater-calendar-list-view-inner');
+                    if (listInner3 instanceof HTMLElement) listInner3.scrollTop = 0;
+                }
+            }
+            return;
+        }
         const actionNode = event.target instanceof Element ? event.target.closest('[data-calendar-action], [data-calendar-date-key]') : null;
         if (!(actionNode instanceof HTMLElement)) return;
         const currentYear = Number(page.dataset.calendarYear || content.displayYear);
