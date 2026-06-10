@@ -107,7 +107,7 @@ function buildViewModel(resolved, helpers) {
             tag: normalizeText(getCellByHeader(postsTable, row, '账号标签')),
             title: normalizeText(getCellByHeader(postsTable, row, '帖子标题')),
             body: normalizeText(getCellByHeader(postsTable, row, '帖子正文')),
-            topic: normalizeText(getCellByHeader(postsTable, row, '话题/附加信息')),
+            topic: resolveCellByHeaderAliases(postsTable, row, ['话题/附加信息','话题','附加信息']),
             imageDescription: normalizeOptionalDescription(getCellByHeader(postsTable, row, '图片描述')),
             videoDescription: normalizeOptionalDescription(getCellByHeader(postsTable, row, '视频描述')),
             interaction: normalizeText(getCellByHeader(postsTable, row, '互动数据')),
@@ -209,9 +209,9 @@ function renderContent(viewModel, uiState = {}, renderKit) {
     const posts = viewModel?.content?.posts || [];
     if (posts.length <= 0) return renderKit.renderEmpty(viewModel.emptyText);
     return `
-        <div class="phone-theater-square-feed">
+        <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner"><div class="phone-theater-square-feed">
             ${posts.map(post => renderSquarePost(post, uiState, renderKit)).join('')}
-        </div>
+        </div></div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
     `;
 }
 
@@ -226,6 +226,21 @@ function deleteEntities(context) {
     });
 
     return { removed: postDeletion.removed };
+}
+
+
+function bindInteractions(container, context = {}) {
+    const hscroll = container.querySelector(".phone-theater-hscroll-container");
+    if (!(hscroll instanceof HTMLElement)) return;
+    const track = hscroll.querySelector(".phone-theater-hscroll-track");
+    const btnL = hscroll.querySelector(".phone-theater-hscroll-left");
+    const btnR = hscroll.querySelector(".phone-theater-hscroll-right");
+    if (!(track instanceof HTMLElement) || !(btnL instanceof HTMLElement) || !(btnR instanceof HTMLElement)) return;
+    const scrollBy = (dir) => {
+        track.scrollBy({ left: dir * track.clientWidth, behavior: "smooth" });
+    };
+    context.addEventListener(btnL, "click", () => scrollBy(-1));
+    context.addEventListener(btnR, "click", () => scrollBy(1));
 }
 
 export const squareScene = Object.freeze({

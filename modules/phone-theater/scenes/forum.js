@@ -135,9 +135,9 @@ function renderContent(viewModel, uiState = {}, renderKit) {
         </div>
     `;
     return `
-        <div class="phone-theater-forum-home">
+        <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner"><div class="phone-theater-forum-home">
             ${threadList}
-        </div>
+        </div></div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
     `;
 }
 
@@ -152,6 +152,21 @@ function deleteEntities(context) {
     });
 
     return { removed: threadDeletion.removed };
+}
+
+
+function bindInteractions(container, context = {}) {
+    const hscroll = container.querySelector(".phone-theater-hscroll-container");
+    if (!(hscroll instanceof HTMLElement)) return;
+    const track = hscroll.querySelector(".phone-theater-hscroll-track");
+    const btnL = hscroll.querySelector(".phone-theater-hscroll-left");
+    const btnR = hscroll.querySelector(".phone-theater-hscroll-right");
+    if (!(track instanceof HTMLElement) || !(btnL instanceof HTMLElement) || !(btnR instanceof HTMLElement)) return;
+    const scrollBy = (dir) => {
+        track.scrollBy({ left: dir * track.clientWidth, behavior: "smooth" });
+    };
+    context.addEventListener(btnL, "click", () => scrollBy(-1));
+    context.addEventListener(btnR, "click", () => scrollBy(1));
 }
 
 export const forumScene = Object.freeze({

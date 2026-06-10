@@ -8,7 +8,7 @@ const DIARY_TABLES = Object.freeze({
 
 const DIARY_DELETE_ROLE = 'entry';
 const DIARY_MAX_ENTRIES = 5;
-const POSTSCRIPT_PATTERN = /^\s*(PS|PPS)\s*[：:]/i;
+const POSTSCRIPT_PATTERN = /^\s*(PS|PPS|PPPS)\s*[：:]/i;
 const SECRET_MARKER = '~~';
 const DEFAULT_DISPLAY_DATE = '昨日私语';
 const DIARY_FIELD_NAMES = Object.freeze({
@@ -148,7 +148,7 @@ function normalizeDiaryRow(entriesTable, row, rowIndex) {
 function buildViewModel(resolved, helpers) {
     const entriesTable = resolved.tables.entries;
     const entries = mapTheaterRows(entriesTable, (row, rowIndex) => normalizeDiaryRow(entriesTable, row, rowIndex))
-        .slice(0, DIARY_MAX_ENTRIES);
+        ;
     const displayDate = entries.find(entry => entry.date)?.date || DEFAULT_DISPLAY_DATE;
 
     void helpers;
@@ -184,7 +184,7 @@ function renderDiaryEmpty() {
                 <div class="phone-theater-diary-empty-kicker">NO PRIVATE NOTES</div>
                 <div class="phone-theater-diary-empty-title">暂无小日记内容</div>
                 <p class="phone-theater-diary-empty-text">等角色把昨日的秘密写下来，这里会变成一叠暖白色的私人手帐。</p>
-            </section>
+            </section></div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
         </div>
     `;
 }
@@ -222,11 +222,26 @@ function renderContent(viewModel, uiState = {}, renderKit) {
 
     return `
         <div class="phone-theater-diary-page">
-            <section class="phone-theater-diary-stack" aria-label="小日记列表">
+            <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner"><section class="phone-theater-diary-stack" aria-label="小日记列表">
                 ${entries.map(entry => renderDiaryCard(entry, uiState, renderKit)).join('')}
-            </section>
+            </section></div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
         </div>
     `;
+}
+
+
+function bindInteractions(container, context = {}) {
+    const hscroll = container.querySelector(".phone-theater-hscroll-container");
+    if (!(hscroll instanceof HTMLElement)) return;
+    const track = hscroll.querySelector(".phone-theater-hscroll-track");
+    const btnL = hscroll.querySelector(".phone-theater-hscroll-left");
+    const btnR = hscroll.querySelector(".phone-theater-hscroll-right");
+    if (!(track instanceof HTMLElement) || !(btnL instanceof HTMLElement) || !(btnR instanceof HTMLElement)) return;
+    const scrollBy = (dir) => {
+        track.scrollBy({ left: dir * track.clientWidth, behavior: "smooth" });
+    };
+    context.addEventListener(btnL, "click", () => scrollBy(-1));
+    context.addEventListener(btnR, "click", () => scrollBy(1));
 }
 
 export const diaryScene = Object.freeze({

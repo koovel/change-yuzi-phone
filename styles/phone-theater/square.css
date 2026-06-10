@@ -413,3 +413,51 @@
         margin-left: 0;
     }
 }
+
+
+/* ---- Horizontal scroll carousel ---- */
+.phone-theater-hscroll-container {
+    position: relative;
+    overflow: hidden;
+}
+.phone-theater-hscroll-track {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.phone-theater-hscroll-track::-webkit-scrollbar { display: none; }
+.phone-theater-hscroll-inner {
+    display: flex;
+}
+.phone-theater-hscroll-inner > * {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+}
+.phone-theater-hscroll-btn {
+    position: absolute;
+    top: 44%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 38px;
+    border: 0;
+    border-radius: 6px;
+    background: rgba(128,128,128,0.10);
+    color: rgba(0,0,0,0.35);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.12;
+    transition: opacity 0.18s ease, background 0.18s ease;
+    z-index: 10;
+    padding: 0;
+}
+.phone-theater-hscroll-container:hover .phone-theater-hscroll-btn {
+    opacity: 0.55;
+}
+.phone-theater-hscroll-btn:hover {
+    opacity: 0.9 !important;
+    background: rgba(128,128,128,0.16);
+}
+.phone-theater-hscroll-left { left: 3px; }
+.phone-theater-hscroll-right { right: 3px; }
