@@ -341,10 +341,9 @@
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-badges {
     flex-shrink: 0;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 6px;
     justify-content: flex-end;
-    max-width: 48%;
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-event-time {
@@ -402,4 +401,67 @@
     .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-day {
         transition: none;
     }
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list {
+    margin-top: 12px;
+    border: 1px solid rgba(255, 59, 48, 0.1);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 12px 28px rgba(255, 107, 82, 0.09);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list-header {
+    padding: 13px 13px 9px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 59, 48, 0.08);
+    flex-shrink: 0;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list-title {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(36, 31, 31, 0.48);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list-body {
+    overflow-y: auto;
+    max-height: 600px;
+    padding: 10px 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list-body::-webkit-scrollbar {
+    width: 5px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list-body::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(255, 59, 48, 0.25);
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list-date-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list-date-head {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--calendar-red, #ff3b30);
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255, 59, 48, 0.12);
 }

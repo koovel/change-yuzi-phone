@@ -135,13 +135,13 @@ function sortRows(rows, anchorRow) {
             const keyCmp = sa.key.localeCompare(sb.key);
             if (keyCmp !== 0) return keyCmp;
         }
-        if (typeof sa.daySerial === 'bigint' && typeof sb.daySerial === 'bigint')
-            return Number(sa.daySerial - sb.daySerial);
         const ta = a.eventTime || '';
         const tb = b.eventTime || '';
         if (ta === '全天' && tb !== '全天') return -1;
         if (tb === '全天' && ta !== '全天') return 1;
         if (ta && tb && ta !== tb) return ta.localeCompare(tb);
+        if (typeof sa.daySerial === 'bigint' && typeof sb.daySerial === 'bigint')
+            return Number(sa.daySerial - sb.daySerial);
         return 0;
     });
 }
@@ -173,6 +173,7 @@ function buildViewModel(resolved) {
             entry: (contentByDateKey.get(day.key) || [])[0] || null,
         })),
         selectedEntries: contentByDateKey.get(selectedKey) || [],
+        allEntries: [...contentByDateKey.values()].flat(),
         contentByDateKey,
         empty: rows.length <= 0,
     };
@@ -250,6 +251,51 @@ function buildYearOptions(displayYear) {
     return Array.from({ length: YEAR_PICKER_RANGE * 2 + 1 }, (_, index) => startYear + index);
 }
 
+
+function renderAllEntriesList(allEntries) {
+    if (!allEntries || allEntries.length === 0) return '';
+    const grouped = new Map();
+    for (const entry of allEntries) {
+        const dateLabel = entry.displayDate || entry.dateText || entry.dateKey || '';
+        if (!grouped.has(dateLabel)) grouped.set(dateLabel, []);
+        grouped.get(dateLabel).push(entry);
+    }
+    const dateKeys = [...grouped.keys()];
+    return `
+        <section class="phone-theater-calendar-all-list">
+            <div class="phone-theater-calendar-all-list-header">
+                <span class="phone-theater-calendar-all-list-title">全部日程</span>
+                <span class="phone-theater-calendar-all-list-count">共 ${allEntries.length} 条</span>
+            </div>
+            <div class="phone-theater-calendar-all-list-body">
+                ${dateKeys.map((dk) => `
+                    <div class="phone-theater-calendar-all-list-date-group">
+                        <div class="phone-theater-calendar-all-list-date-head">${escapeHtml(dk)}</div>
+                        ${grouped.get(dk).map((entry) => `
+                            <div class="phone-theater-calendar-detail-item">
+                                <div class="phone-theater-calendar-detail-head">
+                                    <div>
+                                        <div class="phone-theater-calendar-detail-relation">${escapeHtml(entry.todayRelation || '')}</div>
+                                    </div>
+                                    ${entry.eventTime || entry.dayStatus || entry.weatherText ? `
+                                        <div class="phone-theater-calendar-badges">
+                                            ${entry.eventTime ? `<span class="phone-theater-calendar-event-time">${escapeHtml(entry.eventTime)}</span>` : ''}
+                                            ${entry.dayStatus ? `<span class="phone-theater-calendar-status">${escapeHtml(entry.dayStatus)}</span>` : ''}
+                                            ${entry.weatherText ? `<span class="phone-theater-calendar-weather">${escapeHtml(entry.weatherText)}</span>` : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                ${entry.festivalText ? `<div class="phone-theater-calendar-festival">${escapeHtml(entry.festivalText)}</div>` : ''}
+                                ${entry.majorEvent ? `<div class="phone-theater-calendar-event">${escapeHtml(entry.majorEvent)}</div>` : ''}
+                                ${entry.dayContent ? `<p class="phone-theater-calendar-content">${escapeHtml(entry.dayContent)}</p>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('')}
+            </div>
+        </section>
+    `;
+}
 function renderYearPicker(content) {
     const displayYear = Number(content?.displayYear);
     const safeDisplayYear = Number.isFinite(displayYear) ? Math.trunc(displayYear) : FALLBACK_ANCHOR.year;
@@ -294,6 +340,7 @@ function renderContent(viewModel) {
                 ${content.grid.map(renderDayCell).join('')}
             </section>
             ${renderSelectedEntries(content.selectedEntries)}
+            ${renderAllEntriesList(content.allEntries)}
         </div>
     `;
 }
