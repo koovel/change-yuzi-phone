@@ -350,7 +350,6 @@ function renderContent(viewModel) {
         <div class="phone-theater-calendar-page" data-calendar-view="grid" ${SELECTED_DATE_ATTR}="${escapeHtmlAttr(content.selectedKey)}">
             <div class="phone-theater-calendar-grid-view">
             <section class="phone-theater-calendar-header">
-                <button type="button" class="phone-theater-calendar-view-toggle-btn" data-calendar-action="toggle-list-view" title="切换列表视图">\u2261</button>
                 <button type="button" class="phone-theater-calendar-nav-btn" data-calendar-action="prev-month" aria-label="上个月">‹</button>
                 <div class="phone-theater-calendar-month-select">
                     <span class="phone-theater-calendar-month-label">${escapeHtml(content.displayMonthLabel)}</span>
@@ -443,31 +442,44 @@ function bindInteractions(container, context = {}) {
     const content = context?.viewModel?.content || {};
     if (!(page instanceof HTMLElement) || !content || content.empty) return;
     if (page.dataset.calendarBound === 'true') return;
+    // Inject list-view toggle into nav actions bar
+    const navActions = container.querySelector('.phone-theater-nav-actions');
+    if (navActions instanceof HTMLElement && !navActions.querySelector('.phone-theater-calendar-view-toggle-btn')) {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'phone-theater-calendar-view-toggle-btn';
+        toggleBtn.setAttribute('data-calendar-action', 'toggle-list-view');
+        toggleBtn.title = '切换列表视图';
+        toggleBtn.textContent = '≡';
+        navActions.insertBefore(toggleBtn, navActions.firstChild);
+        context.addEventListener(toggleBtn, 'click', () => {
+            const pg = container.querySelector('.phone-theater-calendar-page');
+            const gridView = pg instanceof HTMLElement ? pg.querySelector('.phone-theater-calendar-grid-view') : null;
+            const listView = pg instanceof HTMLElement ? pg.querySelector('.phone-theater-calendar-list-view') : null;
+            if (pg instanceof HTMLElement && gridView instanceof HTMLElement && listView instanceof HTMLElement) {
+                if (pg.dataset.calendarView === 'list') {
+                    pg.dataset.calendarView = 'grid';
+                    gridView.style.display = '';
+                    listView.style.display = 'none';
+                    toggleBtn.textContent = '≡';
+                } else {
+                    pg.dataset.calendarView = 'list';
+                    gridView.style.display = 'none';
+                    listView.style.display = '';
+                    toggleBtn.textContent = '✖';
+                    const listInner = listView.querySelector('.phone-theater-calendar-list-view-inner');
+                    if (listInner instanceof HTMLElement) listInner.scrollTop = 0;
+                }
+            }
+        });
+    }
+
+
     page.dataset.calendarBound = 'true';
     page.dataset.calendarYear = String(content.displayYear);
     page.dataset.calendarMonthIndex = String(content.displayMonthIndex);
 
     const handleClick = (event) => {
-        const actionNode2 = event.target instanceof Element ? event.target.closest('[data-calendar-action]') : null;
-        if (actionNode2 instanceof HTMLElement && actionNode2.dataset.calendarAction === 'toggle-list-view') {
-            const page2 = container.querySelector('.phone-theater-calendar-page');
-            const gridView2 = page2 instanceof HTMLElement ? page2.querySelector('.phone-theater-calendar-grid-view') : null;
-            const listView2 = page2 instanceof HTMLElement ? page2.querySelector('.phone-theater-calendar-list-view') : null;
-            if (page2 instanceof HTMLElement && gridView2 instanceof HTMLElement && listView2 instanceof HTMLElement) {
-                if (page2.dataset.calendarView === 'list') {
-                    page2.dataset.calendarView = 'grid';
-                    gridView2.style.display = '';
-                    listView2.style.display = 'none';
-                } else {
-                    page2.dataset.calendarView = 'list';
-                    gridView2.style.display = 'none';
-                    listView2.style.display = '';
-                    const listInner3 = listView2.querySelector('.phone-theater-calendar-list-view-inner');
-                    if (listInner3 instanceof HTMLElement) listInner3.scrollTop = 0;
-                }
-            }
-            return;
-        }
         const actionNode = event.target instanceof Element ? event.target.closest('[data-calendar-action], [data-calendar-date-key]') : null;
         if (!(actionNode instanceof HTMLElement)) return;
         const currentYear = Number(page.dataset.calendarYear || content.displayYear);
