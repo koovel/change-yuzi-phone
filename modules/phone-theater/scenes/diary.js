@@ -184,7 +184,7 @@ function renderDiaryEmpty() {
                 <div class="phone-theater-diary-empty-kicker">NO PRIVATE NOTES</div>
                 <div class="phone-theater-diary-empty-title">暂无小日记内容</div>
                 <p class="phone-theater-diary-empty-text">等角色把昨日的秘密写下来，这里会变成一叠暖白色的私人手帐。</p>
-            </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个" onclick="var x=this.parentElement.querySelector('.phone-theater-hscroll-track');x.scrollBy({left:x.clientWidth,behavior:'smooth'})">›</button></div>
+            </div>
         </div>
     `;
 }
@@ -222,9 +222,9 @@ function renderContent(viewModel, uiState = {}, renderKit) {
 
     return `
         <div class="phone-theater-diary-page">
-            <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个" onclick="var x=this.parentElement.querySelector('.phone-theater-hscroll-track');x.scrollBy({left:-x.clientWidth,behavior:'smooth'})">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner" style="display:flex">
+            <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个" onclick="var t=this.parentElement.querySelector('.phone-theater-hscroll-track');if(t.scrollLeft<=0)t.scrollBy({left:t.scrollWidth-t.clientWidth,behavior:'smooth'});else t.scrollBy({left:-t.clientWidth,behavior:'smooth'})">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner" style="display:flex">
                 ${entries.map(entry => renderDiaryCard(entry, uiState, renderKit)).join('')}
-            </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个">›</button></div>
+            </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个" onclick="var t=this.parentElement.querySelector('.phone-theater-hscroll-track');if(t.scrollLeft+t.clientWidth>=t.scrollWidth-1)t.scrollBy({left:-t.scrollWidth,behavior:'smooth'});else t.scrollBy({left:t.clientWidth,behavior:'smooth'})">›</button></div>
         </div>
     `;
 }
