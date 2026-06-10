@@ -229,19 +229,18 @@ function deleteEntities(context) {
 }
 
 
-function bindInteractions(container, context = {}) {
-    const hscroll = container.querySelector(".phone-theater-hscroll-container");
+function bindInteractions(container, context) {
+    void context;
+    var hscroll = container.querySelector(".phone-theater-hscroll-container");
     if (!(hscroll instanceof HTMLElement)) return;
-    const track = hscroll.querySelector(".phone-theater-hscroll-track");
-    const btnL = hscroll.querySelector(".phone-theater-hscroll-left");
-    const btnR = hscroll.querySelector(".phone-theater-hscroll-right");
+    var track = hscroll.querySelector(".phone-theater-hscroll-track");
+    var btnL = hscroll.querySelector(".phone-theater-hscroll-left");
+    var btnR = hscroll.querySelector(".phone-theater-hscroll-right");
     if (!(track instanceof HTMLElement) || !(btnL instanceof HTMLElement) || !(btnR instanceof HTMLElement)) return;
-    const scrollBy = (dir) => {
-        track.scrollBy({ left: dir * track.clientWidth, behavior: "smooth" });
-    };
-    context.addEventListener(btnL, "click", () => scrollBy(-1));
-    context.addEventListener(btnR, "click", () => scrollBy(1));
+    btnL.addEventListener("click", function() { track.scrollBy({ left: -track.clientWidth, behavior: "smooth" }); });
+    btnR.addEventListener("click", function() { track.scrollBy({ left: track.clientWidth, behavior: "smooth" }); });
 }
+
 
 export const squareScene = Object.freeze({
     id: 'square',
