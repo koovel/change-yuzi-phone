@@ -421,6 +421,7 @@
     overflow: hidden;
 }
 .phone-theater-hscroll-track {
+    width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
@@ -429,11 +430,13 @@
 }
 .phone-theater-hscroll-track::-webkit-scrollbar { display: none; }
 .phone-theater-hscroll-inner {
-    display: flex;
+    display: flex !important;
 }
 .phone-theater-hscroll-inner > * {
-    flex: 0 0 100%;
-    min-width: 0;
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
     scroll-snap-align: start;
 }
 .phone-theater-hscroll-btn {
