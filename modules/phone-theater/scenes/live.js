@@ -287,7 +287,7 @@ function renderContent(viewModel, uiState = {}, renderKit) {
     const rooms = viewModel?.content?.rooms || [];
     if (rooms.length <= 0) return renderKit.renderEmpty(viewModel.emptyText);
     return `
-        <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个" onclick="var t=this.parentElement.querySelector('.phone-theater-hscroll-track');if(t.scrollLeft<=0)t.scrollBy({left:t.scrollWidth-t.clientWidth,behavior:'smooth'});else t.scrollBy({left:-t.clientWidth,behavior:'smooth'})">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner" style="display:flex"><div class="phone-theater-live-page">
+        <div class="phone-theater-hscroll-container"><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-left" aria-label="上一个" onclick="var t=this.parentElement.querySelector('.phone-theater-hscroll-track');if(t.scrollLeft<=0)t.scrollBy({left:t.scrollWidth-t.clientWidth,behavior:'smooth'});else t.scrollBy({left:-t.clientWidth,behavior:'smooth'})">‹</button><div class="phone-theater-hscroll-track"><div class="phone-theater-hscroll-inner" style="display:flex">
             ${rooms.map((room) => {
         const items = Array.isArray(room.barrageItems) ? room.barrageItems : [];
         const selected = uiState.deleteManageMode && uiState.selectedKeys?.has(room.deleteKey);
@@ -301,7 +301,7 @@ function renderContent(viewModel, uiState = {}, renderKit) {
                     </article>
                 `;
     }).join('')}
-        </div></div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个" onclick="var t=this.parentElement.querySelector('.phone-theater-hscroll-track');if(t.scrollLeft+t.clientWidth>=t.scrollWidth-1)t.scrollBy({left:-t.scrollWidth,behavior:'smooth'});else t.scrollBy({left:t.clientWidth,behavior:'smooth'})">›</button></div>
+        </div></div><button type="button" class="phone-theater-hscroll-btn phone-theater-hscroll-right" aria-label="下一个" onclick="var t=this.parentElement.querySelector('.phone-theater-hscroll-track');if(t.scrollLeft+t.clientWidth>=t.scrollWidth-1)t.scrollBy({left:-t.scrollWidth,behavior:'smooth'});else t.scrollBy({left:t.clientWidth,behavior:'smooth'})">›</button></div>
     `;
 }
 
