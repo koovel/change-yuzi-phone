@@ -216,7 +216,7 @@
 .phone-theater-hscroll-container{position:relative;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column}
 .phone-theater-hscroll-track{width:100%;overflow-x:auto;overflow-y:hidden;flex:1;min-height:0;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .phone-theater-hscroll-track::-webkit-scrollbar{display:none}
-.phone-theater-hscroll-inner{display:flex!important}
+.phone-theater-hscroll-inner{display:flex!important;height:100%}
 .phone-theater-hscroll-inner>*{flex-shrink:0!important;width:100%!important;min-width:100%!important;max-width:100%!important;scroll-snap-align:start;height:100%;overflow-y:auto!important;-webkit-overflow-scrolling:touch}
 .phone-theater-hscroll-btn{position:fixed;top:44vh;transform:translateY(-50%);width:30px;height:44px;border:0;border-radius:8px;background:rgba(128,128,128,0.18);color:rgba(0,0,0,0.5);font-size:22px;line-height:1;cursor:pointer;opacity:0.28;transition:opacity .18s ease,background .18s ease;z-index:10;padding:0;pointer-events:auto}
 .phone-theater-hscroll-container:hover .phone-theater-hscroll-btn{opacity:0.7}
