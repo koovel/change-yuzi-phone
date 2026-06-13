@@ -107,6 +107,7 @@ export function buildConversations(rows, readSpecialField, styleOptions = {}) {
         sorted.reverse();
     }
 
+    // eslint-disable-next-line no-unused-vars
     return sorted.map(({ sortKey, ...conversation }) => conversation);
 }
 

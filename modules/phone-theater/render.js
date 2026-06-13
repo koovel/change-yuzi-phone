@@ -5,14 +5,18 @@ import { createRuntimeScrollPreserver } from '../ui-runtime/scroll-preserver-cor
 import { buildTheaterSceneViewModel } from './data.js';
 import { buildTheaterScenePageHtml } from './templates.js';
 import { bindTheaterSceneInteractions } from './interactions.js';
+import { getTheaterSceneDefinition } from './config.js';
+import { setModifiedRow, getLastKnownMaxRowId, setLastKnownMaxRowId, detectModifiedRowBySnapshot } from './core/row-tracker.js';
 
 function normalizeText(value) {
     return String(value ?? '').trim();
 }
 
 /**
- * 自动检测新增行：比较当前最大 row_id 与上次已知最大值，
- * 若增长了则将新行标记为"修改/添加行"以便排在第 1 页。
+ * 自动检测"修改/添加行"：
+ *  1. 比较当前最大 row_id 与上次已知最大值，若增长则将新行标记为修改/添加行。
+ *  2. 若无新增行，则通过内容快照比较检测被修改的行。
+ *  始终更新快照以保持比较基准。
  */
 function autoDetectNewRows(rawData, sceneId) {
     if (!rawData) return;
@@ -35,9 +39,10 @@ function autoDetectNewRows(rawData, sceneId) {
     const rowIdColIndex = headers.findIndex(h => normalizeText(h) === 'row_id');
     if (rowIdColIndex < 0) return;
 
+    const dataRows = sheet.content.slice(1);
     let maxId = null;
-    for (let i = 1; i < sheet.content.length; i++) {
-        const value = normalizeText(sheet.content[i]?.[rowIdColIndex]);
+    for (const row of dataRows) {
+        const value = normalizeText(row?.[rowIdColIndex]);
         if (value) {
             const numId = Number(value);
             if (Number.isFinite(numId) && (maxId === null || numId > maxId)) {
@@ -50,15 +55,21 @@ function autoDetectNewRows(rawData, sceneId) {
     const newMaxRowId = String(maxId);
     const lastKnownMax = getLastKnownMaxRowId(primaryTableName);
 
+    // 1. 检测新增行（row_id 增大）
+    let hasNewRow = false;
     if (lastKnownMax !== null) {
         const lastNum = Number(lastKnownMax);
         const newNum = Number(newMaxRowId);
         if (Number.isFinite(lastNum) && Number.isFinite(newNum) && newNum > lastNum) {
-            const existingModified = getModifiedRowId(primaryTableName);
-            if (!existingModified) {
-                setModifiedRow(primaryTableName, newMaxRowId);
-            }
+            setModifiedRow(primaryTableName, newMaxRowId);
+            hasNewRow = true;
         }
+    }
+
+    // 2. 始终调用快照比较以更新快照；仅在没有新增行时使用检测结果
+    const modifiedRowId = detectModifiedRowBySnapshot(primaryTableName, dataRows, rowIdColIndex);
+    if (!hasNewRow && modifiedRowId) {
+        setModifiedRow(primaryTableName, modifiedRowId);
     }
 
     setLastKnownMaxRowId(primaryTableName, newMaxRowId);
@@ -186,7 +197,7 @@ export function renderTheaterScene(container, sceneId, options = {}) {
     if (hasExistingScrollableBody) {
         scrollPreserver.captureScroll('bodyScrollTop');
         if (prevContainerHeight > 0) {
-            container.style.minHeight = `${prevContainerHeight}px`;
+            container.style.minHeight = prevContainerHeight + 'px';
         }
     }
 
@@ -213,5 +224,3 @@ export function renderTheaterScene(container, sceneId, options = {}) {
         }
     }
 }
-import { getTheaterSceneDefinition } from './config.js';
-import { setModifiedRow, getModifiedRowId, getLastKnownMaxRowId, setLastKnownMaxRowId } from './core/row-tracker.js';
