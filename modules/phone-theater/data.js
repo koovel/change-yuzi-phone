@@ -30,6 +30,17 @@ export {
     parseTheaterDeleteKey,
 } from './core/delete-key.js';
 
+export {
+    getRowIdValue,
+    sortTheaterRows,
+} from './core/table-index.js';
+
+export {
+    setModifiedRow,
+    getModifiedRowId,
+    clearModifiedRow,
+} from './core/row-tracker.js';
+
 export function resolveTheaterSceneTables(rawData, sceneDefinition) {
     const index = buildTheaterTableIndex(rawData);
     const scene = sceneDefinition || null;

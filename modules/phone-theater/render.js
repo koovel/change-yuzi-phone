@@ -10,6 +10,60 @@ function normalizeText(value) {
     return String(value ?? '').trim();
 }
 
+/**
+ * 自动检测新增行：比较当前最大 row_id 与上次已知最大值，
+ * 若增长了则将新行标记为"修改/添加行"以便排在第 1 页。
+ */
+function autoDetectNewRows(rawData, sceneId) {
+    if (!rawData) return;
+    const scene = getTheaterSceneDefinition(sceneId);
+    if (!scene) return;
+    const primaryTableName = normalizeText(scene.primaryTableName);
+    if (!primaryTableName) return;
+
+    const sheetKeys = Object.keys(rawData).filter(key => key.startsWith('sheet_'));
+    let sheet = null;
+    for (const key of sheetKeys) {
+        if (normalizeText(rawData[key]?.name) === primaryTableName) {
+            sheet = rawData[key];
+            break;
+        }
+    }
+    if (!sheet || !Array.isArray(sheet.content) || sheet.content.length <= 1) return;
+
+    const headers = Array.isArray(sheet.content[0]) ? sheet.content[0] : [];
+    const rowIdColIndex = headers.findIndex(h => normalizeText(h) === 'row_id');
+    if (rowIdColIndex < 0) return;
+
+    let maxId = null;
+    for (let i = 1; i < sheet.content.length; i++) {
+        const value = normalizeText(sheet.content[i]?.[rowIdColIndex]);
+        if (value) {
+            const numId = Number(value);
+            if (Number.isFinite(numId) && (maxId === null || numId > maxId)) {
+                maxId = numId;
+            }
+        }
+    }
+    if (maxId === null) return;
+
+    const newMaxRowId = String(maxId);
+    const lastKnownMax = getLastKnownMaxRowId(primaryTableName);
+
+    if (lastKnownMax !== null) {
+        const lastNum = Number(lastKnownMax);
+        const newNum = Number(newMaxRowId);
+        if (Number.isFinite(lastNum) && Number.isFinite(newNum) && newNum > lastNum) {
+            const existingModified = getModifiedRowId(primaryTableName);
+            if (!existingModified) {
+                setModifiedRow(primaryTableName, newMaxRowId);
+            }
+        }
+    }
+
+    setLastKnownMaxRowId(primaryTableName, newMaxRowId);
+}
+
 function normalizeRenderToken(value) {
     const token = Number(value);
     return Number.isFinite(token) ? token : null;
@@ -123,6 +177,7 @@ export function renderTheaterScene(container, sceneId, options = {}) {
         renderTheaterScene(container, state.sceneId, options);
     };
     const rawData = getTableData();
+    autoDetectNewRows(rawData, state.sceneId);
     const viewModel = buildTheaterSceneViewModel(rawData, state.sceneId);
     const uiState = buildUiState(state, viewModel);
 
@@ -158,3 +213,5 @@ export function renderTheaterScene(container, sceneId, options = {}) {
         }
     }
 }
+import { getTheaterSceneDefinition } from './config.js';
+import { setModifiedRow, getModifiedRowId, getLastKnownMaxRowId, setLastKnownMaxRowId } from './core/row-tracker.js';
