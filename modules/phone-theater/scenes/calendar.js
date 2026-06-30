@@ -438,6 +438,7 @@ function rerenderMonth(container, content, year, monthIndex, selectedKey) {
 }
 
 function bindInteractions(container, context = {}) {
+    bindFontScaleButton(container, context);
     const page = container.querySelector('.phone-theater-calendar-page');
     const content = context?.viewModel?.content || {};
     if (!(page instanceof HTMLElement) || !content || content.empty) return;

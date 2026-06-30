@@ -68,7 +68,7 @@
     border-radius: 50%;
     background: rgba(255, 59, 48, 0.1);
     color: var(--calendar-red);
-    font-size: 24px;
+    font-size: calc(24px * var(--phone-font-scale, 1));
     line-height: 1;
     cursor: pointer;
 }
@@ -83,7 +83,7 @@
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-month-label {
-    font-size: 16px;
+    font-size: calc(16px * var(--phone-font-scale, 1));
     font-weight: 700;
     line-height: 1.25;
 }
@@ -104,7 +104,7 @@
     border-radius: 999px;
     background: #fffaf7;
     color: var(--calendar-text);
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     line-height: 1.35;
     cursor: pointer;
     box-shadow: 0 4px 10px rgba(255, 107, 82, 0.08);
@@ -117,7 +117,7 @@
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-year-toggle-icon {
     color: var(--calendar-red);
-    font-size: 10px;
+    font-size: calc(10px * var(--phone-font-scale, 1));
     transition: transform 0.16s ease;
 }
 
@@ -166,7 +166,7 @@
     border-radius: 10px;
     background: transparent;
     color: var(--calendar-text);
-    font-size: 12px;
+    font-size: calc(12px * var(--phone-font-scale, 1));
     line-height: 1.35;
     text-align: center;
     cursor: pointer;
@@ -194,7 +194,7 @@
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-weekdays {
     padding: 0 4px;
     color: var(--calendar-muted);
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     font-weight: 600;
     text-align: center;
 }
@@ -214,7 +214,7 @@
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.74);
     color: var(--calendar-text);
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
     cursor: pointer;
     transition: transform 0.16s ease, background-color 0.16s ease, color 0.16s ease;
 }
@@ -274,7 +274,7 @@
 
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-count {
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     font-weight: 600;
     color: var(--calendar-muted);
     margin-bottom: 8px;
@@ -327,7 +327,7 @@
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-date {
-    font-size: 14px;
+    font-size: calc(14px * var(--phone-font-scale, 1));
     font-weight: 700;
     line-height: 1.35;
 }
@@ -335,7 +335,7 @@
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-detail-relation {
     margin-top: 2px;
     color: var(--calendar-muted);
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-badges {
@@ -349,7 +349,7 @@
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-event-time {
     padding: 3px 8px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     line-height: 1.4;
     background: rgba(52, 199, 89, 0.14);
     color: #1a7a3a;
@@ -359,7 +359,7 @@
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-weather {
     padding: 3px 8px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     line-height: 1.4;
 }
 
@@ -376,14 +376,14 @@
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-festival {
     margin-bottom: 5px;
     color: var(--calendar-red);
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
     font-weight: 700;
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-event {
     margin-bottom: 6px;
     color: var(--calendar-text);
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
     font-weight: 650;
     line-height: 1.45;
 }
@@ -391,7 +391,7 @@
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-content {
     margin: 0;
     color: rgba(36, 31, 31, 0.72);
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
     line-height: 1.7;
     white-space: pre-wrap;
     word-break: break-word;
@@ -424,12 +424,12 @@
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list-title {
-    font-size: 15px;
+    font-size: calc(15px * var(--phone-font-scale, 1));
     font-weight: 700;
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list-count {
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     font-weight: 600;
     color: rgba(36, 31, 31, 0.48);
 }
@@ -459,7 +459,7 @@
 }
 
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-all-list-date-head {
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
     font-weight: 700;
     color: var(--calendar-red, #ff3b30);
     padding: 2px 0;
@@ -474,7 +474,7 @@
     border-radius: 8px;
     background: rgba(255, 59, 48, 0.08);
     color: var(--calendar-red);
-    font-size: 20px;
+    font-size: calc(20px * var(--phone-font-scale, 1));
     line-height: 1;
     cursor: pointer;
     margin-right: 6px;
@@ -496,7 +496,7 @@
     gap: 6px;
 }
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-date-header {
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
     font-weight: 700;
     color: var(--calendar-red);
     padding: 6px 4px 2px;
@@ -510,7 +510,7 @@
     padding: 8px 10px;
     border-radius: 10px;
     background: rgba(255, 248, 244, 0.6);
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
 }
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-time {
     flex-shrink: 0;
@@ -518,7 +518,7 @@
     border-radius: 6px;
     background: rgba(52, 199, 89, 0.14);
     color: #1a7a3a;
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     font-weight: 600;
     min-width: 36px;
     text-align: center;
@@ -537,7 +537,7 @@
     border-radius: 999px;
     background: rgba(255, 149, 0, 0.13);
     color: #b05a00;
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
 }
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-weather {
     flex-shrink: 0;
@@ -545,11 +545,11 @@
     border-radius: 999px;
     background: rgba(0, 122, 255, 0.12);
     color: #0b63c7;
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
 }
 .phone-theater-page[data-theater-scene="calendar"] .phone-theater-calendar-list-empty {
     color: var(--calendar-muted);
     text-align: center;
     padding: 13px;
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
 }

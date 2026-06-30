@@ -131,7 +131,7 @@
     border: 1px solid rgba(199, 162, 104, 0.72);
     box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35), 0 6px 12px rgba(73, 111, 102, 0.18);
     color: #fdf7ea;
-    font-size: 16px;
+    font-size: calc(16px * var(--phone-font-scale, 1));
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -157,7 +157,7 @@
 }
 
 .phone-theater-page[data-theater-scene="square"] .phone-theater-author {
-    font-size: 14px;
+    font-size: calc(14px * var(--phone-font-scale, 1));
     font-weight: 700;
     color: var(--square-ink);
     line-height: 1.35;
@@ -172,19 +172,19 @@
     border: 1px solid rgba(199, 162, 104, 0.3);
     background: linear-gradient(180deg, rgba(255, 248, 235, 0.96) 0%, rgba(248, 238, 216, 0.92) 100%);
     color: var(--square-gold-deep);
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     font-weight: 600;
 }
 
 .phone-theater-page[data-theater-scene="square"] .phone-theater-square-time {
-    font-size: 11.5px;
+    font-size: calc(11.5px * var(--phone-font-scale, 1));
     line-height: 1.4;
     color: var(--square-ink-soft);
 }
 
 .phone-theater-page[data-theater-scene="square"] .phone-theater-title {
     margin: 0 0 8px;
-    font-size: 19px;
+    font-size: calc(19px * var(--phone-font-scale, 1));
     font-weight: 700;
     color: var(--square-ink);
     line-height: 1.45;
@@ -192,7 +192,7 @@
 }
 
 .phone-theater-page[data-theater-scene="square"] .phone-theater-body-text {
-    font-size: 14px;
+    font-size: calc(14px * var(--phone-font-scale, 1));
     line-height: 1.82;
     color: var(--square-ink);
     white-space: pre-wrap;
@@ -212,7 +212,7 @@
     min-height: 24px;
     padding: 3px 9px;
     border-radius: 999px;
-    font-size: 12px;
+    font-size: calc(12px * var(--phone-font-scale, 1));
     line-height: 1.4;
     border: 1px solid transparent;
     color: var(--square-jade-deep);
@@ -271,7 +271,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: calc(12px * var(--phone-font-scale, 1));
     font-weight: 700;
     color: var(--square-jade-deep);
     letter-spacing: 0.06em;
@@ -279,7 +279,7 @@
 
 .phone-theater-page[data-theater-scene="square"] .phone-theater-square-section-mark {
     color: var(--square-gold-deep);
-    font-size: 12px;
+    font-size: calc(12px * var(--phone-font-scale, 1));
     line-height: 1;
 }
 
@@ -287,7 +287,7 @@
     padding: 8px 9px;
     border-radius: 12px;
     background: rgba(255, 253, 247, 0.62);
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
     line-height: 1.6;
     color: rgba(47, 41, 35, 0.84);
 }
@@ -300,7 +300,7 @@
 .phone-theater-page[data-theater-scene="square"] .phone-theater-square-featured-author {
     font-weight: 700;
     color: var(--square-ink);
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
     margin-bottom: 2px;
 }
 
@@ -326,7 +326,7 @@
     border-radius: 10px;
     background: rgba(255, 253, 247, 0.68);
     border: 1px solid rgba(139, 111, 73, 0.1);
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--phone-font-scale, 1));
     line-height: 1.58;
     color: rgba(47, 41, 35, 0.84);
 }
@@ -345,7 +345,7 @@
     border: 1px solid rgba(171, 95, 86, 0.18);
     background: rgba(248, 236, 232, 0.9);
     color: #9e6258;
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     font-weight: 700;
     letter-spacing: 0.04em;
 }
@@ -354,7 +354,7 @@
     background: rgba(246, 240, 234, 0.82);
     border-color: rgba(171, 95, 86, 0.12);
     color: rgba(88, 66, 60, 0.78);
-    font-size: 11.5px;
+    font-size: calc(11.5px * var(--phone-font-scale, 1));
     font-style: normal;
     opacity: 1;
 }
@@ -381,13 +381,13 @@
     border: 1px solid rgba(111, 145, 135, 0.16);
     background: rgba(232, 240, 236, 0.8);
     color: var(--square-jade-deep);
-    font-size: 11.5px;
+    font-size: calc(11.5px * var(--phone-font-scale, 1));
     font-weight: 600;
 }
 
 .phone-theater-page[data-theater-scene="square"] .phone-theater-square-interaction-text {
     margin-left: auto;
-    font-size: 11.5px;
+    font-size: calc(11.5px * var(--phone-font-scale, 1));
     color: rgba(110, 98, 88, 0.88);
 }
 
@@ -401,7 +401,7 @@
     }
 
     .phone-theater-page[data-theater-scene="square"] .phone-theater-title {
-        font-size: 18px;
+        font-size: calc(18px * var(--phone-font-scale, 1));
     }
 
     .phone-theater-page[data-theater-scene="square"] .phone-theater-square-action-row {
@@ -420,7 +420,7 @@
 .phone-theater-hscroll-track::-webkit-scrollbar{display:none}
 .phone-theater-hscroll-inner{display:flex!important;height:100%}
 .phone-theater-hscroll-inner>*{flex-shrink:0!important;width:100%!important;min-width:100%!important;max-width:100%!important;scroll-snap-align:start;height:100%;overflow-y:auto!important;-webkit-overflow-scrolling:touch}
-.phone-theater-hscroll-btn{position:fixed;top:44vh;transform:translateY(-50%);width:30px;height:44px;border:0;border-radius:8px;background:rgba(128,128,128,0.18);color:rgba(0,0,0,0.5);font-size:22px;line-height:1;cursor:pointer;opacity:0.28;transition:opacity .18s ease,background .18s ease;z-index:10;padding:0;pointer-events:auto}
+.phone-theater-hscroll-btn{position:fixed;top:44vh;transform:translateY(-50%);width:30px;height:44px;border:0;border-radius:8px;background:rgba(128,128,128,0.18);color:rgba(0,0,0,0.5);font-size: calc(22px * var(--phone-font-scale, 1));line-height:1;cursor:pointer;opacity:0.28;transition:opacity .18s ease,background .18s ease;z-index:10;padding:0;pointer-events:auto}
 .phone-theater-hscroll-container:hover .phone-theater-hscroll-btn{opacity:0.7}
 .phone-theater-hscroll-btn:hover{opacity:1!important;background:rgba(128,128,128,0.26)}
 .phone-theater-hscroll-left{left:4px}

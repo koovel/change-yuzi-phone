@@ -220,7 +220,7 @@
     align-items: center;
     min-width: 0;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     font-weight: 800;
     letter-spacing: 0.08em;
     white-space: nowrap;
@@ -262,7 +262,7 @@
     border-radius: 15px;
     color: #6f4426;
     background: linear-gradient(135deg, #f7d89e, #fff4d9);
-    font-size: 17px;
+    font-size: calc(17px * var(--phone-font-scale, 1));
     font-weight: 800;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68), 0 5px 12px rgba(111, 71, 35, 0.12);
 }
@@ -274,14 +274,14 @@
 .phone-app-page.phone-theater-page[data-theater-scene="diary"] .phone-theater-diary-author {
     margin: 0;
     color: #54351f;
-    font-size: 16px;
+    font-size: calc(16px * var(--phone-font-scale, 1));
     line-height: 1.25;
 }
 
 .phone-app-page.phone-theater-page[data-theater-scene="diary"] .phone-theater-diary-signature {
     margin-top: 3px;
     color: var(--diary-muted);
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     letter-spacing: 0.06em;
 }
 
@@ -297,7 +297,7 @@
 .phone-app-page.phone-theater-page[data-theater-scene="diary"] .phone-theater-diary-line {
     margin: 0;
     color: #5d4028;
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
     line-height: 1.85;
     letter-spacing: 0.01em;
     word-break: break-word;
@@ -336,7 +336,7 @@
     gap: 8px;
     align-items: start;
     color: #6e4a2f;
-    font-size: 12px;
+    font-size: calc(12px * var(--phone-font-scale, 1));
     line-height: 1.65;
 }
 
@@ -348,7 +348,7 @@
     border-radius: 999px;
     color: #fff8ef;
     background: #a66c3e;
-    font-size: 10px;
+    font-size: calc(10px * var(--phone-font-scale, 1));
     font-weight: 800;
     letter-spacing: 0.08em;
 }
@@ -380,7 +380,7 @@
 
 .phone-app-page.phone-theater-page[data-theater-scene="diary"] .phone-theater-diary-empty-kicker {
     color: var(--diary-accent);
-    font-size: 11px;
+    font-size: calc(11px * var(--phone-font-scale, 1));
     font-weight: 800;
     letter-spacing: 0.14em;
 }
@@ -388,7 +388,7 @@
 .phone-app-page.phone-theater-page[data-theater-scene="diary"] .phone-theater-diary-empty-title {
     margin-top: 8px;
     color: #5c3d25;
-    font-size: 18px;
+    font-size: calc(18px * var(--phone-font-scale, 1));
     font-weight: 800;
 }
 
@@ -396,7 +396,7 @@
     max-width: 240px;
     margin: 8px auto 0;
     color: var(--diary-muted);
-    font-size: 13px;
+    font-size: calc(13px * var(--phone-font-scale, 1));
     line-height: 1.7;
 }
 
@@ -429,7 +429,7 @@
 .phone-theater-hscroll-track::-webkit-scrollbar{display:none}
 .phone-theater-hscroll-inner{display:flex!important;height:100%}
 .phone-theater-hscroll-inner>*{flex-shrink:0!important;width:100%!important;min-width:100%!important;max-width:100%!important;scroll-snap-align:start;height:100%;overflow-y:auto!important;-webkit-overflow-scrolling:touch}
-.phone-theater-hscroll-btn{position:fixed;top:44vh;transform:translateY(-50%);width:30px;height:44px;border:0;border-radius:8px;background:rgba(128,128,128,0.18);color:rgba(0,0,0,0.5);font-size:22px;line-height:1;cursor:pointer;opacity:0.28;transition:opacity .18s ease,background .18s ease;z-index:10;padding:0;pointer-events:auto}
+.phone-theater-hscroll-btn{position:fixed;top:44vh;transform:translateY(-50%);width:30px;height:44px;border:0;border-radius:8px;background:rgba(128,128,128,0.18);color:rgba(0,0,0,0.5);font-size: calc(22px * var(--phone-font-scale, 1));line-height:1;cursor:pointer;opacity:0.28;transition:opacity .18s ease,background .18s ease;z-index:10;padding:0;pointer-events:auto}
 .phone-theater-hscroll-container:hover .phone-theater-hscroll-btn{opacity:0.7}
 .phone-theater-hscroll-btn:hover{opacity:1!important;background:rgba(128,128,128,0.26)}
 .phone-theater-hscroll-left{left:4px}
