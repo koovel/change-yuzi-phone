@@ -6,6 +6,7 @@ import {
 } from '../../phone-core/date-relation.js';
 import { escapeHtml, escapeHtmlAttr } from '../../utils/dom-escape.js';
 import { getCellByHeader, mapTheaterRows, normalizeText } from '../core/table-index.js';
+import { bindFontScaleButton } from '../core/font-scale.js';
 
 const CALENDAR_TABLES = Object.freeze({
     days: '小日历表',
